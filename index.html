@@ -3,56 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | WerkSolutions</title>
-    <!-- Estilos CSS -->
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/map.css">
-    <link rel="stylesheet" href="css/modals.css">
+    <title>ClientSync | WerkSolutions Zonas y Citas</title>
+    <!-- Tus estilos principales -->
+    <link rel="stylesheet" href="./css/main.css">
 </head>
 <body>
 
-    <header class="app-header">
-        <h1>ClientSync <span class="subtitle">| WerkSolutions Zonas y Citas</span></h1>
-        <div id="employee-filter-container">
-            <!-- Selector dinámico de empleados para filtrar el mapa -->
+    <div class="container">
+        <h1>ClientSync | WerkSolutions Zonas y Citas</h1>
+
+        <!-- Filtro superior -->
+        <div class="filter-section">
             <label for="filter-employee">Filtrar por técnico:</label>
             <select id="filter-employee">
                 <option value="all">Todo el equipo</option>
             </select>
         </div>
-    </header>
 
-    <main class="dashboard-container">
-        <!-- Panel Izquierdo: Administración de Empleados y Zonas -->
-        <section class="sidebar">
-            <div class="panel-section">
-                <h2>Gestión del Equipo</h2>
-                <!-- Formulario para dar de alta a los 4 miembros -->
-                <form id="employee-form" class="card-form">
-                    <input type="text" id="emp-name" required placeholder="Nombre y Apellido">
-                    <input type="email" id="emp-email" required placeholder="correo@werksolutions.de">
-                    <select id="emp-role">
-                        <option value="Técnico">Técnico</option>
-                        <option value="Administrador">Administrador</option>
-                    </select>
-                    <button type="submit" class="btn-primary">Registrar Empleado</button>
-                </form>
+        <!-- Gestión del Equipo -->
+        <section class="team-section">
+            <h2>Gestión del Equipo</h2>
+            
+            <form id="employee-form" class="employee-form">
+                <input type="text" id="emp-name" placeholder="Nombre y Apellido" required>
+                <input type="email" id="emp-email" placeholder="correo@werksolutions.de" required>
+                <select id="emp-role">
+                    <option value="Técnico">Técnico</option>
+                    <option value="Administrador">Administrador</option>
+                </select>
+                <button type="submit">Registrar Empleado</button>
+            </form>
 
-                <!-- Listado dinámico de empleados -->
-                <ul id="employees-list">
-                    <li>Cargando empleados...</li>
-                </ul>
-            </div>
+            <ul id="employees-list" class="employees-list">
+                <!-- Los empleados se cargarán dinámicamente aquí -->
+            </ul>
         </section>
 
-        <!-- Panel Derecho: El mapa interactivo de Google Maps -->
+        <!-- Sección del Mapa de Google Maps -->
         <section class="map-section">
+            <h2>Ubicación y Zonas de Trabajo</h2>
             <div id="map"></div>
         </section>
-    </main>
+    </div>
+
+    <!-- Carga de la API de Google Maps con el callback a la función initMap -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uDGE_6vKA2uT4y3mURzO_33I&callback=initMap" async defer></script>
 
     <!-- Scripts de la aplicación -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ"></script>
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/map.js"></script>
+
 </body>
 </html>
