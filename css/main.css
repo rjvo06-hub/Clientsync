@@ -1,6 +1,14 @@
+/* Estilos generales y contenedor del mapa */
 #map {
     width: 100%;
     height: 450px;
     border-radius: 8px;
     margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.map-container {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
 }
