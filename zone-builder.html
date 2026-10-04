@@ -15,7 +15,7 @@
         </div>
 
         <p style="color: #4a5568; margin-bottom: 20px;">
-            Introduce los datos de la zona y añade los puntos secuenciales de las esquinas obtenidas de Google Maps (triángulos, cuadrados, formas de "L", etc.) para guardarlos estructurados en Supabase.
+            Haz clic en Google Maps, copia la coordenada completa (ej. <i>48.05417, 11.64464</i>) y pégala directamente en el campo de Latitud; se rellenarán ambos campos automáticamente.
         </p>
 
         <form id="custom-zone-form">
@@ -41,7 +41,7 @@
         </form>
     </div>
 
-    <!-- Script de lógica para gestionar los puntos y la conexión con Supabase -->
+    <!-- Script de lógica para gestionar los puntos, el pegado automático y la conexión con Supabase -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -62,10 +62,25 @@
                 
                 row.innerHTML = `
                     <span style="font-weight: bold; min-width: 75px; color: #2d3748;">Punto ${coordCount}:</span>
-                    <input type="number" step="any" placeholder="Latitud (ej. 48.0686)" value="${lat}" class="lat-input" required style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
-                    <input type="number" step="any" placeholder="Longitud (ej. 11.6289)" value="${lng}" class="lng-input" required style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                    <input type="text" placeholder="Latitud (o pega todo aquí)" value="${lat}" class="lat-input" required style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                    <input type="text" placeholder="Longitud" value="${lng}" class="lng-input" required style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
                     <button type="button" class="remove-coord" style="padding: 8px 12px; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">X</button>
                 `;
+
+                const latInput = row.querySelector('.lat-input');
+                const lngInput = row.querySelector('.lng-input');
+
+                // Detección automática inteligente al pegar el texto completo con coma de Google Maps
+                latInput.addEventListener('input', () => {
+                    const val = latInput.value;
+                    if (val.includes(',')) {
+                        const parts = val.split(',');
+                        if (parts.length >= 2) {
+                            latInput.value = parts[0].trim();
+                            lngInput.value = parts[1].trim();
+                        }
+                    }
+                });
 
                 row.querySelector('.remove-coord').addEventListener('click', () => {
                     row.remove();
@@ -110,16 +125,16 @@
                 });
 
                 if (points.length < 3) {
-                    alert('Debes ingresar al menos 3 coordenadas para formar una zona poligonal.');
+                    alert('Debes ingresar al menos 3 coordenadas válidas para formar una zona poligonal.');
                     return;
                 }
 
-                // Guardar en la tabla zones de Supabase (guardando el arreglo de puntos como JSON)
+                // Guardar en la tabla zones de Supabase
                 const { data, error } = await supabase.from('zones').insert([
                     { 
                         name: name, 
                         postal_code: postal_code, 
-                        polygon_coords: points // Asegúrate de tener una columna polygon_coords tipo jsonb o text en Supabase
+                        polygon_coords: points 
                     }
                 ]);
 
