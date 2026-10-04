@@ -2,7 +2,6 @@ import { supabase } from './supabaseClient.js';
 
 let map;
 let markers = [];
-let circles = [];
 
 // Función principal que inicializa el mapa de Google Maps
 export async function initMap() {
@@ -19,7 +18,7 @@ export async function initMap() {
         streetViewControl: false
     });
 
-    // Cargar las zonas directamente desde Supabase usando lat y lng
+    // Cargar las zonas directamente desde Supabase
     await loadZonesFromSupabase();
 }
 
@@ -42,27 +41,39 @@ async function loadZonesFromSupabase() {
             if (lat !== null && lng !== null && lat !== undefined && lng !== undefined) {
                 const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
                 
-                // Crear un marcador para la zona
+                // Crear un marcador personalizado para la zona
                 const marker = new google.maps.Marker({
                     position: position,
                     map: map,
-                    title: `${zone.name} (${zone.postal_code || ''})`
+                    title: `${zone.name} - CP: ${zone.postal_code || 'N/A'}`
                 });
 
-                // Crear un círculo translúcido para resaltar el área de cobertura
+                // Ventana de información (InfoBox) al hacer clic en el marcador
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `<div style="padding: 5px;">
+                        <strong>${zone.name}</strong><br>
+                        <span>Código Postal: ${zone.postal_code || 'N/A'}</span><br>
+                        <span>Capacidad semanal: ${zone.max_weekly_capacity || 'N/A'}</span>
+                    </div>`
+                });
+
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+
+                // Círculo de cobertura más discreto y elegante centrado exactamente en el código postal
                 const circle = new google.maps.Circle({
-                    strokeColor: '#0055ff',
+                    strokeColor: '#2b6cb0',
                     strokeOpacity: 0.8,
-                    strokeWeight: 2,
-                    fillColor: '#0055ff',
-                    fillOpacity: 0.25,
+                    strokeWeight: 1.5,
+                    fillColor: '#3182ce',
+                    fillOpacity: 0.15,
                     map: map,
                     center: position,
-                    radius: 2500 // Radio de 2.5 km por zona
+                    radius: 1800 // Radio ajustado para evitar solapamientos excesivos
                 });
 
                 markers.push(marker);
-                circles.push(circle);
                 bounds.extend(position);
                 hasValidCoords = true;
             }
