@@ -2,8 +2,9 @@ import { supabase } from './supabaseClient.js';
 
 let map;
 
-window.initMap = async function() {
-    console.log("🗺️ Inicializando Google Maps...");
+// Usamos un nombre completamente nuevo para evitar la caché del navegador
+window.initClientSyncMap = async function() {
+    console.log("🗺️ Inicializando Google Maps (ClientSync)...");
     const defaultCenter = { lat: 48.0686, lng: 11.6289 };
 
     try {
@@ -24,7 +25,7 @@ window.initMap = async function() {
         return;
     }
 
-    // Cargar las zonas de Supabase
+    // Cargar y pintar las zonas guardadas en Supabase
     await loadAndRenderZones(map);
 };
 
@@ -53,7 +54,7 @@ async function loadAndRenderZones(mapInstance) {
             console.log(`📍 Analizando Zona [${index + 1}] - Nombre: "${zone.name}"`, coords);
 
             if (Array.isArray(coords) && coords.length >= 3) {
-                // Asegurar que las coordenadas tengan formato numérico lat/lng por seguridad
+                // Asegurar formato numérico correcto para lat/lng
                 const formattedCoords = coords.map(pt => ({
                     lat: Number(pt.lat),
                     lng: Number(pt.lng)
@@ -71,7 +72,7 @@ async function loadAndRenderZones(mapInstance) {
                     map: mapInstance
                 });
 
-                // Opcional: Centrar el mapa automáticamente en la primera zona encontrada para verla de inmediato
+                // Centrar automáticamente la vista en la primera zona cargada
                 if (index === 0 && formattedCoords.length > 0) {
                     mapInstance.setCenter(formattedCoords[0]);
                     mapInstance.setZoom(14);
