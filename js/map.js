@@ -7,7 +7,7 @@ export async function initMap() {
     const mapContainer = document.getElementById('map');
     if (!mapContainer) return;
 
-    // Coordenadas centrales (por ejemplo, zona de Múnich / Ottobrunn)
+    // Coordenadas centrales (Múnich / Ottobrunn)
     const centerLocation = { lat: 48.0686, lng: 11.6289 };
 
     map = new google.maps.Map(mapContainer, {
@@ -17,7 +17,6 @@ export async function initMap() {
         streetViewControl: false
     });
 
-    // Cargar las zonas y marcadores desde Supabase
     await loadMapMarkers();
 }
 
@@ -31,11 +30,17 @@ async function loadMapMarkers() {
 
     if (data && data.length > 0) {
         data.forEach(zone => {
-            // Ejemplo básico: si tus zonas tienen latitud y longitud, puedes crear marcadores aquí
             console.log('Zona cargada:', zone.name);
         });
     }
 }
 
-// Exponer la función globalmente para que la API de Google Maps la invoque al cargar
-window.initMap = initMap;
+// Inicializar automáticamente cuando el DOM y el script estén listos
+document.addEventListener('DOMContentLoaded', () => {
+    // Asegurarnos de que la API de Google Maps ya cargó
+    if (window.google && window.google.maps) {
+        initMap();
+    } else {
+        window.initMap = initMap; // Por si acaso la API lo llama después
+    }
+});
