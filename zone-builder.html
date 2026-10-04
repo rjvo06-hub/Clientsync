@@ -15,7 +15,7 @@
         </div>
 
         <p style="color: #4a5568; margin-bottom: 20px;">
-            Haz clic en Google Maps, copia la coordenada completa (ej. <i>48.05417, 11.64464</i>) y pégala directamente en el campo de Latitud; se rellenarán ambos campos automáticamente.
+            Haz clic en Google Maps, copia la coordenada completa (ej. <i>48.05417, 11.64464</i>) y pégala directamente en el campo de Latitud; se rellenarán ambos campos automáticamente. Cada zona guardada obtendrá un color único en el mapa.
         </p>
 
         <form id="custom-zone-form">
@@ -41,7 +41,6 @@
         </form>
     </div>
 
-    <!-- Script de lógica para gestionar los puntos, el pegado automático y la conexión con Supabase -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -70,7 +69,6 @@
                 const latInput = row.querySelector('.lat-input');
                 const lngInput = row.querySelector('.lng-input');
 
-                // Detección automática inteligente al pegar el texto completo con coma de Google Maps
                 latInput.addEventListener('input', () => {
                     const val = latInput.value;
                     if (val.includes(',')) {
@@ -106,7 +104,6 @@
 
             addBtn.addEventListener('click', () => addCoordinateRow());
 
-            // Manejar el envío del formulario hacia Supabase
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
@@ -129,12 +126,17 @@
                     return;
                 }
 
-                // Guardar en la tabla zones de Supabase
+                // Paleta de colores profesionales para asignar automáticamente a cada nueva zona
+                const palette = ['#3182ce', '#38a169', '#d69e2e', '#e53e3e', '#805ad5', '#dd6b20', '#319795', '#e53e3e', '#d53f8c'];
+                const randomColor = palette[Math.floor(Math.random() * palette.length)];
+
+                // Guardar en la tabla zones de Supabase incluyendo el color asignado
                 const { data, error } = await supabase.from('zones').insert([
                     { 
                         name: name, 
                         postal_code: postal_code, 
-                        polygon_coords: points 
+                        polygon_coords: points,
+                        color: randomColor
                     }
                 ]);
 
@@ -142,7 +144,7 @@
                     console.error('Error al guardar en Supabase:', error.message);
                     alert('Hubo un error al guardar la zona: ' + error.message);
                 } else {
-                    alert('¡Zona guardada correctamente en Supabase!');
+                    alert('¡Zona guardada correctamente con color único!');
                     form.reset();
                     container.innerHTML = '';
                     coordCount = 0;
