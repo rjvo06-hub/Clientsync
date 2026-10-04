@@ -2,17 +2,14 @@ import { supabase } from './supabaseClient.js';
 
 let map;
 
-// Función global que inicializa el mapa (llamada por el script de la API en el HTML)
+// Declaramos la función y la colgamos explícitamente de window para que la API la encuentre
 window.initMap = async function() {
-    // Coordenadas iniciales centradas en Ottobrunn / Múnich
     const defaultCenter = { lat: 48.0686, lng: 11.6289 };
 
-    // 1. Crear la instancia del mapa
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 13,
         center: defaultCenter,
         styles: [
-            // Estilo limpio opcional para mejor visualización de zonas
             {
                 featureType: "poi",
                 elementType: "labels",
@@ -21,13 +18,9 @@ window.initMap = async function() {
         ]
     });
 
-    // 2. Cargar y renderizar las zonas geográficas desde Supabase
     await loadAndRenderZones(map);
 };
 
-/**
- * Consulta la tabla zones en Supabase y dibuja los polígonos (polygon_coords) en el mapa
- */
 async function loadAndRenderZones(mapInstance) {
     try {
         const { data: zones, error } = await supabase
@@ -46,22 +39,19 @@ async function loadAndRenderZones(mapInstance) {
         }
 
         zones.forEach(zone => {
-            const coords = zone.polygon_coords; // Arreglo de objetos [{lat, lng}, ...]
+            const coords = zone.polygon_coords;
 
-            // Validar que sea un arreglo con al menos 3 puntos para formar un polígono
             if (Array.isArray(coords) && coords.length >= 3) {
-                // Crear el polígono en Google Maps
                 const zonePolygon = new google.maps.Polygon({
                     paths: coords,
-                    strokeColor: '#2b6cb0',   // Color del borde
+                    strokeColor: '#2b6cb0',
                     strokeOpacity: 0.8,
                     strokeWeight: 2,
-                    fillColor: '#3182ce',     // Color de relleno
-                    fillOpacity: 0.35,        // Transparencia del relleno
+                    fillColor: '#3182ce',
+                    fillOpacity: 0.35,
                     map: mapInstance
                 });
 
-                // Ventana de información (InfoWIndow) al hacer clic en el polígono
                 const infoWindow = new google.maps.InfoWindow();
 
                 zonePolygon.addListener('click', (event) => {
