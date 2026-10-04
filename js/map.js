@@ -2,13 +2,28 @@ import { supabase } from './supabaseClient.js';
 
 let map;
 
-// Usamos un nombre completamente nuevo para evitar la caché del navegador
-window.initClientSyncMap = async function() {
-    console.log("🗺️ Inicializando Google Maps (ClientSync)...");
+// Función que verifica y arranca el mapa de forma segura
+function initMapWhenReady() {
+    if (typeof google === 'object' && typeof google.maps === 'object') {
+        startMap();
+    } else {
+        // Si Google Maps aún se está cargando, espera un momento y vuelve a intentar
+        setTimeout(initMapWhenReady, 100);
+    }
+}
+
+async function startMap() {
+    console.log("🗺️ Inicializando mapa de Google Maps...");
     const defaultCenter = { lat: 48.0686, lng: 11.6289 };
 
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+        console.error("❌ No se encontró el contenedor #map en el DOM.");
+        return;
+    }
+
     try {
-        map = new google.maps.Map(document.getElementById('map'), {
+        map = new google.maps.Map(mapElement, {
             zoom: 13,
             center: defaultCenter,
             styles: [
@@ -19,15 +34,15 @@ window.initClientSyncMap = async function() {
                 }
             ]
         });
-        console.log("✅ Mapa de Google creado correctamente.");
-    } catch (e) {
-        console.error("❌ Error al crear la instancia del mapa:", e);
-        return;
-    }
+        console.log("✅ Mapa creado con éxito.");
 
-    // Cargar y pintar las zonas guardadas en Supabase
-    await loadAndRenderZones(map);
-};
+        // Cargar y pintar las zonas desde Supabase
+        await loadAndRenderZones(map);
+
+    } catch (e) {
+        console.error("❌ Error crítico al instanciar el mapa:", e);
+    }
+}
 
 async function loadAndRenderZones(mapInstance) {
     try {
@@ -38,23 +53,21 @@ async function loadAndRenderZones(mapInstance) {
             .not('polygon_coords', 'is', null);
 
         if (error) {
-            console.error('❌ Error al consultar Supabase:', error.message);
+            console.error('❌ Error en Supabase:', error.message);
             return;
         }
 
-        console.log(`📦 Zonas encontradas en Supabase con polígonos:`, zones);
+        console.log(`📦 Zonas obtenidas:`, zones);
 
         if (!zones || zones.length === 0) {
-            console.warn('⚠️ No hay zonas con polígonos registrados en la base de datos.');
+            console.warn('⚠️ No hay zonas con polígonos guardados.');
             return;
         }
 
         zones.forEach((zone, index) => {
             const coords = zone.polygon_coords;
-            console.log(`📍 Analizando Zona [${index + 1}] - Nombre: "${zone.name}"`, coords);
 
             if (Array.isArray(coords) && coords.length >= 3) {
-                // Asegurar formato numérico correcto para lat/lng
                 const formattedCoords = coords.map(pt => ({
                     lat: Number(pt.lat),
                     lng: Number(pt.lng)
@@ -72,7 +85,7 @@ async function loadAndRenderZones(mapInstance) {
                     map: mapInstance
                 });
 
-                // Centrar automáticamente la vista en la primera zona cargada
+                // Centrar la vista en la primera zona cargada
                 if (index === 0 && formattedCoords.length > 0) {
                     mapInstance.setCenter(formattedCoords[0]);
                     mapInstance.setZoom(14);
@@ -92,12 +105,15 @@ async function loadAndRenderZones(mapInstance) {
                     infoWindow.setPosition(event.latLng);
                     infoWindow.open(mapInstance);
                 });
-            } else {
-                console.warn(`⚠️ La zona "${zone.name}" tiene menos de 3 puntos o un formato inválido.`);
             }
         });
 
     } catch (err) {
-        console.error('❌ Excepción crítica al renderizar las zonas:', err);
+        console.error('❌ Excepción al renderizar zonas:', err);
     }
 }
+
+// Iniciar proceso de escucha cuando cargue la página
+document.addEventListener('DOMContentLoaded', () => {
+    initMapWhenReady();
+});
