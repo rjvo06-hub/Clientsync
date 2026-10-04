@@ -9,7 +9,7 @@
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" style="max-width: 1000px; margin: 20px auto; padding: 20px;">
         <h1>ClientSync | WerkSolutions Zonas y Citas</h1>
 
         <!-- Botón para abrir la aplicación externa de carga de zonas -->
@@ -20,36 +20,36 @@
         </div>
 
         <!-- Filtro superior -->
-        <div class="filter-section">
+        <div class="filter-section" style="margin-bottom: 20px;">
             <label for="filter-employee">Filtrar por técnico:</label>
-            <select id="filter-employee">
+            <select id="filter-employee" style="padding: 6px; border-radius: 4px; border: 1px solid #cbd5e0;">
                 <option value="all">Todo el equipo</option>
             </select>
         </div>
 
         <!-- Gestión del Equipo -->
-        <section class="team-section">
+        <section class="team-section" style="margin-bottom: 30px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <h2>Gestión del Equipo</h2>
             
-            <form id="employee-form" class="employee-form">
-                <input type="text" id="emp-name" placeholder="Nombre y Apellido" required>
-                <input type="email" id="emp-email" placeholder="correo@werksolutions.de" required>
-                <select id="emp-role">
+            <form id="employee-form" class="employee-form" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <input type="text" id="emp-name" placeholder="Nombre y Apellido" required style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                <input type="email" id="emp-email" placeholder="correo@werksolutions.de" required style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                <select id="emp-role" style="padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
                     <option value="Técnico">Técnico</option>
                     <option value="Administrador">Administrador</option>
                 </select>
-                <button type="submit">Registrar Empleado</button>
+                <button type="submit" style="padding: 8px 16px; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Registrar Empleado</button>
             </form>
 
-            <ul id="employees-list" class="employees-list">
+            <ul id="employees-list" class="employees-list" style="list-style: none; padding: 0;">
                 <!-- Los empleados se cargarán dinámicamente aquí -->
             </ul>
         </section>
 
-        <!-- Sección del Mapa de Google Maps -->
-        <section class="map-section">
-            <h2>Ubicación y Zonas de Trabajo</h2>
-            <div id="map"></div>
+        <!-- Sección del Mapa de Google Maps (Con altura fija obligatoria para que renderice) -->
+        <section class="map-section" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <h2 style="margin-top: 0;">Ubicación y Zonas de Trabajo</h2>
+            <div id="map" style="width: 100%; height: 500px; border-radius: 6px; border: 1px solid #e2e8f0;"></div>
         </section>
     </div>
 
