@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClientSync | WerkSolutions</title>
+    <!-- Estilos CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/map.css">
+    <link rel="stylesheet" href="css/modals.css">
+</head>
+<body>
+
+    <header class="app-header">
+        <h1>ClientSync <span class="subtitle">| WerkSolutions Zonas y Citas</span></h1>
+        <div id="employee-filter-container">
+            <!-- Selector dinámico de empleados para filtrar el mapa -->
+            <label for="filter-employee">Filtrar por técnico:</label>
+            <select id="filter-employee">
+                <option value="all">Todo el equipo</option>
+            </select>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <!-- Panel Izquierdo: Administración de Empleados y Zonas -->
+        <section class="sidebar">
+            <div class="panel-section">
+                <h2>Gestión del Equipo</h2>
+                <!-- Formulario para dar de alta a los 4 miembros -->
+                <form id="employee-form" class="card-form">
+                    <input type="text" id="emp-name" required placeholder="Nombre y Apellido">
+                    <input type="email" id="emp-email" required placeholder="correo@werksolutions.de">
+                    <select id="emp-role">
+                        <option value="Técnico">Técnico</option>
+                        <option value="Administrador">Administrador</option>
+                    </select>
+                    <button type="submit" class="btn-primary">Registrar Empleado</button>
+                </form>
+
+                <!-- Listado dinámico de empleados -->
+                <ul id="employees-list">
+                    <li>Cargando empleados...</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Panel Derecho: El mapa interactivo de Google Maps -->
+        <section class="map-section">
+            <div id="map"></div>
+        </section>
+    </main>
+
+    <!-- Scripts de la aplicación -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
