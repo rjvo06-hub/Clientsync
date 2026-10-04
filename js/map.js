@@ -13,12 +13,11 @@ export async function initMap() {
     map = new google.maps.Map(mapContainer, {
         center: centerLocation,
         zoom: 12,
-        styles: [
-            // Puedes personalizar los estilos del mapa aquí si lo deseas
-        ]
+        mapTypeControl: true,
+        streetViewControl: false
     });
 
-    // Cargar datos adicionales (como zonas o citas) desde Supabase
+    // Cargar las zonas y marcadores desde Supabase
     await loadMapMarkers();
 }
 
@@ -32,11 +31,11 @@ async function loadMapMarkers() {
 
     if (data && data.length > 0) {
         data.forEach(zone => {
-            // Aquí puedes pintar los marcadores o polígonos de las zonas
+            // Ejemplo básico: si tus zonas tienen latitud y longitud, puedes crear marcadores aquí
             console.log('Zona cargada:', zone.name);
         });
     }
 }
 
-// Exponer la función globalmente para que la API de Google Maps la llame
+// Exponer la función globalmente para que la API de Google Maps la invoque al cargar
 window.initMap = initMap;
