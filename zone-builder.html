@@ -3,58 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Registro de Clientes y Direcciones</title>
+    <title>ClientSync | Creador de Zonas por Coordenadas</title>
     <link rel="stylesheet" href="./css/main.css">
 </head>
 <body>
 
-    <div class="container" style="max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <div class="container" style="max-width: 700px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 1.5rem;">Registrar Nuevo Cliente</h1>
+            <h1 style="margin: 0; font-size: 1.5rem;">Creador de Zonas Geográficas</h1>
             <a href="./index.html" style="padding: 6px 12px; background: #718096; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9rem;">← Volver al Mapa</a>
         </div>
 
         <p style="color: #4a5568; margin-bottom: 20px;">
-            Ingresa los datos del cliente y sus coordenadas (ej. <i>48.0583, 11.6492</i>) para guardarlo directamente en Supabase.
+            Haz clic en Google Maps, copia la coordenada completa (ej. <i>48.05417, 11.64464</i>) y pégala directamente en el campo de Latitud; se rellenarán ambos campos automáticamente. Cada zona guardada obtendrá un color único en el mapa.
         </p>
 
-        <form id="client-form">
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Nombre del Cliente o Empresa:</label>
-                <input type="text" id="client-name" placeholder="Ej. WerkSolutions GmbH" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-            </div>
-
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Teléfono de Contacto:</label>
-                <input type="text" id="client-phone" placeholder="Ej. +49 89 1234567" style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 2;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Calle y Número:</label>
-                    <input type="text" id="client-street" placeholder="Ej. Haidgraben 103" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-                </div>
-                <div style="flex: 1;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Código Postal:</label>
-                    <input type="text" id="client-postal" placeholder="Ej. 85521" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-                </div>
-            </div>
-
-            <!-- Coordenadas directas (evita problemas de permisos con Google) -->
+        <form id="custom-zone-form">
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <div style="flex: 1;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Latitud:</label>
-                    <input type="text" id="client-lat" placeholder="Ej. 48.0583" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-                </div>
-                <div style="flex: 1;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Longitud:</label>
-                    <input type="text" id="client-lng" placeholder="Ej. 11.6492" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-                </div>
+                <input type="text" id="zone-name" placeholder="Nombre de la Zona (ej. Ottobrunn Norte)" required style="flex: 2; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                <input type="text" id="zone-postal" placeholder="Código Postal (ej. 85521)" style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px;">
             </div>
 
-            <div style="display: flex; justify-content: flex-end;">
-                <button type="submit" id="save-btn" style="padding: 12px 24px; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">
-                    Guardar Cliente en Supabase
+            <h3 style="font-size: 1.1rem; margin-bottom: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Vértices del Perímetro en Orden</h3>
+            <div id="coordinates-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <!-- Las filas de coordenadas se generan dinámicamente aquí -->
+            </div>
+
+            <button type="button" id="add-coordinate-btn" style="padding: 8px 14px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 25px;">
+                + Añadir Vértice (Coordenada)
+            </button>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="submit" style="padding: 12px 24px; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">
+                    Guardar Zona en Supabase
                 </button>
             </div>
         </form>
@@ -63,45 +44,117 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        document.getElementById('client-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('coordinates-list');
+            const addBtn = document.getElementById('add-coordinate-btn');
+            const form = document.getElementById('custom-zone-form');
 
-            const name = document.getElementById('client-name').value.trim();
-            const phone = document.getElementById('client-phone').value.trim();
-            const street = document.getElementById('client-street').value.trim();
-            const postal = document.getElementById('client-postal').value.trim();
-            const lat = parseFloat(document.getElementById('client-lat').value);
-            const lng = parseFloat(document.getElementById('client-lng').value);
+            let coordCount = 0;
 
-            if (isNaN(lat) || isNaN(lng)) {
-                alert('Por favor ingresa una latitud y longitud válidas.');
-                return;
+            function addCoordinateRow(lat = '', lng = '') {
+                coordCount++;
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.gap = '10px';
+                row.style.alignItems = 'center';
+                row.className = 'coord-row';
+                
+                row.innerHTML = `
+                    <span style="font-weight: bold; min-width: 75px; color: #2d3748;">Punto ${coordCount}:</span>
+                    <input type="text" placeholder="Latitud (o pega todo aquí)" value="${lat}" class="lat-input" required style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                    <input type="text" placeholder="Longitud" value="${lng}" class="lng-input" required style="flex: 1; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+                    <button type="button" class="remove-coord" style="padding: 8px 12px; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">X</button>
+                `;
+
+                const latInput = row.querySelector('.lat-input');
+                const lngInput = row.querySelector('.lng-input');
+
+                latInput.addEventListener('input', () => {
+                    const val = latInput.value;
+                    if (val.includes(',')) {
+                        const parts = val.split(',');
+                        if (parts.length >= 2) {
+                            latInput.value = parts[0].trim();
+                            lngInput.value = parts[1].trim();
+                        }
+                    }
+                });
+
+                row.querySelector('.remove-coord').addEventListener('click', () => {
+                    row.remove();
+                    updateLabels();
+                });
+
+                container.appendChild(row);
             }
 
-            const btn = document.getElementById('save-btn');
-            btn.textContent = 'Guardando...';
-            btn.disabled = true;
+            function updateLabels() {
+                const rows = container.querySelectorAll('.coord-row');
+                coordCount = 0;
+                rows.forEach(r => {
+                    coordCount++;
+                    r.querySelector('span').textContent = `Punto ${coordCount}:`;
+                });
+            }
 
-            const { error } = await supabase.from('clients').insert([
-                {
-                    name: name,
-                    phone: phone,
-                    address: street,
-                    postal_code: postal,
-                    latitude: lat,
-                    longitude: lng
+            // Empezar por defecto con 3 puntos (mínimo para un triángulo)
+            addCoordinateRow();
+            addCoordinateRow();
+            addCoordinateRow();
+
+            addBtn.addEventListener('click', () => addCoordinateRow());
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('zone-name').value.trim();
+                const postal_code = document.getElementById('zone-postal').value.trim();
+                
+                const rows = container.querySelectorAll('.coord-row');
+                const points = [];
+
+                rows.forEach(r => {
+                    const lat = parseFloat(r.querySelector('.lat-input').value);
+                    const lng = parseFloat(r.querySelector('.lng-input').value);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        points.push({ lat, lng });
+                    }
+                });
+
+                if (points.length < 3) {
+                    alert('Debes ingresar al menos 3 coordenadas válidas para formar una zona poligonal.');
+                    return;
                 }
-            ]);
 
-            if (error) {
-                alert('Error al guardar en Supabase: ' + error.message);
-                btn.textContent = 'Guardar Cliente en Supabase';
-                btn.disabled = false;
-            } else {
-                alert('¡Cliente guardado con éxito!');
-                window.location.href = './index.html';
-            }
+                // Paleta de colores profesionales para asignar automáticamente a cada nueva zona
+                const palette = ['#3182ce', '#38a169', '#d69e2e', '#e53e3e', '#805ad5', '#dd6b20', '#319795', '#e53e3e', '#d53f8c'];
+                const randomColor = palette[Math.floor(Math.random() * palette.length)];
+
+                // Guardar en la tabla zones de Supabase incluyendo el color asignado
+                const { data, error } = await supabase.from('zones').insert([
+                    { 
+                        name: name, 
+                        postal_code: postal_code, 
+                        polygon_coords: points,
+                        color: randomColor
+                    }
+                ]);
+
+                if (error) {
+                    console.error('Error al guardar en Supabase:', error.message);
+                    alert('Hubo un error al guardar la zona: ' + error.message);
+                } else {
+                    alert('¡Zona guardada correctamente con color único!');
+                    form.reset();
+                    container.innerHTML = '';
+                    coordCount = 0;
+                    addCoordinateRow();
+                    addCoordinateRow();
+                    addCoordinateRow();
+                }
+            });
         });
     </script>
+
 </body>
 </html>
