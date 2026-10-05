@@ -23,7 +23,7 @@
         </div>
 
         <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
-            Selecciona un cliente existente. El sistema detectará su zona y te sugerirá los días con ruta activa para evitar trayectos largos.
+            Selecciona un cliente. El sistema te sugerirá días con ruta en su zona y podrás indicar la hora exacta y duración estimada.
         </p>
 
         <form id="appointment-form">
@@ -44,6 +44,17 @@
                 <div id="suggestions-list"></div>
             </div>
 
+            <!-- Campos para definir hora exacta y duración aproximada -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">⏰ Hora de la Cita:</label>
+                <input type="time" id="appointment-time" value="09:00" required>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">⏳ Horas de Trabajo Estimadas (Opcional):</label>
+                <input type="number" id="estimated-hours" step="0.5" min="0.5" max="12" placeholder="Ej. 1.5 (1 hora y media)">
+            </div>
+
             <input type="hidden" id="selected-appointment-date" required>
 
             <div id="selected-date-display" style="margin-bottom: 20px; font-weight: bold; color: #2f855a; font-size: 0.95rem; display:none;">
@@ -61,6 +72,7 @@
 
         let allClients = [];
         let allZones = [];
+        let selectedDateOnly = '';
 
         async function initForm() {
             try {
@@ -97,6 +109,7 @@
             const suggestionsList = document.getElementById('suggestions-list');
             const saveBtn = document.getElementById('save-btn');
             
+            selectedDateOnly = '';
             document.getElementById('selected-appointment-date').value = '';
             document.getElementById('selected-date-display').style.display = 'none';
             saveBtn.disabled = true;
@@ -146,9 +159,9 @@
                     `;
 
                     item.querySelector('.pick-date-btn').addEventListener('click', () => {
-                        const fullDateTime = `${dateStr}T09:00:00.000Z`;
-                        document.getElementById('selected-appointment-date').value = fullDateTime;
-                        document.getElementById('txt-chosen-date').textContent = `${dateStr} a las 09:00`;
+                        selectedDateOnly = dateStr;
+                        updateFinalTimestamp();
+                        document.getElementById('txt-chosen-date').textContent = `${dateStr} a las ${document.getElementById('appointment-time').value}`;
                         document.getElementById('selected-date-display').style.display = 'block';
                         
                         saveBtn.disabled = false;
@@ -162,7 +175,7 @@
             } else {
                 suggestionBox.innerHTML = `
                     <strong>💡 Sugerencia de Ruta:</strong> No hay otras citas activas en esta zona (${client.postal_code || 'este CP'}). 
-                    <br><span style="font-size: 0.8rem; color: #4a5568; margin-top: 5px; display:block;">Puedes agendar este día para abrir ruta en esta área.</span>
+                    <br><span style="font-size: 0.8rem; color: #4a5568; margin-top: 5px; display:block;">Puedes elegir una fecha libre para abrir ruta en esta área.</span>
                 `;
                 const freeItem = document.createElement('div');
                 freeItem.style.marginTop = '10px';
@@ -177,9 +190,9 @@
                         alert('Selecciona una fecha');
                         return;
                     }
-                    const fullDateTime = `${freeDate}T09:00:00.000Z`;
-                    document.getElementById('selected-appointment-date').value = fullDateTime;
-                    document.getElementById('txt-chosen-date').textContent = `${freeDate} a las 09:00`;
+                    selectedDateOnly = freeDate;
+                    updateFinalTimestamp();
+                    document.getElementById('txt-chosen-date').textContent = `${freeDate} a las ${document.getElementById('appointment-time').value}`;
                     document.getElementById('selected-date-display').style.display = 'block';
                     saveBtn.disabled = false;
                     saveBtn.style.opacity = '1';
@@ -189,14 +202,31 @@
             }
         });
 
+        // Actualizar la hora si el usuario la cambia tras haber seleccionado el día
+        document.getElementById('appointment-time').addEventListener('change', () => {
+            if (selectedDateOnly) {
+                updateFinalTimestamp();
+                document.getElementById('txt-chosen-date').textContent = `${selectedDateOnly} a las ${document.getElementById('appointment-time').value}`;
+            }
+        });
+
+        function updateFinalTimestamp() {
+            const timeVal = document.getElementById('appointment-time').value || '09:00';
+            if (selectedDateOnly) {
+                document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00.000Z`;
+            }
+        }
+
         document.getElementById('appointment-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const clientId = document.getElementById('client-select').value;
+            updateFinalTimestamp();
             const apptVal = document.getElementById('selected-appointment-date').value;
+            const hoursVal = document.getElementById('estimated-hours').value;
 
             if (!clientId || !apptVal) {
-                alert('Selecciona un cliente y una fecha.');
+                alert('Selecciona un cliente y una fecha/hora válida.');
                 return;
             }
 
@@ -204,9 +234,12 @@
             btn.textContent = 'Agendando...';
             btn.disabled = true;
 
+            // Objeto de actualización (si tu tabla soporta horas estimadas puedes guardarlas, de momento actualizamos la cita)
+            const updatePayload = { appointment_date: apptVal };
+            
             const { error } = await supabase
                 .from('clients')
-                .update({ appointment_date: apptVal })
+                .update(updatePayload)
                 .eq('id', clientId);
 
             if (error) {
