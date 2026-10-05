@@ -12,10 +12,13 @@
     <div class="container" style="max-width: 1000px; margin: 20px auto; padding: 20px;">
         <h1>ClientSync | WerkSolutions Zonas y Citas</h1>
 
-        <!-- Botón para abrir la aplicación externa de carga de zonas -->
-        <div style="margin-bottom: 20px;">
+        <!-- Botones de navegación para crear Zonas y Clientes -->
+        <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
             <a href="./zone-builder.html" style="display: inline-block; padding: 10px 18px; background: #2b6cb0; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                🗺️ Abrir Herramienta de Delimitación de Zonas
+                🗺️ Delimitación de Zonas
+            </a>
+            <a href="./client-builder.html" style="display: inline-block; padding: 10px 18px; background: #d69e2e; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                🏢 Registrar Nuevo Cliente
             </a>
         </div>
 
@@ -53,7 +56,7 @@
         </section>
     </div>
 
-    <!-- Carga de la API de Google Maps (Sin callback conflictivo) -->
+    <!-- Carga de la API de Google Maps -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
     <!-- Scripts de la aplicación -->
