@@ -202,7 +202,6 @@
             }
         });
 
-        // Actualizar la hora si el usuario la cambia tras haber seleccionado el día
         document.getElementById('appointment-time').addEventListener('change', () => {
             if (selectedDateOnly) {
                 updateFinalTimestamp();
@@ -234,9 +233,11 @@
             btn.textContent = 'Agendando...';
             btn.disabled = true;
 
-            // Objeto de actualización (si tu tabla soporta horas estimadas puedes guardarlas, de momento actualizamos la cita)
-            const updatePayload = { appointment_date: apptVal };
-            
+            const updatePayload = {
+                appointment_date: apptVal,
+                estimated_hours: hoursVal ? parseFloat(hoursVal) : null
+            };
+
             const { error } = await supabase
                 .from('clients')
                 .update(updatePayload)
