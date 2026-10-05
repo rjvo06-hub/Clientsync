@@ -12,7 +12,7 @@ function initMapWhenReady() {
 
 async function startMap() {
     console.log("🗺️ Inicializando mapa de Google Maps...");
-    const defaultCenter = { lat: 48.0686, lng: 11.6289 };
+    const defaultCenter = { lat: 48.0686, lng: 11.6289 }; // Centro por defecto (Múnich / Ottobrunn)
 
     const mapElement = document.getElementById('map');
     if (!mapElement) {
@@ -21,8 +21,9 @@ async function startMap() {
     }
 
     try {
+        // Inicializamos el mapa con un zoom abierto inicial de referencia
         map = new google.maps.Map(mapElement, {
-            zoom: 13,
+            zoom: 11,
             center: defaultCenter,
             styles: [
                 {
@@ -34,16 +35,35 @@ async function startMap() {
         });
         console.log("✅ Mapa creado con éxito.");
 
-        await loadAndRenderZones(map);
-        await loadAndRenderClients(map);
+        // Creamos un objeto global de límites (bounds) para abarcar zonas y clientes de forma automática
+        const bounds = new google.maps.LatLngBounds();
+
+        // 1. Cargar y renderizar Zonas
+        await loadAndRenderZones(map, bounds);
+
+        // 2. Cargar y renderizar Clientes
+        await loadAndRenderClients(map, bounds);
+
+        // 🌟 Ajuste automático del mapa para que encuadre perfectamente todo el contenido sin estar muy cerrado
+        if (!bounds.isEmpty()) {
+            map.fitBounds(bounds);
+            
+            // Limitador opcional para evitar que el zoom sea exageradamente cercano si hay pocos puntos
+            const listener = google.maps.event.addListener(map, "idle", () => {
+                if (map.getZoom() > 13) {
+                    map.setZoom(13);
+                }
+                google.maps.event.removeListener(listener);
+            });
+        }
 
     } catch (e) {
         console.error("❌ Error crítico al instanciar el mapa:", e);
     }
 }
 
-// Renderizar Zonas
-async function loadAndRenderZones(mapInstance) {
+// Renderizar Zonas Poligonales
+async function loadAndRenderZones(mapInstance, bounds) {
     try {
         const { data: zones, error } = await supabase
             .from('zones')
@@ -57,14 +77,15 @@ async function loadAndRenderZones(mapInstance) {
 
         if (!zones || zones.length === 0) return;
 
-        zones.forEach((zone, index) => {
+        zones.forEach((zone) => {
             const coords = zone.polygon_coords;
 
             if (Array.isArray(coords) && coords.length >= 3) {
-                const formattedCoords = coords.map(pt => ({
-                    lat: Number(pt.lat),
-                    lng: Number(pt.lng)
-                }));
+                const formattedCoords = coords.map(pt => {
+                    const latLng = { lat: Number(pt.lat), lng: Number(pt.lng) };
+                    bounds.extend(latLng); // Añadir cada vértice al cálculo de límites del mapa
+                    return latLng;
+                });
 
                 const zoneColor = zone.color || '#3182ce';
 
@@ -77,11 +98,6 @@ async function loadAndRenderZones(mapInstance) {
                     fillOpacity: 0.35,
                     map: mapInstance
                 });
-
-                if (index === 0 && formattedCoords.length > 0) {
-                    mapInstance.setCenter(formattedCoords[0]);
-                    mapInstance.setZoom(14);
-                }
 
                 const infoWindow = new google.maps.InfoWindow();
                 zonePolygon.addListener('click', (event) => {
@@ -102,8 +118,8 @@ async function loadAndRenderZones(mapInstance) {
     }
 }
 
-// Renderizar Clientes usando latitude y longitude
-async function loadAndRenderClients(mapInstance) {
+// Renderizar Marcadores de Clientes
+async function loadAndRenderClients(mapInstance, bounds) {
     try {
         const { data: clients, error } = await supabase
             .from('clients')
@@ -120,9 +136,10 @@ async function loadAndRenderClients(mapInstance) {
         }
 
         clients.forEach(client => {
-            // Usamos los nombres exactos de tus columnas: latitude y longitude
             if (client.latitude && client.longitude) {
                 const clientLatLng = { lat: Number(client.latitude), lng: Number(client.longitude) };
+                
+                bounds.extend(clientLatLng); // Añadir la ubicación del cliente al cálculo global de límites
 
                 const marker = new google.maps.Marker({
                     position: clientLatLng,
@@ -145,8 +162,6 @@ async function loadAndRenderClients(mapInstance) {
                     infoWindow.setContent(contentString);
                     infoWindow.open(mapInstance, marker);
                 });
-
-                console.log(`📍 Marcador de cliente añadido: ${client.name}`);
             }
         });
 
