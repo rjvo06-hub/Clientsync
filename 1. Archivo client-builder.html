@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClientSync | Registro de Clientes y Direcciones</title>
+    <link rel="stylesheet" href="./css/main.css">
+</head>
+<body>
+
+    <div class="container" style="max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 1.5rem;">Registrar Nuevo Cliente</h1>
+            <a href="./index.html" style="padding: 6px 12px; background: #718096; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9rem;">← Volver al Mapa</a>
+        </div>
+
+        <p style="color: #4a5568; margin-bottom: 20px;">
+            Ingresa los datos del cliente. El sistema calculará automáticamente la latitud y longitud mediante Google Maps y lo guardará en Supabase.
+        </p>
+
+        <form id="client-form">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Nombre del Cliente o Empresa:</label>
+                <input type="text" id="client-name" placeholder="Ej. WerkSolutions GmbH" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 2;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Calle y Número:</label>
+                    <input type="text" id="client-street" placeholder="Ej. Haidgraben 103" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Código Postal:</label>
+                    <input type="text" id="client-postal" placeholder="Ej. 85521" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Ciudad / Región:</label>
+                <input type="text" id="client-city" value="Ottobrunn, Deutschland" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" id="save-btn" style="padding: 12px 24px; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">
+                    Guardar y Geocodificar Cliente
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Carga de la API de Google Maps con la librería de geocodificación -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ"></script>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        document.getElementById('client-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('client-name').value.trim();
+            const street = document.getElementById('client-street').value.trim();
+            const postal = document.getElementById('client-postal').value.trim();
+            const city = document.getElementById('client-city').value.trim();
+
+            const fullAddress = `${street}, ${postal} ${city}`;
+            const btn = document.getElementById('save-btn');
+            btn.textContent = 'Calculando ubicación...';
+            btn.disabled = true;
+
+            // Usar el Geocoder de Google Maps para traducir la dirección a Lat/Lng
+            const geocoder = new google.maps.Geocoder();
+
+            geocoder.geocode({ address: fullAddress }, async (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const location = results[0].geometry.location;
+                    const lat = location.lat();
+                    const lng = location.lng();
+
+                    // Guardar en la tabla clients de Supabase
+                    const { error } = await supabase.from('clients').insert([
+                        {
+                            name: name,
+                            address: fullAddress,
+                            lat: lat,
+                            lng: lng
+                        }
+                    ]);
+
+                    if (error) {
+                        alert('Error al guardar en Supabase: ' + error.message);
+                        btn.textContent = 'Guardar y Geocodificar Cliente';
+                        btn.disabled = false;
+                    } else {
+                        alert(`¡Cliente guardado con éxito!\nLat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`);
+                        window.location.href = './index.html'; // Redirigir de vuelta al mapa
+                    }
+                } else {
+                    alert('No se pudo encontrar la dirección en Google Maps. Verifica los datos e inténtalo de nuevo. Estado: ' + status);
+                    btn.textContent = 'Guardar y Geocodificar Cliente';
+                    btn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
