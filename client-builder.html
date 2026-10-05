@@ -15,7 +15,7 @@
         </div>
 
         <p style="color: #4a5568; margin-bottom: 20px;">
-            Ingresa los datos del cliente y sus coordenadas (ej. Latitud: <i>48.0583</i>, Longitud: <i>11.6492</i>) para guardarlo directamente en Supabase.
+            Ingresa la calle y el código postal. El sistema calculará la latitud y longitud automáticamente y lo guardará en Supabase.
         </p>
 
         <form id="client-form">
@@ -40,20 +40,14 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <div style="flex: 1;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Latitud:</label>
-                    <input type="text" id="client-lat" placeholder="Ej. 48.0583" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-                </div>
-                <div style="flex: 1;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Longitud:</label>
-                    <input type="text" id="client-lng" placeholder="Ej. 11.6492" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-                </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Ciudad / Región:</label>
+                <input type="text" id="client-city" value="Ottobrunn, Deutschland" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
             </div>
 
             <div style="display: flex; justify-content: flex-end;">
                 <button type="submit" id="save-btn" style="padding: 12px 24px; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">
-                    Guardar Cliente en Supabase
+                    Guardar y Obtener Coordenadas
                 </button>
             </div>
         </form>
@@ -69,36 +63,52 @@
             const phone = document.getElementById('client-phone').value.trim();
             const street = document.getElementById('client-street').value.trim();
             const postal = document.getElementById('client-postal').value.trim();
-            const lat = parseFloat(document.getElementById('client-lat').value);
-            const lng = parseFloat(document.getElementById('client-lng').value);
+            const city = document.getElementById('client-city').value.trim();
 
-            if (isNaN(lat) || isNaN(lng)) {
-                alert('Por favor ingresa una latitud y longitud válidas.');
-                return;
-            }
-
+            const fullAddress = `${street}, ${postal} ${city}`;
             const btn = document.getElementById('save-btn');
-            btn.textContent = 'Guardando...';
+            btn.textContent = 'Buscando coordenadas...';
             btn.disabled = true;
 
-            const { error } = await supabase.from('clients').insert([
-                {
-                    name: name,
-                    phone: phone,
-                    address: street,
-                    postal_code: postal,
-                    latitude: lat,
-                    longitude: lng
-                }
-            ]);
+            try {
+                // Consultar coordenadas automáticamente mediante OpenStreetMap (Nominatim API)
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
+                const data = await response.json();
 
-            if (error) {
-                alert('Error al guardar en Supabase: ' + error.message);
-                btn.textContent = 'Guardar Cliente en Supabase';
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+
+                    // Guardar en la base de datos de Supabase con los nombres exactos de tus columnas
+                    const { error } = await supabase.from('clients').insert([
+                        {
+                            name: name,
+                            phone: phone,
+                            address: street,
+                            postal_code: postal,
+                            latitude: lat,
+                            longitude: lng
+                        }
+                    ]);
+
+                    if (error) {
+                        alert('Error al guardar en Supabase: ' + error.message);
+                        btn.textContent = 'Guardar y Obtener Coordenadas';
+                        btn.disabled = false;
+                    } else {
+                        alert(`¡Cliente guardado con éxito!\nLat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`);
+                        window.location.href = './index.html';
+                    }
+                } else {
+                    alert('No se pudo encontrar la ubicación exacta en el mapa con esa dirección. Revisa los datos.');
+                    btn.textContent = 'Guardar y Obtener Coordenadas';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Ocurrió un error al conectar con el servicio de mapas.');
+                btn.textContent = 'Guardar y Obtener Coordenadas';
                 btn.disabled = false;
-            } else {
-                alert('¡Cliente guardado con éxito!');
-                window.location.href = './index.html';
             }
         });
     </script>
