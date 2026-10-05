@@ -15,7 +15,7 @@
         </div>
 
         <p style="color: #4a5568; margin-bottom: 20px;">
-            Ingresa la calle y el código postal. El sistema calculará la latitud y longitud automáticamente y lo guardará en Supabase.
+            Ingresa la calle, el número y el código postal. El sistema calculará la geolocalización automáticamente y lo guardará en Supabase.
         </p>
 
         <form id="client-form">
@@ -29,7 +29,7 @@
                 <input type="text" id="client-phone" placeholder="Ej. +49 89 1234567" style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
             </div>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <div style="flex: 2;">
                     <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Calle y Número:</label>
                     <input type="text" id="client-street" placeholder="Ej. Haidgraben 103" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
@@ -40,14 +40,9 @@
                 </div>
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748;">Ciudad / Región:</label>
-                <input type="text" id="client-city" value="Ottobrunn, Deutschland" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box;">
-            </div>
-
             <div style="display: flex; justify-content: flex-end;">
                 <button type="submit" id="save-btn" style="padding: 12px 24px; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">
-                    Guardar y Obtener Coordenadas
+                    Guardar Cliente
                 </button>
             </div>
         </form>
@@ -63,15 +58,15 @@
             const phone = document.getElementById('client-phone').value.trim();
             const street = document.getElementById('client-street').value.trim();
             const postal = document.getElementById('client-postal').value.trim();
-            const city = document.getElementById('client-city').value.trim();
 
-            const fullAddress = `${street}, ${postal} ${city}`;
+            // Combinamos calle y código postal para enviarlo a la búsqueda de geocodificación
+            const fullAddress = `${street}, ${postal}`;
             const btn = document.getElementById('save-btn');
-            btn.textContent = 'Buscando coordenadas...';
+            btn.textContent = 'Calculando ubicación...';
             btn.disabled = true;
 
             try {
-                // Consultar coordenadas automáticamente mediante OpenStreetMap (Nominatim API)
+                // Consulta automática de coordenadas mediante OpenStreetMap
                 const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
                 const data = await response.json();
 
@@ -79,7 +74,7 @@
                     const lat = parseFloat(data[0].lat);
                     const lng = parseFloat(data[0].lon);
 
-                    // Guardar en la base de datos de Supabase con los nombres exactos de tus columnas
+                    // Guardar en Supabase usando las columnas exactas de tu tabla
                     const { error } = await supabase.from('clients').insert([
                         {
                             name: name,
@@ -93,21 +88,21 @@
 
                     if (error) {
                         alert('Error al guardar en Supabase: ' + error.message);
-                        btn.textContent = 'Guardar y Obtener Coordenadas';
+                        btn.textContent = 'Guardar Cliente';
                         btn.disabled = false;
                     } else {
                         alert(`¡Cliente guardado con éxito!\nLat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`);
                         window.location.href = './index.html';
                     }
                 } else {
-                    alert('No se pudo encontrar la ubicación exacta en el mapa con esa dirección. Revisa los datos.');
-                    btn.textContent = 'Guardar y Obtener Coordenadas';
+                    alert('No se pudo encontrar la ubicación exacta con esa dirección y código postal. Revisa los datos e inténtalo de nuevo.');
+                    btn.textContent = 'Guardar Cliente';
                     btn.disabled = false;
                 }
             } catch (err) {
                 console.error(err);
                 alert('Ocurrió un error al conectar con el servicio de mapas.');
-                btn.textContent = 'Guardar y Obtener Coordenadas';
+                btn.textContent = 'Guardar Cliente';
                 btn.disabled = false;
             }
         });
