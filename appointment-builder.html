@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Agendación Inteligente por Proximidad</title>
+    <title>ClientSync | Agendación con Detalle de Horarios</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
@@ -11,19 +11,19 @@
         select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; }
         .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
         .suggestion-box { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
-        .suggestion-item { background: white; border: 1px solid #bee3f8; padding: 10px; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .suggestion-item { background: white; border: 1px solid #bee3f8; padding: 12px; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">📅 Agendación por Proximidad (1 km)</h1>
+            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">📅 Citas Cercanas (< 1 km) con Horarios</h1>
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
         <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
-            Selecciona un cliente. El sistema buscará automáticamente si hay citas a menos de 1 km de distancia para agrupar tu ruta.
+            Selecciona un cliente. El sistema evaluará el radio de 1 km y te mostrará la hora exacta y duración de las citas previas para que decidas si puedes encajarlo.
         </p>
 
         <form id="appointment-form">
@@ -40,12 +40,12 @@
             </div>
 
             <div id="route-suggestions" class="suggestion-box">
-                <strong>💡 Citas cercanas (a menos de 1 km):</strong>
+                <strong>💡 Citas a menos de 1 km (con hora y duración):</strong>
                 <div id="suggestions-list"></div>
             </div>
 
             <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">⏰ Hora de la Cita:</label>
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">⏰ Hora para este nuevo cliente:</label>
                 <input type="time" id="appointment-time" value="09:00" required>
             </div>
 
@@ -72,9 +72,8 @@
         let allClients = [];
         let selectedDateOnly = '';
 
-        // Función matemática para calcular distancia en kilómetros (Fórmula de Haversine)
         function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radio de la tierra en km
+            const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
             const dLon = (lon2 - lon1) * (Math.PI / 180);
             const a = 
@@ -127,7 +126,7 @@
 
             const client = allClients.find(c => c.id === clientId);
             if (!client || !client.latitude || !client.longitude) {
-                alert('Este cliente no tiene coordenadas geográficas registradas. Revisa su dirección.');
+                alert('Este cliente no tiene coordenadas geográficas registradas.');
                 return;
             }
 
@@ -135,33 +134,40 @@
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
             detailsCard.style.display = 'block';
 
-            // Filtrar otros clientes que tengan cita y estén a menos de 1 km
-            const nearbyClientsWithAppointments = allClients.filter(c => {
+            // Filtrar clientes cercanos a menos de 1 km que tengan cita
+            const nearbyClients = allClients.filter(c => {
                 if (!c.appointment_date || c.id === client.id || !c.latitude || !c.longitude) return false;
                 const distance = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(c.latitude), Number(c.longitude));
-                return distance <= 1.0; // Rango de 1 km
+                return distance <= 1.0;
             });
 
             suggestionsList.innerHTML = '';
 
-            if (nearbyClientsWithAppointments.length > 0) {
-                const activeDates = [...new Set(nearbyClientsWithAppointments.map(c => c.appointment_date.split('T')[0]))];
+            if (nearbyClients.length > 0) {
+                // Obtener las fechas únicas de esas citas cercanas
+                const activeDates = [...new Set(nearbyClients.map(c => c.appointment_date.split('T')[0]))];
 
                 activeDates.forEach(dateStr => {
                     const item = document.createElement('div');
                     item.className = 'suggestion-item';
                     
-                    const nearbyNames = nearbyClientsWithAppointments
-                        .filter(c => c.appointment_date.startsWith(dateStr))
-                        .map(c => `${c.name} (a < 1 km)`)
-                        .join(', ');
+                    // Buscar los detalles de cada cliente en esa fecha específica
+                    const clientsOnThisDate = nearbyClients.filter(c => c.appointment_date.startsWith(dateStr));
+                    
+                    let detailsHtml = '';
+                    clientsOnThisDate.forEach(c => {
+                        const dateObj = new Date(c.appointment_date);
+                        const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                        const hoursInfo = c.estimated_hours ? ` (${c.estimated_hours}h est.)` : '';
+                        detailsHtml += `<div style="font-size: 0.85rem; color: #2d3748; margin-top: 3px;">• <b>${c.name}</b> a las <b>${timeStr}h</b>${hoursInfo}</div>`;
+                    });
 
                     item.innerHTML = `
-                        <div>
-                            <strong>📅 ${dateStr}</strong><br>
-                            <span style="font-size: 0.8rem; color: #718096;">Cerca: ${nearbyNames}</span>
+                        <div style="flex: 1;">
+                            <strong>📅 Fecha: ${dateStr}</strong>
+                            ${detailsHtml}
                         </div>
-                        <button type="button" class="pick-date-btn" style="width: auto; padding: 6px 12px; background: #2b6cb0; color: white; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">Seleccionar</button>
+                        <button type="button" class="pick-date-btn" style="width: auto; padding: 8px 12px; background: #2b6cb0; color: white; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-left: 10px;">Seleccionar</button>
                     `;
 
                     item.querySelector('.pick-date-btn').addEventListener('click', () => {
@@ -180,7 +186,7 @@
                 suggestionBox.style.display = 'block';
             } else {
                 suggestionBox.innerHTML = `
-                    <strong>💡 Radio de 1 km:</strong> No hay citas programadas a menos de 1 km de este cliente. 
+                    <strong>💡 Radio de 1 km:</strong> No hay citas programadas a menos de 1 km. 
                     <br><span style="font-size: 0.8rem; color: #4a5568; margin-top: 5px; display:block;">Puedes elegir una fecha libre para abrir ruta en esta zona.</span>
                 `;
                 const freeItem = document.createElement('div');
@@ -254,7 +260,7 @@
                 btn.textContent = 'Confirmar y Agendar Cita';
                 btn.disabled = false;
             } else {
-                alert('¡Cita agendada por proximidad con éxito!');
+                alert('¡Cita agendada con éxito!');
                 window.location.href = './index.html';
             }
         });
