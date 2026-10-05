@@ -1,1 +1,225 @@
-q
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClientSync | Agendación de Citas</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
+        .container { max-width: 600px; margin: 20px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
+        select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; }
+        .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
+        .suggestion-box { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
+        .suggestion-item { background: white; border: 1px solid #bee3f8; padding: 10px; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">📅 Agendación de Citas</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
+        </div>
+
+        <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
+            Selecciona un cliente existente. El sistema detectará su zona y te sugerirá los días con ruta activa para evitar trayectos largos.
+        </p>
+
+        <form id="appointment-form">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Seleccionar Cliente Existente:</label>
+                <select id="client-select" required>
+                    <option value="">Cargando clientes...</option>
+                </select>
+            </div>
+
+            <div id="client-details" class="info-card">
+                <strong>Dirección:</strong> <span id="det-address">-</span><br>
+                <strong>Zona:</strong> <span id="det-zone" style="color: #2b6cb0; font-weight: bold;">-</span>
+            </div>
+
+            <div id="route-suggestions" class="suggestion-box">
+                <strong>💡 Días sugeridos en esta zona (para agrupar ruta):</strong>
+                <div id="suggestions-list"></div>
+            </div>
+
+            <input type="hidden" id="selected-appointment-date" required>
+
+            <div id="selected-date-display" style="margin-bottom: 20px; font-weight: bold; color: #2f855a; font-size: 0.95rem; display:none;">
+                ✅ Fecha seleccionada: <span id="txt-chosen-date">-</span>
+            </div>
+
+            <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; opacity: 0.6;" disabled>
+                Confirmar y Agendar Cita
+            </button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        let allClients = [];
+        let allZones = [];
+
+        async function initForm() {
+            try {
+                const [clientsRes, zonesRes] = await Promise.all([
+                    supabase.from('clients').select('*').order('name', { ascending: true }),
+                    supabase.from('zones').select('*')
+                ]);
+
+                if (clientsRes.error) throw clientsRes.error;
+                if (zonesRes.error) throw zonesRes.error;
+
+                allClients = clientsRes.data || [];
+                allZones = zonesRes.data || [];
+
+                const select = document.getElementById('client-select');
+                select.innerHTML = '<option value="">-- Elige un cliente --</option>';
+
+                allClients.forEach(client => {
+                    const opt = document.createElement('option');
+                    opt.value = client.id;
+                    opt.textContent = `${client.name} (CP: ${client.postal_code || 'N/A'})`;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Error al inicializar:', err);
+                alert('Hubo un error al cargar los clientes.');
+            }
+        }
+
+        document.getElementById('client-select').addEventListener('change', (e) => {
+            const clientId = e.target.value;
+            const detailsCard = document.getElementById('client-details');
+            const suggestionBox = document.getElementById('route-suggestions');
+            const suggestionsList = document.getElementById('suggestions-list');
+            const saveBtn = document.getElementById('save-btn');
+            
+            document.getElementById('selected-appointment-date').value = '';
+            document.getElementById('selected-date-display').style.display = 'none';
+            saveBtn.disabled = true;
+            saveBtn.style.opacity = '0.6';
+
+            if (!clientId) {
+                detailsCard.style.display = 'none';
+                suggestionBox.style.display = 'none';
+                return;
+            }
+
+            const client = allClients.find(c => c.id === clientId);
+            if (!client) return;
+
+            document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
+
+            const matchedZone = allZones.find(z => z.postal_code === client.postal_code);
+            const zoneName = matchedZone ? matchedZone.name : 'Zona General';
+            document.getElementById('det-zone').textContent = zoneName;
+            detailsCard.style.display = 'block';
+
+            const sameZoneClients = allClients.filter(c => {
+                if (!c.appointment_date || c.id === client.id) return false;
+                return c.postal_code === client.postal_code;
+            });
+
+            suggestionsList.innerHTML = '';
+
+            if (sameZoneClients.length > 0) {
+                const activeDates = [...new Set(sameZoneClients.map(c => c.appointment_date.split('T')[0]))];
+
+                activeDates.forEach(dateStr => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    
+                    const clientsInDate = sameZoneClients
+                        .filter(c => c.appointment_date.startsWith(dateStr))
+                        .map(c => c.name)
+                        .join(', ');
+
+                    item.innerHTML = `
+                        <div>
+                            <strong>📅 ${dateStr}</strong><br>
+                            <span style="font-size: 0.8rem; color: #718096;">Citas previas: ${clientsInDate}</span>
+                        </div>
+                        <button type="button" class="pick-date-btn" style="width: auto; padding: 6px 12px; background: #2b6cb0; color: white; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">Seleccionar</button>
+                    `;
+
+                    item.querySelector('.pick-date-btn').addEventListener('click', () => {
+                        const fullDateTime = `${dateStr}T09:00:00.000Z`;
+                        document.getElementById('selected-appointment-date').value = fullDateTime;
+                        document.getElementById('txt-chosen-date').textContent = `${dateStr} a las 09:00`;
+                        document.getElementById('selected-date-display').style.display = 'block';
+                        
+                        saveBtn.disabled = false;
+                        saveBtn.style.opacity = '1';
+                    });
+
+                    suggestionsList.appendChild(item);
+                });
+
+                suggestionBox.style.display = 'block';
+            } else {
+                suggestionBox.innerHTML = `
+                    <strong>💡 Sugerencia de Ruta:</strong> No hay otras citas activas en esta zona (${client.postal_code || 'este CP'}). 
+                    <br><span style="font-size: 0.8rem; color: #4a5568; margin-top: 5px; display:block;">Puedes agendar este día para abrir ruta en esta área.</span>
+                `;
+                const freeItem = document.createElement('div');
+                freeItem.style.marginTop = '10px';
+                freeItem.innerHTML = `
+                    <label style="font-size:0.85rem; font-weight:bold; display:block; margin-bottom:3px;">O elige una fecha libre:</label>
+                    <input type="date" id="free-date-input" style="padding:8px; font-size:0.85rem; margin-bottom:5px;">
+                    <button type="button" id="pick-free-btn" style="padding:6px; background:#38a169; color:white; border:none; border-radius:4px; font-size:0.8rem; cursor:pointer;">Usar esta fecha</button>
+                `;
+                freeItem.querySelector('#pick-free-btn').addEventListener('click', () => {
+                    const freeDate = document.getElementById('free-date-input').value;
+                    if (!freeDate) {
+                        alert('Selecciona una fecha');
+                        return;
+                    }
+                    const fullDateTime = `${freeDate}T09:00:00.000Z`;
+                    document.getElementById('selected-appointment-date').value = fullDateTime;
+                    document.getElementById('txt-chosen-date').textContent = `${freeDate} a las 09:00`;
+                    document.getElementById('selected-date-display').style.display = 'block';
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
+                });
+                suggestionBox.appendChild(freeItem);
+                suggestionBox.style.display = 'block';
+            }
+        });
+
+        document.getElementById('appointment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const clientId = document.getElementById('client-select').value;
+            const apptVal = document.getElementById('selected-appointment-date').value;
+
+            if (!clientId || !apptVal) {
+                alert('Selecciona un cliente y una fecha.');
+                return;
+            }
+
+            const btn = document.getElementById('save-btn');
+            btn.textContent = 'Agendando...';
+            btn.disabled = true;
+
+            const { error } = await supabase
+                .from('clients')
+                .update({ appointment_date: apptVal })
+                .eq('id', clientId);
+
+            if (error) {
+                alert('Error al agendar: ' + error.message);
+                btn.textContent = 'Confirmar y Agendar Cita';
+                btn.disabled = false;
+            } else {
+                alert('¡Cita agendada con éxito!');
+                window.location.href = './index.html';
+            }
+        });
+
+        initForm();
+    </script>
+</body>
+</html>
