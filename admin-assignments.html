@@ -37,7 +37,9 @@
         
         .edit-form-box { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-top: 12px; display: none; }
         .inline-edit-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-        .inline-edit-col { flex: 1; min-width: 130px; }
+        .inline-edit-col { flex: 1; min-width: 140px; }
+        
+        .day-load-preview { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 8px 10px; border-radius: 6px; margin-top: 8px; font-size: 0.8rem; color: #2d3748; display: none; }
     </style>
 </head>
 <body>
@@ -78,13 +80,52 @@
             return R * c;
         }
 
-        // Obtener la temporada actual en Múnich basada en el mes de la fecha seleccionada
         function getSeasonByDate(dateObj) {
-            const month = dateObj.getMonth() + 1; // 1 - 12
+            const month = dateObj.getMonth() + 1;
             if ([12, 1, 2].includes(month)) return { name: 'Invierno', months: [12, 1, 2] };
             if ([3, 4, 5].includes(month)) return { name: 'Primavera', months: [3, 4, 5] };
             if ([6, 7, 8].includes(month)) return { name: 'Verano', months: [6, 7, 8] };
             return { name: 'Otoño', months: [9, 10, 11] };
+        }
+
+        function formatDateToDDMMYYYY(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        // Lógica inteligente para sugerir la siguiente hora libre en función de las citas del día (excluyendo la cita actual que se está editando)
+        function suggestNextTimeForDate(dateStr, excludeClientId) {
+            const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr) && c.id !== excludeClientId);
+            if (clientsOnDate.length === 0) return "09:00";
+
+            let latestHour = 9;
+            let latestMinute = 0;
+
+            clientsOnDate.forEach(c => {
+                const dateObj = new Date(c.appointment_date);
+                const h = dateObj.getHours();
+                const m = dateObj.getMinutes();
+                const totalMins = h * 60 + m;
+                
+                const durationMins = c.estimated_hours ? (Number(c.estimated_hours) * 60) : 60;
+                const endMins = totalMins + durationMins;
+
+                const currentLatestMins = latestHour * 60 + latestMinute;
+                if (endMins > currentLatestMins) {
+                    latestHour = Math.floor(endMins / 60);
+                    latestMinute = endMins % 60;
+                }
+            });
+
+            if (latestHour > 20) latestHour = 20;
+
+            const formattedH = String(latestHour).padStart(2, '0');
+            const formattedM = String(latestMinute).padStart(2, '0');
+            return `${formattedH}:${formattedM}`;
         }
 
         async function initAdminPanel() {
@@ -136,12 +177,9 @@
                 return;
             }
 
-            // Determinar la temporada del día consultado
             const targetDateObj = new Date(dateStr);
             const currentSeason = getSeasonByDate(targetDateObj);
-            const targetYear = targetDateObj.getFullYear();
 
-            // Filtrar clientes que NO tienen cita agendada
             const clientsWithoutAppointment = allClients.filter(c => {
                 if (c.appointment_date) return false;
                 if (!c.latitude || !c.longitude) return false;
@@ -173,12 +211,10 @@
 
             let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
 
-            // 1. Mostrar las citas actuales del día
             dayClients.forEach(client => {
                 html += buildClientCardHtml(client);
             });
 
-            // 2. Botón de oportunidades cercanas en la temporada
             if (opportunitiesMap.size > 0) {
                 html += `
                     <button type="button" id="toggle-opportunities" class="opportunity-trigger-btn">
@@ -343,30 +379,72 @@
                         </div>
                     </div>
 
-                    <!-- Formulario desplegable para modificar fecha, hora y duración -->
+                    <!-- Formulario desplegable para reagendar con el mismo principio inteligente -->
                     <div class="edit-form-box" id="edit-box-${client.id}">
-                        <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 8px;">Reagendar / Modificar Cita:</div>
-                        <div class="inline-edit-row">
+                        <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 8px;">💡 Reagendar / Modificar Cita:</div>
+                        
+                        <!-- Caja de volumen y citas existentes en la fecha seleccionada -->
+                        <div class="day-load-preview" id="load-preview-${client.id}"></div>
+
+                        <div class="inline-edit-row" style="margin-top: 10px;">
                             <div class="inline-edit-col">
                                 <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Nueva Fecha:</label>
-                                <input type="date" id="edit-date-${client.id}" value="${rawDatePart}" style="width: 100%;">
+                                <input type="date" class="edit-date-input" data-client-id="${client.id}" value="${rawDatePart}" style="width: 100%;">
                             </div>
                             <div class="inline-edit-col">
-                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Hora:</label>
+                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Hora de atención:</label>
                                 <input type="time" id="edit-time-${client.id}" value="${rawTimePart}" style="width: 100%;">
                             </div>
                             <div class="inline-edit-col">
-                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Horas est.:</label>
+                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Horas est. (Opc):</label>
                                 <input type="number" id="edit-hours-${client.id}" step="0.5" min="0.5" value="${client.estimated_hours || ''}" placeholder="Ej. 1.5" style="width: 100%;">
                             </div>
                         </div>
-                        <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
+                        <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
                             <button type="button" class="cancel-edit-btn" data-client-id="${client.id}" style="background: #e2e8f0; color: #4a5568; border: none; padding: 6px 12px; font-size: 0.8rem; cursor: pointer;">Cancelar</button>
                             <button type="button" class="save-edit-btn" data-client-id="${client.id}" style="background: #38a169; color: white; border: none; padding: 6px 14px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">Guardar Cambios</button>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        function updateDateLoadPreview(clientId) {
+            const dateInput = document.getElementById(`edit-date-${clientId}`);
+            const previewBox = document.getElementById(`load-preview-${clientId}`);
+            const timeInput = document.getElementById(`edit-time-${clientId}`);
+            
+            if (!dateInput || !previewBox || !timeInput) return;
+
+            const chosenDate = dateInput.value;
+            if (!chosenDate) {
+                previewBox.style.display = 'none';
+                return;
+            }
+
+            // Buscar citas en esa fecha (excluyendo al cliente actual para ver el volumen real del día)
+            const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(chosenDate) && c.id !== clientId);
+            const formattedDateStr = formatDateToDDMMYYYY(chosenDate);
+
+            if (clientsOnDate.length > 0) {
+                clientsOnDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
+                let detailsHtml = `<strong style="color: #2b6cb0;">📅 ${formattedDateStr} (${clientsOnDate.length} cita${clientsOnDate.length > 1 ? 's' : ''} ya agendada${clientsOnDate.length > 1 ? 's' : ''}):</strong><br>`;
+                
+                clientsOnDate.forEach(dc => {
+                    const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                    detailsHtml += `• <b>${dc.name}</b> (${dc.address || 'Sin dirección'}) a las ${timeStr}h<br>`;
+                });
+
+                previewBox.innerHTML = detailsHtml;
+                previewBox.style.display = 'block';
+            } else {
+                previewBox.innerHTML = `<strong style="color: #2b6cb0;">📅 ${formattedDateStr}:</strong> No hay otras citas en esta fecha. (Día libre)`;
+                previewBox.style.display = 'block';
+            }
+
+            // Sugerir automáticamente la siguiente hora libre
+            const suggestedTime = suggestNextTimeForDate(chosenDate, clientId);
+            timeInput.value = suggestedTime;
         }
 
         function attachEventListeners() {
@@ -380,6 +458,12 @@
             document.querySelectorAll('.toggle-edit-btn').forEach(btn => {
                 btn.removeEventListener('click', handleToggleEdit);
                 btn.addEventListener('click', handleToggleEdit);
+            });
+
+            // Al cambiar la fecha en el input de edición, recalcular volumen y hora sugerida
+            document.querySelectorAll('.edit-date-input').forEach(input => {
+                input.removeEventListener('change', handleDateInputChange);
+                input.addEventListener('change', handleDateInputChange);
             });
 
             // Botón cancelar edición
@@ -419,8 +503,18 @@
             const clientId = e.target.getAttribute('data-client-id');
             const editBox = document.getElementById(`edit-box-${clientId}`);
             if (editBox) {
-                editBox.style.display = editBox.style.display === 'block' ? 'none' : 'block';
+                const willBeVisible = editBox.style.display !== 'block';
+                editBox.style.display = willBeVisible ? 'block' : 'none';
+                
+                if (willBeVisible) {
+                    updateDateLoadPreview(clientId);
+                }
             }
+        }
+
+        function handleDateInputChange(e) {
+            const clientId = e.target.getAttribute('data-client-id');
+            updateDateLoadPreview(clientId);
         }
 
         function handleCancelEdit(e) {
@@ -455,7 +549,7 @@
             if (error) {
                 alert('Error al actualizar la cita: ' + error.message);
             } else {
-                alert('¡Cita modificada con éxito!');
+                alert('¡Cita modificada y reagendada con éxito!');
                 const clientObj = allClients.find(c => c.id === clientId);
                 if (clientObj) {
                     clientObj.appointment_date = fullTimestamp;
