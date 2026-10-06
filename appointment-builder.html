@@ -78,13 +78,8 @@
                     <div class="inline-col">
                         <label id="date-label-text" style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
                         
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <!-- Input de fecha real (calendario) -->
-                            <input type="date" id="free-date-input" style="flex: 1;">
-                            
-                            <!-- Caja de texto que muestra la fecha seleccionada en formato DD/MM/AAAA -->
-                            <input type="text" id="selected-date-display-box" style="display: none; flex: 1; background: #edf2f7; font-weight: bold; color: #2d3748;" readonly>
-                        </div>
+                        <!-- Input de fecha único que maneja tanto la selección libre como la sugerida -->
+                        <input type="date" id="free-date-input" style="width: 100%;">
                     </div>
                     <div class="inline-col">
                         <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Hora de atención:</label>
@@ -123,15 +118,6 @@
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
-        }
-
-        function formatDateToDDMMYYYY(dateStr) {
-            if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
-            return dateStr;
         }
 
         function suggestNextTimeForDate(dateStr) {
@@ -203,13 +189,7 @@
             
             selectedDateOnly = '';
             document.getElementById('selected-appointment-date').value = '';
-            
-            // Restablecer campos de fecha
             document.getElementById('free-date-input').value = '';
-            document.getElementById('free-date-input').style.display = 'block';
-            document.getElementById('selected-date-display-box').style.display = 'none';
-            document.getElementById('selected-date-display-box').value = '';
-            
             document.getElementById('appointment-time').value = '';
             document.getElementById('date-label-text').textContent = 'O elige otra fecha libre:';
             saveBtn.disabled = true;
@@ -266,14 +246,16 @@
                         clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h</div>`;
                     });
 
-                    const formattedDate = formatDateToDDMMYYYY(dateStr);
+                    // Formato YYYY-MM-DD para mostrar en la tarjeta de sugerencia
+                    const parts = dateStr.split('-');
+                    const formattedDateDDMMYYYY = `${parts[2]}/${parts[1]}/${parts[0]}`;
 
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = `suggestion-item-btn ${statusClass}`;
                     btn.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px;">
-                            <strong style="font-size: 0.95rem;">📅 ${formattedDate}</strong>
+                            <strong style="font-size: 0.95rem;">📅 ${formattedDateDDMMYYYY}</strong>
                             <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.08); font-weight: bold;">${badgeText}</span>
                         </div>
                         <div style="width: 100%; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 4px;">
@@ -281,23 +263,21 @@
                         </div>
                     `;
 
+                    // Al hacer clic en la sugerencia, se asigna la fecha directamente al input nativo de tipo date
                     btn.addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         
+                        // Asignar el valor directamente al input type="date" (requiere formato YYYY-MM-DD)
+                        document.getElementById('free-date-input').value = dateStr;
+
                         const suggestedTime = suggestNextTimeForDate(dateStr);
                         document.getElementById('appointment-time').value = suggestedTime;
 
                         updateFinalTimestamp();
 
-                        // Marcar visualmente la tarjeta seleccionada sin ocultar las demás
+                        // Marcar visualmente la tarjeta seleccionada
                         document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
                         btn.classList.add('selected-suggestion');
-                        
-                        // Mostrar la fecha en el cuadro de texto y ocultar el input de calendario libre temporalmente
-                        document.getElementById('free-date-input').style.display = 'none';
-                        const displayBox = document.getElementById('selected-date-display-box');
-                        displayBox.value = formattedDate;
-                        displayBox.style.display = 'block';
 
                         document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
 
@@ -315,48 +295,26 @@
             }
         });
 
+        // Al cambiar el input de fecha (ya sea por el calendario o por elegir una sugerencia)
         document.getElementById('free-date-input').addEventListener('change', (e) => {
-            const freeDate = e.target.value;
-            if (!freeDate) return;
+            const chosenDate = e.target.value;
+            if (!chosenDate) return;
 
-            selectedDateOnly = freeDate;
+            selectedDateOnly = chosenDate;
             
-            const suggestedTime = suggestNextTimeForDate(freeDate);
+            const suggestedTime = suggestNextTimeForDate(chosenDate);
             document.getElementById('appointment-time').value = suggestedTime;
 
             updateFinalTimestamp();
 
+            // Quitar selección de las tarjetas si se eligió manualmente en el calendario
             document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
 
-            const formattedDate = formatDateToDDMMYYYY(freeDate);
             document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
-            
-            document.getElementById('free-date-input').style.display = 'none';
-            const displayBox = document.getElementById('selected-date-display-box');
-            displayBox.value = formattedDate;
-            displayBox.style.display = 'block';
 
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = false;
             saveBtn.style.opacity = '1';
-        });
-
-        // Permitir hacer clic en el cuadro de texto de la fecha seleccionada para volver a cambiar/abrir el calendario libre
-        document.getElementById('selected-date-display-box').addEventListener('click', () => {
-            document.getElementById('selected-date-display-box').style.display = 'none';
-            
-            const freeInput = document.getElementById('free-date-input');
-            freeInput.style.display = 'block';
-            freeInput.value = '';
-            freeInput.focus();
-            
-            document.getElementById('date-label-text').textContent = 'O elige otra fecha libre:';
-            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
-            
-            selectedDateOnly = '';
-            document.getElementById('selected-appointment-date').value = '';
-            document.getElementById('save-btn').disabled = true;
-            document.getElementById('save-btn').style.opacity = '0.6';
         });
 
         document.getElementById('appointment-time').addEventListener('change', () => {
