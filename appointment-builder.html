@@ -73,12 +73,10 @@
                     <div id="suggestions-list"></div>
                 </div>
 
-                <!-- FECHA Y HORA DE ATENCIÓN EN LA MISMA LÍNEA -->
+                <!-- CALENDARIO LIBRE Y HORA DE ATENCIÓN SIEMPRE VISIBLES EN LA MISMA LÍNEA -->
                 <div class="inline-row">
                     <div class="inline-col">
                         <label id="date-label-text" style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
-                        
-                        <!-- Input de fecha único que maneja tanto la selección libre como la sugerida -->
                         <input type="date" id="free-date-input" style="width: 100%;">
                     </div>
                     <div class="inline-col">
@@ -246,7 +244,6 @@
                         clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h</div>`;
                     });
 
-                    // Formato YYYY-MM-DD para mostrar en la tarjeta de sugerencia
                     const parts = dateStr.split('-');
                     const formattedDateDDMMYYYY = `${parts[2]}/${parts[1]}/${parts[0]}`;
 
@@ -263,11 +260,11 @@
                         </div>
                     `;
 
-                    // Al hacer clic en la sugerencia, se asigna la fecha directamente al input nativo de tipo date
+                    // Al hacer clic en la sugerencia, se pinta el input de fecha y se calcula la hora automáticamente
                     btn.addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         
-                        // Asignar el valor directamente al input type="date" (requiere formato YYYY-MM-DD)
+                        // Rellenar el input date visible con la fecha correspondiente (formato YYYY-MM-DD)
                         document.getElementById('free-date-input').value = dateStr;
 
                         const suggestedTime = suggestNextTimeForDate(dateStr);
@@ -295,7 +292,7 @@
             }
         });
 
-        // Al cambiar el input de fecha (ya sea por el calendario o por elegir una sugerencia)
+        // Si el usuario interactúa directamente con el calendario libre
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
@@ -307,7 +304,7 @@
 
             updateFinalTimestamp();
 
-            // Quitar selección de las tarjetas si se eligió manualmente en el calendario
+            // Quitar selección de las tarjetas sugeridas si se eligió manualmente
             document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
 
             document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
