@@ -15,6 +15,7 @@
         .inline-row { display: flex; gap: 10px; flex-wrap: wrap; }
         .inline-col { flex: 1; min-width: 200px; }
         
+        /* Estilo base para las tarjetas de fechas sugeridas (siempre blancas/neutras) */
         .suggestion-item-btn {
             width: 100%;
             padding: 12px 15px;
@@ -24,18 +25,18 @@
             font-size: 0.9rem;
             text-align: left;
             cursor: pointer;
-            border: 1px solid #cbd5e0;
+            background: white !important;
+            border: 1px solid #cbd5e0 !important;
+            color: #2d3748 !important;
             transition: all 0.2s;
         }
+        
+        /* Estilo al hacer clic / seleccionar una tarjeta: color claro con borde azul */
         .suggestion-item-btn.selected-suggestion {
+            background-color: #ebf8ff !important;
             border: 2px solid #2b6cb0 !important;
             box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
-            background-color: #ebf8ff !important;
         }
-        .status-green { background: #c6f6d5 !important; border-color: #38a169 !important; color: #22543d !important; }
-        .status-yellow { background: #feebc8 !important; border-color: #d69e2e !important; color: #744210 !important; }
-        .status-red { background: #fed7d7 !important; border-color: #e53e3e !important; color: #742a2a !important; }
-        .status-default { background: white !important; color: #2d3748 !important; }
     </style>
 </head>
 <body>
@@ -227,16 +228,7 @@
                     clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
 
                     const count = clientsOnThisDate.length;
-
-                    let statusClass = 'status-default';
                     let badgeText = `${count} cita${count > 1 ? 's' : ''}`;
-                    if (count >= 1 && count <= 2) {
-                        statusClass = 'status-green';
-                    } else if (count > 2 && count <= 4) {
-                        statusClass = 'status-yellow';
-                    } else if (count > 4) {
-                        statusClass = 'status-red';
-                    }
 
                     let clientsDetailsHtml = '';
                     clientsOnThisDate.forEach(dc => {
@@ -249,22 +241,20 @@
 
                     const btn = document.createElement('button');
                     btn.type = 'button';
-                    btn.className = `suggestion-item-btn ${statusClass}`;
+                    btn.className = `suggestion-item-btn`;
                     btn.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px;">
-                            <strong style="font-size: 0.95rem;">📅 ${formattedDateDDMMYYYY}</strong>
-                            <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.08); font-weight: bold;">${badgeText}</span>
+                            <strong style="font-size: 0.95rem; color: #2b6cb0;">📅 ${formattedDateDDMMYYYY}</strong>
+                            <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
                         </div>
-                        <div style="width: 100%; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 4px;">
+                        <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 4px;">
                             ${clientsDetailsHtml}
                         </div>
                     `;
 
-                    // Al hacer clic en la sugerencia, se pinta el input de fecha y se calcula la hora automáticamente
                     btn.addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         
-                        // Rellenar el input date visible con la fecha correspondiente (formato YYYY-MM-DD)
                         document.getElementById('free-date-input').value = dateStr;
 
                         const suggestedTime = suggestNextTimeForDate(dateStr);
@@ -272,7 +262,6 @@
 
                         updateFinalTimestamp();
 
-                        // Marcar visualmente la tarjeta seleccionada
                         document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
                         btn.classList.add('selected-suggestion');
 
@@ -292,7 +281,6 @@
             }
         });
 
-        // Si el usuario interactúa directamente con el calendario libre
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
@@ -304,7 +292,6 @@
 
             updateFinalTimestamp();
 
-            // Quitar selección de las tarjetas sugeridas si se eligió manualmente
             document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
 
             document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
