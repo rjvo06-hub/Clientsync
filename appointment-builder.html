@@ -128,7 +128,6 @@
             return dateStr;
         }
 
-        // Sugerir hora calculando la última cita de ese día + 3 horas por defecto
         function suggestNextTimeForDate(dateStr) {
             const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
             if (clientsOnDate.length === 0) return "09:00";
@@ -142,7 +141,6 @@
                 const m = dateObj.getMinutes();
                 const totalMins = h * 60 + m;
                 
-                // Considerar duración estimada si la tiene (por defecto 3 horas = 180 mins)
                 const durationMins = c.estimated_hours ? (Number(c.estimated_hours) * 60) : 180;
                 const endMins = totalMins + durationMins;
 
@@ -153,7 +151,6 @@
                 }
             });
 
-            // Formatear a HH:MM con ceros a la izquierda
             const formattedH = String(latestHour).padStart(2, '0');
             const formattedM = String(latestMinute).padStart(2, '0');
             return `${formattedH}:${formattedM}`;
@@ -234,6 +231,10 @@
 
                 activeDates.forEach(dateStr => {
                     const clientsOnThisDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+                    
+                    // 🎯 ORDENAR CRONOLÓGICAMENTE DE MENOR A MAYOR HORA
+                    clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
+
                     const count = clientsOnThisDate.length;
 
                     let statusClass = 'status-default';
@@ -270,7 +271,6 @@
                     btn.addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         
-                        // Sugerir hora automáticamente basada en la última cita de ese día + 3h
                         const suggestedTime = suggestNextTimeForDate(dateStr);
                         document.getElementById('appointment-time').value = suggestedTime;
 
@@ -304,7 +304,6 @@
 
             selectedDateOnly = freeDate;
             
-            // Para fecha libre por defecto sugerimos a las 09:00 o la calculada
             const suggestedTime = suggestNextTimeForDate(freeDate);
             document.getElementById('appointment-time').value = suggestedTime;
 
@@ -346,7 +345,7 @@
             const hoursVal = document.getElementById('estimated-hours').value;
 
             if (!clientId || !apptVal) {
-                alert('Selecciona un cliente y una fecha/hora válida.');
+                alert('Selecciona un cliente y uma fecha/hora válida.');
                 return;
             }
 
