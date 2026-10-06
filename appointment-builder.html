@@ -277,9 +277,8 @@
 
                         document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
                         btn.classList.add('selected-suggestion');
-                        document.getElementById('free-date-input.value = ''');
+                        document.getElementById('free-date-input').value = '';
 
-                        // Cambiar el texto del label por Fecha Seleccionada
                         document.getElementById('date-label-text').textContent = `Fecha seleccionada: ${formattedDate}`;
 
                         saveBtn.disabled = false;
