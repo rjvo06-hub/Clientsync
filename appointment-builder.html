@@ -12,19 +12,16 @@
         .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
         
-        /* Botones de fechas sugeridas con indicadores de color */
+        /* Botones de fechas sugeridas con indicadores de color y diseño estructurado */
         .suggestion-item-btn {
             width: 100%;
             padding: 12px 15px;
             margin-top: 8px;
             border-radius: 8px;
-            font-weight: bold;
+            font-weight: normal;
             font-size: 0.9rem;
             text-align: left;
             cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             border: 1px solid #cbd5e0;
             transition: all 0.2s;
         }
@@ -60,7 +57,7 @@
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span>
             </div>
 
-            <!-- 2. SELECCIÓN DE FECHA (Sugerencias + Fecha libre sin botones estorbosos) -->
+            <!-- 2. SELECCIÓN DE FECHA -->
             <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
                 <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha:</label>
                 
@@ -77,14 +74,15 @@
 
             <input type="hidden" id="selected-appointment-date" required>
 
-            <div id="selected-date-display" style="margin-bottom: 15px; font-weight: bold; color: #2f855a; font-size: 0.9rem; display:none; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
-                ✅ Fecha elegida: <span id="txt-chosen-date">-</span>
-            </div>
-
             <!-- 3. HORA DE ATENCIÓN -->
             <div style="margin-bottom: 15px;">
                 <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">3. Hora de atención:</label>
                 <input type="time" id="appointment-time" value="09:00" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;" required>
+            </div>
+
+            <!-- MENSAJE DE CONFIRMACIÓN (Se muestra después de elegir fecha y hora) -->
+            <div id="selected-date-display" style="margin-bottom: 15px; font-weight: bold; color: #2f855a; font-size: 0.9rem; display:none; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
+                ✅ Fecha elegida: <span id="txt-chosen-date">-</span>
             </div>
             
             <!-- 4. HORAS ESTIMADAS -->
@@ -117,6 +115,16 @@
             return R * c;
         }
 
+        // Función auxiliar para formatear la fecha YYYY-MM-DD a DD/MM/YYYY
+        function formatDateToDDMMYYYY(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
         async function initForm() {
             try {
                 const { data, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
@@ -133,7 +141,7 @@
                     select.appendChild(opt);
                 });
 
-                // 🎯 AUTODETECTAR CLIENTE SI VIENE DESDE EL MAPA
+                // Autodectar cliente si viene desde el mapa
                 const urlParams = new URLSearchParams(window.location.search);
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
@@ -205,19 +213,33 @@
                         statusClass = 'status-red';
                     }
 
+                    // Generar lista detallada de clientes atendidos en esa fecha
+                    let clientsDetailsHtml = '';
+                    clientsOnThisDate.forEach(dc => {
+                        const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                        clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h</div>`;
+                    });
+
+                    const formattedDate = formatDateToDDMMYYYY(dateStr);
+
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = `suggestion-item-btn ${statusClass}`;
                     btn.innerHTML = `
-                        <span>📅 Ruta el ${dateStr}</span>
-                        <span style="font-size: 0.8rem; padding: 3px 8px; border-radius: 12px; background: rgba(0,0,0,0.08);">${badgeText}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px;">
+                            <strong style="font-size: 0.95rem;">📅 ${formattedDate}</strong>
+                            <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,0.08); font-weight: bold;">${badgeText}</span>
+                        </div>
+                        <div style="width: 100%; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 4px;">
+                            ${clientsDetailsHtml}
+                        </div>
                     `;
 
                     btn.addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         updateFinalTimestamp();
                         const timeVal = document.getElementById('appointment-time').value || '09:00';
-                        document.getElementById('txt-chosen-date').textContent = `${dateStr} a las ${timeVal}`;
+                        document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${timeVal}`;
                         document.getElementById('selected-date-display').style.display = 'block';
                         document.getElementById('free-date-input').value = '';
                         
@@ -242,7 +264,8 @@
             selectedDateOnly = freeDate;
             updateFinalTimestamp();
             const timeVal = document.getElementById('appointment-time').value || '09:00';
-            document.getElementById('txt-chosen-date').textContent = `${freeDate} a las ${timeVal}`;
+            const formattedDate = formatDateToDDMMYYYY(freeDate);
+            document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${timeVal}`;
             document.getElementById('selected-date-display').style.display = 'block';
             
             const saveBtn = document.getElementById('save-btn');
@@ -254,7 +277,8 @@
             if (selectedDateOnly) {
                 updateFinalTimestamp();
                 const timeVal = document.getElementById('appointment-time').value || '09:00';
-                document.getElementById('txt-chosen-date').textContent = `${selectedDateOnly} a las ${timeVal}`;
+                const formattedDate = formatDateToDDMMYYYY(selectedDateOnly);
+                document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${timeVal}`;
             }
         });
 
