@@ -12,11 +12,9 @@
         .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
         
-        /* Contenedor de 3 columnas en la misma línea */
         .inline-row-three { display: flex; gap: 10px; flex-wrap: wrap; }
         .inline-col-three { flex: 1; min-width: 170px; }
         
-        /* Estilo base para las tarjetas de fechas sugeridas (blancas/neutras) */
         .suggestion-item-btn {
             width: 100%;
             padding: 12px 15px;
@@ -32,7 +30,6 @@
             transition: all 0.2s;
         }
         
-        /* Estilo al seleccionar una tarjeta: color claro con borde azul */
         .suggestion-item-btn.selected-suggestion {
             background-color: #ebf8ff !important;
             border: 2px solid #2b6cb0 !important;
@@ -53,7 +50,6 @@
         </p>
 
         <form id="appointment-form">
-            <!-- 1. NOMBRE DEL CLIENTE -->
             <div style="margin-bottom: 15px;">
                 <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">1. Seleccionar Cliente:</label>
                 <select id="client-select" required>
@@ -66,7 +62,6 @@
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span>
             </div>
 
-            <!-- 2. SELECCIÓN DE FECHA -->
             <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: none;">
                 <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora y Duración:</label>
                 
@@ -75,7 +70,6 @@
                     <div id="suggestions-list"></div>
                 </div>
 
-                <!-- FECHA, HORA Y HORAS ESTIMADAS EN LA MISMA LÍNEA -->
                 <div class="inline-row-three">
                     <div class="inline-col-three">
                         <label id="date-label-text" style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Fecha:</label>
@@ -106,6 +100,13 @@
 
         let allClients = [];
         let selectedDateOnly = '';
+        const todayStrSystem = new Date().toISOString().split('T')[0];
+
+        // Aplicar min en la fecha actual al cargar
+        const freeDateInput = document.getElementById('free-date-input');
+        if (freeDateInput) {
+            freeDateInput.setAttribute('min', todayStrSystem);
+        }
 
         function calculateDistanceKm(lat1, lon1, lat2, lon2) {
             const R = 6371;
@@ -130,7 +131,18 @@
 
         function suggestNextTimeForDate(dateStr) {
             const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
-            if (clientsOnDate.length === 0) return "09:00";
+            if (clientsOnDate.length === 0) {
+                // Si es hoy, sugerir la hora actual o la próxima hora entera si ya pasó
+                if (dateStr === todayStrSystem) {
+                    const now = new Date();
+                    const currentH = now.getHours();
+                    const currentM = now.getMinutes();
+                    const formattedH = String(currentH).padStart(2, '0');
+                    const formattedM = currentM > 0 ? String(Math.min(currentM + 15, 59)).padStart(2, '0') : '00';
+                    return `${formattedH}:${formattedM}`;
+                }
+                return "09:00";
+            }
 
             let latestHour = 9;
             let latestMinute = 0;
@@ -235,63 +247,68 @@
             suggestionsList.innerHTML = '';
 
             if (nearbyClients.length > 0) {
-                const activeDates = [...new Set(nearbyClients.map(c => c.appointment_date.split('T')[0]))];
+                // Filtrar solo fechas que no sean menores a hoy
+                const activeDates = [...new Set(nearbyClients.map(c => c.appointment_date.split('T')[0]))].filter(d => d >= todayStrSystem);
 
-                activeDates.forEach(dateStr => {
-                    const clientsOnThisDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
-                    
-                    clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
-
-                    const count = clientsOnThisDate.length;
-                    let badgeText = `${count} cita${count > 1 ? 's' : ''}`;
-
-                    let clientsDetailsHtml = '';
-                    clientsOnThisDate.forEach(dc => {
-                        const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                        clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h</div>`;
-                    });
-
-                    const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
-
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = `suggestion-item-btn`;
-                    btn.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px;">
-                            <strong style="font-size: 0.95rem; color: #2b6cb0;">📅 ${formattedDateDDMMYYYY}</strong>
-                            <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
-                        </div>
-                        <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 4px;">
-                            ${clientsDetailsHtml}
-                        </div>
-                    `;
-
-                    btn.addEventListener('click', () => {
-                        selectedDateOnly = dateStr;
+                if (activeDates.length > 0) {
+                    activeDates.forEach(dateStr => {
+                        const clientsOnThisDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
                         
-                        const suggestedTime = suggestNextTimeForDate(dateStr);
-                        document.getElementById('appointment-time').value = suggestedTime;
+                        clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
 
-                        updateFinalTimestamp();
+                        const count = clientsOnThisDate.length;
+                        let badgeText = `${count} cita${count > 1 ? 's' : ''}`;
 
-                        document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
-                        btn.classList.add('selected-suggestion');
+                        let clientsDetailsHtml = '';
+                        clientsOnThisDate.forEach(dc => {
+                            const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                            clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h</div>`;
+                        });
 
-                        document.getElementById('free-date-input').style.display = 'none';
-                        const displayBox = document.getElementById('selected-date-display-box');
-                        displayBox.value = formattedDateDDMMYYYY;
-                        displayBox.style.display = 'block';
+                        const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
 
-                        document.getElementById('date-label-text').textContent = 'Fecha:';
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = `suggestion-item-btn`;
+                        btn.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px;">
+                                <strong style="font-size: 0.95rem; color: #2b6cb0;">📅 ${formattedDateDDMMYYYY}</strong>
+                                <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
+                            </div>
+                            <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 4px;">
+                                ${clientsDetailsHtml}
+                            </div>
+                        `;
 
-                        saveBtn.disabled = false;
-                        saveBtn.style.opacity = '1';
+                        btn.addEventListener('click', () => {
+                            selectedDateOnly = dateStr;
+                            
+                            const suggestedTime = suggestNextTimeForDate(dateStr);
+                            document.getElementById('appointment-time').value = suggestedTime;
+
+                            updateFinalTimestamp();
+
+                            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
+                            btn.classList.add('selected-suggestion');
+
+                            document.getElementById('free-date-input').style.display = 'none';
+                            const displayBox = document.getElementById('selected-date-display-box');
+                            displayBox.value = formattedDateDDMMYYYY;
+                            displayBox.style.display = 'block';
+
+                            document.getElementById('date-label-text').textContent = 'Fecha:';
+
+                            saveBtn.disabled = false;
+                            saveBtn.style.opacity = '1';
+                        });
+
+                        suggestionsList.appendChild(btn);
                     });
-
-                    suggestionsList.appendChild(btn);
-                });
-
-                suggestionBox.style.display = 'block';
+                    suggestionBox.style.display = 'block';
+                } else {
+                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas futuras cercanas a menos de 1 km. Selecciona una fecha libre.</p>`;
+                    suggestionBox.style.display = 'block';
+                }
             } else {
                 suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Selecciona una fecha libre arriba.</p>`;
                 suggestionBox.style.display = 'block';
@@ -318,6 +335,12 @@
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
+
+            if (chosenDate < todayStrSystem) {
+                alert('No se pueden programar citas en fechas pasadas.');
+                e.target.value = '';
+                return;
+            }
 
             selectedDateOnly = chosenDate;
             
@@ -365,6 +388,26 @@
             if (!clientId || !apptVal) {
                 alert('Selecciona un cliente y una fecha/hora válida.');
                 return;
+            }
+
+            const chosenDatePart = apptVal.split('T')[0];
+            const chosenTimePart = apptVal.split('T')[1].substring(0, 5);
+
+            if (chosenDatePart < todayStrSystem) {
+                alert('No se pueden programar citas en fechas pasadas.');
+                return;
+            }
+
+            if (chosenDatePart === todayStrSystem) {
+                const now = new Date();
+                const currentHours = String(now.getHours()).padStart(2, '0');
+                const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+                const currentTimeStr = `${currentHours}:${currentMinutes}`;
+
+                if (chosenTimePart < currentTimeStr) {
+                    alert('No puedes programar una cita a una hora que ya ha transcurrido el día de hoy.');
+                    return;
+                }
             }
 
             const btn = document.getElementById('save-btn');
