@@ -7,15 +7,16 @@
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
-        .container { max-width: 600px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
+        .container { max-width: 650px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
         select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; }
         .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
         
-        .inline-row { display: flex; gap: 10px; flex-wrap: wrap; }
-        .inline-col { flex: 1; min-width: 200px; }
+        /* Contenedor de 3 columnas en la misma línea */
+        .inline-row-three { display: flex; gap: 10px; flex-wrap: wrap; }
+        .inline-col-three { flex: 1; min-width: 170px; }
         
-        /* Estilo base para las tarjetas de fechas sugeridas (siempre blancas/neutras) */
+        /* Estilo base para las tarjetas de fechas sugeridas (blancas/neutras) */
         .suggestion-item-btn {
             width: 100%;
             padding: 12px 15px;
@@ -31,7 +32,7 @@
             transition: all 0.2s;
         }
         
-        /* Estilo al hacer clic / seleccionar una tarjeta: color claro con borde azul */
+        /* Estilo al seleccionar una tarjeta: color claro con borde azul */
         .suggestion-item-btn.selected-suggestion {
             background-color: #ebf8ff !important;
             border: 2px solid #2b6cb0 !important;
@@ -66,34 +67,33 @@
             </div>
 
             <!-- 2. SELECCIÓN DE FECHA -->
-            <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
-                <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha:</label>
+            <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: none;">
+                <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora y Duración:</label>
                 
                 <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
                     <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Fechas sugeridas en la zona:</div>
                     <div id="suggestions-list"></div>
                 </div>
 
-                <!-- CALENDARIO LIBRE Y HORA DE ATENCIÓN SIEMPRE VISIBLES EN LA MISMA LÍNEA -->
-                <div class="inline-row">
-                    <div class="inline-col">
-                        <label id="date-label-text" style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
+                <!-- FECHA, HORA Y HORAS ESTIMADAS EN LA MISMA LÍNEA -->
+                <div class="inline-row-three">
+                    <div class="inline-col-three">
+                        <label id="date-label-text" style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Fecha:</label>
                         <input type="date" id="free-date-input" style="width: 100%;">
+                        <input type="text" id="selected-date-display-box" style="display: none; width: 100%; background: #edf2f7; font-weight: bold; color: #2d3748; cursor: pointer;" title="Haz clic para cambiar fecha" readonly>
                     </div>
-                    <div class="inline-col">
+                    <div class="inline-col-three">
                         <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Hora de atención:</label>
                         <input type="time" id="appointment-time" required>
+                    </div>
+                    <div class="inline-col-three">
+                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Horas est. (Opc):</label>
+                        <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
                     </div>
                 </div>
             </div>
 
             <input type="hidden" id="selected-appointment-date" required>
-            
-            <!-- 3. HORAS ESTIMADAS (OPCIONAL) -->
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">3. Horas estimadas de trabajo (Opcional):</label>
-                <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
-            </div>
 
             <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; opacity: 0.6; margin-bottom: 30px; width: 100%;" disabled>
                 Confirmar y Agendar Cita
@@ -117,6 +117,15 @@
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
+        }
+
+        function formatDateToDDMMYYYY(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
         }
 
         function suggestNextTimeForDate(dateStr) {
@@ -188,9 +197,15 @@
             
             selectedDateOnly = '';
             document.getElementById('selected-appointment-date').value = '';
+            
             document.getElementById('free-date-input').value = '';
+            document.getElementById('free-date-input').style.display = 'block';
+            document.getElementById('selected-date-display-box').style.display = 'none';
+            document.getElementById('selected-date-display-box').value = '';
+
             document.getElementById('appointment-time').value = '';
-            document.getElementById('date-label-text').textContent = 'O elige otra fecha libre:';
+            document.getElementById('estimated-hours').value = '';
+            document.getElementById('date-label-text').textContent = 'Fecha:';
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.6';
 
@@ -236,8 +251,7 @@
                         clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h</div>`;
                     });
 
-                    const parts = dateStr.split('-');
-                    const formattedDateDDMMYYYY = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
 
                     const btn = document.createElement('button');
                     btn.type = 'button';
@@ -255,8 +269,6 @@
                     btn.addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         
-                        document.getElementById('free-date-input').value = dateStr;
-
                         const suggestedTime = suggestNextTimeForDate(dateStr);
                         document.getElementById('appointment-time').value = suggestedTime;
 
@@ -265,7 +277,12 @@
                         document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
                         btn.classList.add('selected-suggestion');
 
-                        document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
+                        document.getElementById('free-date-input').style.display = 'none';
+                        const displayBox = document.getElementById('selected-date-display-box');
+                        displayBox.value = formattedDateDDMMYYYY;
+                        displayBox.style.display = 'block';
+
+                        document.getElementById('date-label-text').textContent = 'Fecha:';
 
                         saveBtn.disabled = false;
                         saveBtn.style.opacity = '1';
@@ -276,9 +293,26 @@
 
                 suggestionBox.style.display = 'block';
             } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Selecciona una fecha libre abajo.</p>`;
+                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Selecciona una fecha libre arriba.</p>`;
                 suggestionBox.style.display = 'block';
             }
+        });
+
+        document.getElementById('selected-date-display-box').addEventListener('click', () => {
+            document.getElementById('selected-date-display-box').style.display = 'none';
+            
+            const freeInput = document.getElementById('free-date-input');
+            freeInput.style.display = 'block';
+            freeInput.value = '';
+            freeInput.focus();
+            
+            document.getElementById('date-label-text').textContent = 'Fecha:';
+            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
+            
+            selectedDateOnly = '';
+            document.getElementById('selected-appointment-date').value = '';
+            document.getElementById('save-btn').disabled = true;
+            document.getElementById('save-btn').style.opacity = '0.6';
         });
 
         document.getElementById('free-date-input').addEventListener('change', (e) => {
@@ -294,7 +328,13 @@
 
             document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
 
-            document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
+            const formattedDate = formatDateToDDMMYYYY(chosenDate);
+            document.getElementById('date-label-text').textContent = 'Fecha:';
+            
+            document.getElementById('free-date-input').style.display = 'none';
+            const displayBox = document.getElementById('selected-date-display-box');
+            displayBox.value = formattedDate;
+            displayBox.style.display = 'block';
 
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = false;
