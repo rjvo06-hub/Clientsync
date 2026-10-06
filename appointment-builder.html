@@ -25,6 +25,10 @@
             border: 1px solid #cbd5e0;
             transition: all 0.2s;
         }
+        .suggestion-item-btn.selected-suggestion {
+            border: 2px solid #2b6cb0 !important;
+            box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
+        }
         .status-green { background: #c6f6d5 !important; border-color: #38a169 !important; color: #22543d !important; }
         .status-yellow { background: #feebc8 !important; border-color: #d69e2e !important; color: #744210 !important; }
         .status-red { background: #fed7d7 !important; border-color: #e53e3e !important; color: #742a2a !important; }
@@ -66,7 +70,7 @@
                     <div id="suggestions-list"></div>
                 </div>
 
-                <div>
+                <div id="free-date-container">
                     <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
                     <input type="date" id="free-date-input" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; background: white;">
                 </div>
@@ -80,7 +84,7 @@
                 <input type="time" id="appointment-time" value="09:00" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;" required>
             </div>
 
-            <!-- MENSAJE DE CONFIRMACIÓN (Se muestra después de elegir fecha y hora) -->
+            <!-- MENSAJE DE CONFIRMACIÓN (Aparece únicamente después de tener fecha y hora listas) -->
             <div id="selected-date-display" style="margin-bottom: 15px; font-weight: bold; color: #2f855a; font-size: 0.9rem; display:none; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
                 ✅ Fecha elegida: <span id="txt-chosen-date">-</span>
             </div>
@@ -115,7 +119,6 @@
             return R * c;
         }
 
-        // Función auxiliar para formatear la fecha YYYY-MM-DD a DD/MM/YYYY
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
@@ -141,7 +144,6 @@
                     select.appendChild(opt);
                 });
 
-                // Autodectar cliente si viene desde el mapa
                 const urlParams = new URLSearchParams(window.location.search);
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
@@ -167,6 +169,7 @@
             document.getElementById('selected-appointment-date').value = '';
             document.getElementById('selected-date-display').style.display = 'none';
             document.getElementById('free-date-input').value = '';
+            document.getElementById('free-date-container').style.display = 'block';
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.6';
 
@@ -202,7 +205,6 @@
                     const clientsOnThisDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
                     const count = clientsOnThisDate.length;
 
-                    // Indicadores de color según el volumen de citas
                     let statusClass = 'status-default';
                     let badgeText = `${count} cita${count > 1 ? 's' : ''}`;
                     if (count >= 1 && count <= 2) {
@@ -213,7 +215,6 @@
                         statusClass = 'status-red';
                     }
 
-                    // Generar lista detallada de clientes atendidos en esa fecha
                     let clientsDetailsHtml = '';
                     clientsOnThisDate.forEach(dc => {
                         const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -238,10 +239,17 @@
                     btn.addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         updateFinalTimestamp();
+
+                        // Resaltar visualmente la sugerencia seleccionada y ocultar el selector libre
+                        document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
+                        btn.classList.add('selected-suggestion');
+                        document.getElementById('free-date-container').style.display = 'none';
+                        document.getElementById('free-date-input').value = '';
+
+                        // Mostrar resumen final con la hora actual
                         const timeVal = document.getElementById('appointment-time').value || '09:00';
                         document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${timeVal}`;
                         document.getElementById('selected-date-display').style.display = 'block';
-                        document.getElementById('free-date-input').value = '';
                         
                         saveBtn.disabled = false;
                         saveBtn.style.opacity = '1';
@@ -263,6 +271,10 @@
 
             selectedDateOnly = freeDate;
             updateFinalTimestamp();
+
+            // Limpiar selección de sugerencias si el usuario decide usar fecha libre
+            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
+
             const timeVal = document.getElementById('appointment-time').value || '09:00';
             const formattedDate = formatDateToDDMMYYYY(freeDate);
             document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${timeVal}`;
