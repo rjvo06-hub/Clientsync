@@ -244,12 +244,42 @@ async function loadAndRenderClients(mapInstance, bounds) {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Botón para eliminar cliente erróneo o lejano -->
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0; text-align: center;">
+                            <button type="button" id="sheet-delete-client-${client.id}" style="background: #e53e3e; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer;">
+                                🗑️ Eliminar este Cliente Incorrecto
+                            </button>
+                        </div>
                     `;
 
                     openMobileBottomSheet(sheetContent);
 
                     // Vincular eventos de los botones dentro del panel inferior
                     document.getElementById('close-sheet-btn').addEventListener('click', closeMobileBottomSheet);
+
+                    // Botón de eliminar cliente
+                    const deleteBtn = document.getElementById(`sheet-delete-client-${client.id}`);
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', async () => {
+                            if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
+                                deleteBtn.textContent = 'Eliminando...';
+                                const { error: delErr } = await supabase
+                                    .from('clients')
+                                    .delete()
+                                    .eq('id', client.id);
+
+                                if (delErr) {
+                                    alert('Error al eliminar: ' + delErr.message);
+                                    deleteBtn.textContent = '🗑️ Eliminar este Cliente Incorrecto';
+                                } else {
+                                    alert('¡Cliente eliminado correctamente!');
+                                    closeMobileBottomSheet();
+                                    startMap(); // Recargar el mapa y los pines
+                                }
+                            }
+                        });
+                    }
 
                     // Botones de sugerencia rápida ("Usar")
                     const pickButtons = document.querySelectorAll(`.sheet-pick-date[data-client-id="${client.id}"]`);
