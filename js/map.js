@@ -2,7 +2,6 @@ import { supabase } from './supabaseClient.js';
 
 let map;
 
-// Función matemática de Haversine para calcular distancia en kilómetros
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -25,13 +24,10 @@ function initMapWhenReady() {
 
 async function startMap() {
     console.log("🗺️ Inicializando mapa de Google Maps...");
-    const defaultCenter = { lat: 48.0686, lng: 11.6289 }; // Ottobrunn / Múnich
+    const defaultCenter = { lat: 48.0686, lng: 11.6289 };
 
     const mapElement = document.getElementById('map');
-    if (!mapElement) {
-        console.error("❌ No se encontró el contenedor #map en el DOM.");
-        return;
-    }
+    if (!mapElement) return;
 
     try {
         map = new google.maps.Map(mapElement, {
@@ -45,51 +41,30 @@ async function startMap() {
                 }
             ]
         });
-        console.log("✅ Mapa creado con éxito.");
 
         const bounds = new google.maps.LatLngBounds();
-
-        // 1. Cargar y renderizar Zonas
         await loadAndRenderZones(map, bounds);
-
-        // 2. Cargar y renderizar Clientes con agendación inteligente unificada
         await loadAndRenderClients(map, bounds);
 
-        // Ajuste automático del mapa
         if (!bounds.isEmpty()) {
             map.fitBounds(bounds);
-            
             const listener = google.maps.event.addListener(map, "idle", () => {
-                if (map.getZoom() > 13) {
-                    map.setZoom(13);
-                }
+                if (map.getZoom() > 13) map.setZoom(13);
                 google.maps.event.removeListener(listener);
             });
         }
-
     } catch (e) {
         console.error("❌ Error crítico al instanciar el mapa:", e);
     }
 }
 
-// Renderizar Zonas Poligonales
 async function loadAndRenderZones(mapInstance, bounds) {
     try {
-        const { data: zones, error } = await supabase
-            .from('zones')
-            .select('*')
-            .not('polygon_coords', 'is', null);
-
-        if (error) {
-            console.error('❌ Error al cargar zonas:', error.message);
-            return;
-        }
-
-        if (!zones || zones.length === 0) return;
+        const { data: zones, error } = await supabase.from('zones').select('*').not('polygon_coords', 'is', null);
+        if (error || !zones) return;
 
         zones.forEach((zone) => {
             const coords = zone.polygon_coords;
-
             if (Array.isArray(coords) && coords.length >= 3) {
                 const formattedCoords = coords.map(pt => {
                     const latLng = { lat: Number(pt.lat), lng: Number(pt.lng) };
@@ -98,7 +73,6 @@ async function loadAndRenderZones(mapInstance, bounds) {
                 });
 
                 const zoneColor = zone.color || '#3182ce';
-
                 const zonePolygon = new google.maps.Polygon({
                     paths: formattedCoords,
                     strokeColor: zoneColor,
@@ -128,22 +102,10 @@ async function loadAndRenderZones(mapInstance, bounds) {
     }
 }
 
-// Renderizar Marcadores de Clientes con Lógica Unificada de 1 km y Horarios
 async function loadAndRenderClients(mapInstance, bounds) {
     try {
-        const { data: clients, error } = await supabase
-            .from('clients')
-            .select('*');
-
-        if (error) {
-            console.error('❌ Error al cargar clientes:', error.message);
-            return;
-        }
-
-        if (!clients || clients.length === 0) {
-            console.warn('⚠️ No hay clientes registrados.');
-            return;
-        }
+        const { data: clients, error } = await supabase.from('clients').select('*');
+        if (error || !clients) return;
 
         clients.forEach(client => {
             if (client.latitude && client.longitude) {
@@ -172,7 +134,6 @@ async function loadAndRenderClients(mapInstance, bounds) {
                         currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
                     }
 
-                    // Buscar clientes cercanos a menos de 1 km para sugerir fechas de ruta
                     const nearbyClients = clients.filter(c => {
                         if (!c.appointment_date || c.id === client.id || !c.latitude || !c.longitude) return false;
                         const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(c.latitude), Number(c.longitude));
@@ -202,7 +163,7 @@ async function loadAndRenderClients(mapInstance, bounds) {
                             `;
                         });
                     } else {
-                        suggestionsHtml = `<p style="font-size: 0.75rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Puedes asignar una fecha libre:</p>`;
+                        suggestionsHtml = `<p style="font-size: 0.75rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Asigna una fecha libre:</p>`;
                     }
 
                     const contentString = `
@@ -218,7 +179,7 @@ async function loadAndRenderClients(mapInstance, bounds) {
                                 <label style="font-size: 0.75rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 2px;">⏰ Hora de atención:</label>
                                 <input type="time" id="map-time-${client.id}" value="09:00" style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; margin-bottom: 4px;">
                                 
-                                <label style="font-size: 0.75rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 2px;">⏳ Horas estimadas (opcional):</label>
+                                <label style="font-size: 0.75rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 2px;">⏳ Horas estimadas:</label>
                                 <input type="number" id="map-hours-${client.id}" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; margin-bottom: 6px;">
 
                                 <div style="font-size: 0.8rem; font-weight: bold; color: #2d3748; margin-bottom: 2px;">Sugerencias por Proximidad (1 km):</div>
@@ -235,9 +196,7 @@ async function loadAndRenderClients(mapInstance, bounds) {
                     infoWindow.open(mapInstance, marker);
                 });
 
-                // Gestionar clics dentro de la ventana informativa del mapa
                 google.maps.event.addListener(infoWindow, 'domready', () => {
-                    // Botón de sugerencia rápida por proximidad ("Usar")
                     const pickButtons = document.querySelectorAll(`.map-pick-date[data-client-id="${client.id}"]`);
                     pickButtons.forEach(btn => {
                         btn.addEventListener('click', async () => {
@@ -258,20 +217,19 @@ async function loadAndRenderClients(mapInstance, bounds) {
                             if (updErr) {
                                 alert('Error al actualizar: ' + updErr.message);
                             } else {
-                                alert('¡Cita agendada por proximidad con éxito!');
+                                alert('¡Cita agendada con éxito!');
                                 infoWindow.close();
                                 startMap();
                             }
                         });
                     });
 
-                    // Botón para guardar con fecha libre elegida manualmente desde el mapa
                     const saveFreeBtn = document.getElementById(`map-save-free-${client.id}`);
                     if (saveFreeBtn) {
                         saveFreeBtn.addEventListener('click', async () => {
                             const freeDate = document.getElementById(`map-free-date-${client.id}`).value;
                             if (!freeDate) {
-                                alert('Selecciona una fecha libre en el campo de fecha.');
+                                alert('Selecciona una fecha libre.');
                                 return;
                             }
                             const timeVal = document.getElementById(`map-time-${client.id}`).value || '09:00';
@@ -299,7 +257,6 @@ async function loadAndRenderClients(mapInstance, bounds) {
                 });
             }
         });
-
     } catch (err) {
         console.error('❌ Excepción al renderizar clientes:', err);
     }
