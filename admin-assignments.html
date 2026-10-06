@@ -378,8 +378,8 @@
                         </div>
                     </div>
 
-                    <!-- Formulario desplegable con vista previa de volumen y clientes en la fecha -->
-                    <div class="edit-form-box" id="edit-box-${client.id}">
+                    <!-- Formulario desplegable -->
+                    <div class="edit-form-box" id="edit-box-${client.id}" data-original-date="${rawDatePart}">
                         <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 8px;">💡 Reagendar / Modificar Cita:</div>
 
                         <div class="inline-edit-row">
@@ -397,7 +397,7 @@
                             </div>
                         </div>
 
-                        <!-- Caja donde se listan los clientes ya agendados en esa fecha -->
+                        <!-- Caja donde se listan los clientes del día seleccionado con cálculo de distancia -->
                         <div class="day-load-preview" id="load-preview-${client.id}"></div>
 
                         <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
@@ -410,19 +410,29 @@
         }
 
         function updateDateLoadPreview(clientId) {
+            const client = allClients.find(c => c.id === clientId);
             const dateInput = document.getElementById(`edit-date-${clientId}`);
+            const editBox = document.getElementById(`edit-box-${clientId}`);
             const previewBox = document.getElementById(`load-preview-${clientId}`);
             const timeInput = document.getElementById(`edit-time-${clientId}`);
             
-            if (!dateInput || !previewBox || !timeInput) return;
+            if (!dateInput || !previewBox || !timeInput || !client) return;
 
             const chosenDate = dateInput.value;
+            const originalDate = editBox.getAttribute('data-original-date');
+
             if (!chosenDate) {
                 previewBox.style.display = 'none';
                 return;
             }
 
-            // Filtrar clientes agendados en esa fecha (excluyendo al cliente actual para ver el volumen real del día)
+            // Si la fecha seleccionada es exactamente la misma que ya tiene la cita, no mostramos la lista inferior (evitamos duplicar)
+            if (chosenDate === originalDate) {
+                previewBox.style.display = 'none';
+                return;
+            }
+
+            // Filtrar clientes agendados en la NUEVA fecha elegida (excluyendo al cliente actual)
             const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(chosenDate) && c.id !== clientId);
             const formattedDateStr = formatDateToDDMMYYYY(chosenDate);
 
@@ -432,7 +442,24 @@
                 
                 clientsOnDate.forEach(dc => {
                     const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                    detailsHtml += `<div style="margin-top: 3px; font-size: 0.8rem; color: #4a5568;">• <strong>${dc.name}</strong> — 📍 ${dc.address || 'Sin dirección'} a las <b>${timeStr}h</b></div>`;
+                    
+                    // Calcular distancia si ambos tienen coordenadas
+                    let distText = '';
+                    if (client.latitude && client.longitude && dc.latitude && dc.longitude) {
+                        const distKm = calculateDistanceKm(
+                            Number(client.latitude), Number(client.longitude),
+                            Number(dc.latitude), Number(dc.longitude)
+                        );
+                        if (distKm <= 1.0) {
+                            distText = ` <span style="color: #38a169; font-weight: bold;">(Estás a ${distKm.toFixed(2)} km de ${dc.name} 🟢)</span>`;
+                        } else {
+                            distText = ` <span style="color: #c05621;">(Distancia a ${dc.name}: <b>${distKm.toFixed(1)} km</b>)</span>`;
+                        }
+                    } else {
+                        distText = ` <span style="color: #718096;">(Sin ubicación exacta para calcular distancia)</span>`;
+                    }
+
+                    detailsHtml += `<div style="margin-top: 4px; font-size: 0.8rem; color: #4a5568;">• <strong>${dc.name}</strong> — 📍 ${dc.address || 'Sin dirección'} a las <b>${timeStr}h</b> ${distText}</div>`;
                 });
                 detailsHtml += `</div>`;
 
