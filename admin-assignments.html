@@ -53,6 +53,7 @@
         <div class="tab-buttons">
             <button type="button" class="tab-btn active" data-tab="day">📅 Día (Hoy)</button>
             <button type="button" class="tab-btn" data-tab="month">🗓️ Mes</button>
+            <button type="button" class="tab-btn" data-tab="search">🔍 Buscar Cliente</button>
         </div>
 
         <div id="view-content">
@@ -67,6 +68,9 @@
         let currentTab = 'day';
         let selectedMonthDate = new Date();
         let selectedCalendarDateStr = null;
+        let searchFilterText = '';
+
+        const todayStrSystem = new Date().toISOString().split('T')[0];
 
         function calculateDistanceKm(lat1, lon1, lat2, lon2) {
             const R = 6371;
@@ -157,10 +161,11 @@
             const container = document.getElementById('view-content');
 
             if (currentTab === 'day') {
-                const todayStr = new Date().toISOString().split('T')[0];
-                renderDayViewContainer(container, todayStr, "Citas para Hoy");
+                renderDayViewContainer(container, todayStrSystem, "Citas para Hoy");
             } else if (currentTab === 'month') {
                 renderMonthView(container);
+            } else if (currentTab === 'search') {
+                renderSearchView(container);
             }
         }
 
@@ -347,14 +352,49 @@
             renderDayViewContainer(detailsContainer, dateStr, `Citas del`);
         }
 
+        function renderSearchView(container) {
+            let html = `
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 5px;">🔍 Buscar por nombre de cliente:</label>
+                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Escribe el nombre del cliente (ej. Ramiro, Cliente 023)..." style="width: 100%; padding: 10px; font-size: 0.95rem;">
+                </div>
+                <div id="search-results-list">
+            `;
+
+            const query = searchFilterText.toLowerCase().trim();
+            const matchedClients = query === '' ? allClients : allClients.filter(c => c.name && c.name.toLowerCase().includes(query));
+
+            if (matchedClients.length === 0) {
+                html += `<p style="text-align: center; color: #718096; padding: 20px;">No se encontraron clientes con ese nombre.</p>`;
+            } else {
+                matchedClients.forEach(client => {
+                    html += buildClientCardHtml(client);
+                });
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+            attachEventListeners();
+
+            const searchInput = document.getElementById('client-search-input');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+                searchInput.addEventListener('input', (e) => {
+                    searchFilterText = e.target.value;
+                    renderSearchView(container);
+                });
+            }
+        }
+
         function buildClientCardHtml(client) {
-            const dateObj = new Date(client.appointment_date);
-            const dateStrFormatted = dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+            const dateObj = client.appointment_date ? new Date(client.appointment_date) : null;
+            const dateStrFormatted = dateObj ? dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin cita agendada';
             const currentEmp = client.assigned_employee || 'General';
             const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
 
-            const rawDatePart = client.appointment_date.split('T')[0];
-            const rawTimePart = client.appointment_date.split('T')[1] ? client.appointment_date.split('T')[1].substring(0, 5) : '09:00';
+            const rawDatePart = client.appointment_date ? client.appointment_date.split('T')[0] : todayStrSystem;
+            const rawTimePart = client.appointment_date && client.appointment_date.split('T')[1] ? client.appointment_date.split('T')[1].substring(0, 5) : '09:00';
 
             return `
                 <div class="client-row" id="card-${client.id}">
@@ -362,7 +402,7 @@
                         <div style="flex: 2; min-width: 200px;">
                             <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
                             <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
-                            <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}${hoursInfo}</span>
+                            <span style="font-size: 0.85rem; color: ${client.appointment_date ? '#2f855a' : '#c05621'}; font-weight: bold;">📅 ${dateStrFormatted}${hoursInfo}</span>
                         </div>
                         <div style="flex: 1; min-width: 150px;">
                             <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
@@ -378,14 +418,14 @@
                         </div>
                     </div>
 
-                    <!-- Formulario desplegable -->
+                    <!-- Formulario desplegable con validación min="hoy" -->
                     <div class="edit-form-box" id="edit-box-${client.id}" data-original-date="${rawDatePart}">
                         <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 8px;">💡 Reagendar / Modificar Cita:</div>
 
                         <div class="inline-edit-row">
                             <div class="inline-edit-col">
                                 <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Nueva Fecha:</label>
-                                <input type="date" class="edit-date-input" data-client-id="${client.id}" id="edit-date-${client.id}" value="${rawDatePart}" style="width: 100%;">
+                                <input type="date" class="edit-date-input" data-client-id="${client.id}" id="edit-date-${client.id}" value="${rawDatePart}" min="${todayStrSystem}" style="width: 100%;">
                             </div>
                             <div class="inline-edit-col">
                                 <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Hora de atención:</label>
@@ -397,7 +437,7 @@
                             </div>
                         </div>
 
-                        <!-- Caja donde se listan los clientes del día seleccionado con cálculo de distancia -->
+                        <!-- Caja de volumen y cálculo de distancia -->
                         <div class="day-load-preview" id="load-preview-${client.id}"></div>
 
                         <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
@@ -426,13 +466,11 @@
                 return;
             }
 
-            // Si la fecha seleccionada es exactamente la misma que ya tiene la cita, no mostramos la lista inferior (evitamos duplicar)
             if (chosenDate === originalDate) {
                 previewBox.style.display = 'none';
                 return;
             }
 
-            // Filtrar clientes agendados en la NUEVA fecha elegida (excluyendo al cliente actual)
             const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(chosenDate) && c.id !== clientId);
             const formattedDateStr = formatDateToDDMMYYYY(chosenDate);
 
@@ -443,7 +481,6 @@
                 clientsOnDate.forEach(dc => {
                     const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
                     
-                    // Calcular distancia si ambos tienen coordenadas
                     let distText = '';
                     if (client.latitude && client.longitude && dc.latitude && dc.longitude) {
                         const distKm = calculateDistanceKm(
@@ -456,7 +493,7 @@
                             distText = ` <span style="color: #c05621;">(Distancia a ${dc.name}: <b>${distKm.toFixed(1)} km</b>)</span>`;
                         }
                     } else {
-                        distText = ` <span style="color: #718096;">(Sin ubicación exacta para calcular distancia)</span>`;
+                        distText = ` <span style="color: #718096;">(Sin ubicación exacta)</span>`;
                     }
 
                     detailsHtml += `<div style="margin-top: 4px; font-size: 0.8rem; color: #4a5568;">• <strong>${dc.name}</strong> — 📍 ${dc.address || 'Sin dirección'} a las <b>${timeStr}h</b> ${distText}</div>`;
@@ -470,7 +507,6 @@
                 previewBox.style.display = 'block';
             }
 
-            // Sugerir la siguiente hora automáticamente
             const suggestedTime = suggestNextTimeForDate(chosenDate, clientId);
             timeInput.value = suggestedTime;
         }
@@ -557,6 +593,11 @@
                 return;
             }
 
+            if (newDate < todayStrSystem) {
+                alert('No se pueden programar citas en fechas pasadas.');
+                return;
+            }
+
             const fullTimestamp = `${newDate}T${newTime}:00.000Z`;
 
             const updatePayload = {
@@ -579,9 +620,6 @@
                     clientObj.estimated_hours = newHours ? parseFloat(newHours) : null;
                 }
                 renderCurrentView();
-                if (selectedCalendarDateStr) {
-                    renderDayDetailsInMonth(selectedCalendarDateStr);
-                }
             }
         }
 
