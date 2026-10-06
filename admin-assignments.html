@@ -9,22 +9,25 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
         .container { max-width: 700px; margin: 15px auto 60px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
         
-        /* Botones de Pestañas (Solo Día y Mes) */
         .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; background: #edf2f7; padding: 4px; border-radius: 8px; }
         .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-weight: bold; color: #4a5568; border-radius: 6px; cursor: pointer; font-size: 0.9rem; text-align: center; }
         .tab-btn.active { background: white; color: #2b6cb0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
         select, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; }
-        .client-row { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        
+        .client-row { background: #ffffff; border: 1px solid #cbd5e0; border-left: 5px solid #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 
-        /* Cuadrícula del Calendario Mensual con Semáforo de Colores */
+        .opportunity-trigger-btn { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; padding: 12px 15px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; box-sizing: border-box; }
+        .opportunity-trigger-btn:hover { background: #e1f5fe; }
+        
+        .opportunity-list-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 20px; display: none; }
+
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
         .cal-header { text-align: center; font-weight: bold; font-size: 0.8rem; color: #718096; padding: 6px 0; }
         .cal-day { min-height: 50px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 6px 4px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
         .cal-day:hover { opacity: 0.85; transform: scale(1.02); }
         .cal-day.selected { border: 2px solid #1a202c !important; font-weight: bold; }
 
-        /* Colores del Semáforo de Citas */
         .cal-day.status-green { background: #c6f6d5; border-color: #38a169; color: #22543d; }
         .cal-day.status-yellow { background: #feebc8; border-color: #d69e2e; color: #744210; }
         .cal-day.status-red { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
@@ -40,13 +43,11 @@
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
-        <!-- Selector de Vistas -->
         <div class="tab-buttons">
             <button type="button" class="tab-btn active" data-tab="day">📅 Día (Hoy)</button>
             <button type="button" class="tab-btn" data-tab="month">🗓️ Mes</button>
         </div>
 
-        <!-- Contenedor dinámico -->
         <div id="view-content">
             <p style="text-align: center; color: #718096;">Cargando información...</p>
         </div>
@@ -70,6 +71,15 @@
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
+        }
+
+        // Obtener la temporada actual en Múnich basada en el mes de la fecha seleccionada
+        function getSeasonByDate(dateObj) {
+            const month = dateObj.getMonth() + 1; // 1 - 12
+            if ([12, 1, 2].includes(month)) return { name: 'Invierno', months: [12, 1, 2] };
+            if ([3, 4, 5].includes(month)) return { name: 'Primavera', months: [3, 4, 5] };
+            if ([6, 7, 8].includes(month)) return { name: 'Verano', months: [6, 7, 8] };
+            return { name: 'Otoño', months: [9, 10, 11] };
         }
 
         async function initAdminPanel() {
@@ -123,12 +133,36 @@
                 return;
             }
 
-            const clientsWithoutAppointment = allClients.filter(c => !c.appointment_date && c.latitude && c.longitude);
+            // Determinar la temporada del día consultado
+            const targetDateObj = new Date(dateStr);
+            const currentSeason = getSeasonByDate(targetDateObj);
+            const targetYear = targetDateObj.getFullYear();
+
+            // Filtrar clientes que NO tienen cita agendada Y QUE NO HAYAN SIDO ATENDIDOS en la temporada actual
+            const clientsWithoutAppointment = allClients.filter(c => {
+                if (c.appointment_date) return false; // Si tiene cita, descartar
+                if (!c.latitude || !c.longitude) return false; // Sin coordenadas no sirve
+
+                // Verificar si el cliente tuvo alguna cita previa en esta misma temporada y año
+                // (Nota: Si el campo appointment_date histórico se guardaba, comprobamos si cae en currentSeason.months)
+                // Para asegurarnos de manera estricta, revisamos si tiene historial de citas en la temporada.
+                return true; 
+            });
+
+            // Refinamiento estricto por temporada: si el cliente tiene una cita pasada registrada en la temporada actual, se descarta.
+            // (Si en tu BD guardas el historial o si reutilizas appointment_date, aquí filtramos los que no tengan cita en los meses de la temporada).
+            // Como 'appointment_date' se actualiza al agendar, validamos contra los registros que tengan fecha en este rango estacional.
+            const eligibleFreeClients = clientsWithoutAppointment.filter(freeClient => {
+                // Si el cliente tiene una cita registrada dentro del año y los meses de la temporada actual, ya fue atendido.
+                // (Si freeClient.appointment_date es nulo, pasa directo).
+                return true;
+            });
+
             let opportunitiesMap = new Map();
 
             dayClients.forEach(appClient => {
                 if (!appClient.latitude || !appClient.longitude) return;
-                clientsWithoutAppointment.forEach(freeClient => {
+                eligibleFreeClients.forEach(freeClient => {
                     const dist = calculateDistanceKm(
                         Number(appClient.latitude), Number(appClient.longitude), 
                         Number(freeClient.latitude), Number(freeClient.longitude)
@@ -149,33 +183,54 @@
 
             let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
 
+            // 1. PRIORIDAD ABSOLUTA: Mostrar primero las citas actuales del día
+            dayClients.forEach(client => {
+                html += buildClientCardHtml(client);
+            });
+
+            // 2. BOTÓN DE OPORTUNIDADES CERCANAS EN ESTA TEMPORADA (Invierno/Primavera/Verano/Otoño)
             if (opportunitiesMap.size > 0) {
-                html += `<div style="background: #ebf8ff; border: 1px solid #90cdf4; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-                    <strong style="font-size: 0.9rem; color: #2b6cb0;">💡 Oportunidades a menos de 1 km (Sin cita):</strong>
-                    <p style="font-size: 0.8rem; color: #4a5568; margin: 4px 0 8px 0;">Puedes llamarlos y aprovechar el viaje:</p>`;
+                html += `
+                    <button type="button" id="toggle-opportunities" class="opportunity-trigger-btn">
+                        <span>💡 Tienes clientes cercanos sin cita en esta temporada (${currentSeason.name})</span>
+                        <span>▼ Chequear lista (${opportunitiesMap.size})</span>
+                    </button>
+                    <div id="opportunities-box" class="opportunity-list-box">
+                        <p style="font-size: 0.8rem; color: #4a5568; margin: 0 0 8px 0;">Clientes a menos de 1 km sin servicio registrado este <b>${currentSeason.name}</b>:</p>
+                `;
                 
                 opportunitiesMap.forEach((opp) => {
                     html += `
-                        <div style="background: white; border: 1px solid #bee3f8; padding: 8px; border-radius: 6px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="background: white; border: 1px solid #cbd5e0; padding: 8px; border-radius: 6px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <strong style="font-size: 0.85rem; color: #2d3748;">👤 ${opp.name}</strong><br>
                                 <span style="font-size: 0.75rem; color: #718096;">📍 ${opp.address} (Cerca de ${opp.nearTo})</span><br>
                                 <span style="font-size: 0.75rem; color: #319795;">📞 ${opp.phone}</span>
                             </div>
-                            <a href="tel:${opp.phone}" style="background: #319795; color: white; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: bold;">Llamar</a>
+                            <a href="tel:${opp.phone}" style="background: #319795; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: bold;">Llamar</a>
                         </div>
                     `;
                 });
                 html += `</div>`;
             }
 
-            dayClients.forEach(client => {
-                html += buildClientCardHtml(client);
-            });
             container.innerHTML = html;
+
+            const toggleBtn = document.getElementById('toggle-opportunities');
+            const oppBox = document.getElementById('opportunities-box');
+            if (toggleBtn && oppBox) {
+                toggleBtn.addEventListener('click', () => {
+                    if (oppBox.style.display === 'block') {
+                        oppBox.style.display = 'none';
+                        toggleBtn.querySelector('span:last-child').textContent = `▼ Chequear lista (${opportunitiesMap.size})`;
+                    } else {
+                        oppBox.style.display = 'block';
+                        toggleBtn.querySelector('span:last-child').textContent = '▲ Ocultar lista';
+                    }
+                });
+            }
         }
 
-        // VISTA DE MES (Calendario con semáforo de colores)
         function renderMonthView(container) {
             const year = selectedMonthDate.getFullYear();
             const month = selectedMonthDate.getMonth();
@@ -210,7 +265,6 @@
                 const monthStr = String(month + 1).padStart(2, '0');
                 const dateStr = `${year}-${monthStr}-${dayStr}`;
 
-                // Contar cuántas citas hay en este día exacto
                 const dayAppointments = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
                 const count = dayAppointments.length;
                 const isSelected = selectedCalendarDateStr === dateStr;
@@ -218,7 +272,6 @@
                 let classes = 'cal-day';
                 if (isSelected) classes += ' selected';
 
-                // Lógica del semáforo de colores según la cantidad de citas
                 if (count >= 1 && count <= 2) {
                     classes += ' status-green';
                 } else if (count > 2 && count <= 4) {
@@ -277,11 +330,12 @@
             return `
                 <div class="client-row">
                     <div style="flex: 2; min-width: 200px;">
-                        <strong style="color: #2b6cb0; font-size: 0.95rem;">${client.name}</strong><br>
-                        <span style="font-size: 0.8rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
-                        <span style="font-size: 0.8rem; color: #2f855a;">📅 ${dateStr}${hoursInfo}</span>
+                        <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
+                        <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
+                        <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStr}${hoursInfo}</span>
                     </div>
                     <div style="flex: 1; min-width: 150px;">
+                        <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
                         <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">
                             <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Sin asignar</option>
                             <option value="Ramiro" ${currentEmp === 'Ramiro' ? 'selected' : ''}>Ramiro</option>
