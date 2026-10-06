@@ -16,18 +16,20 @@
 
         select, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; }
         .client-row { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-        
-        /* Tarjeta de oportunidad para clientes cercanos sin cita */
-        .opportunity-card { background: #ebf8ff; border: 1px dashed #3182ce; padding: 10px; border-radius: 8px; margin-top: 8px; margin-bottom: 15px; font-size: 0.85rem; color: #2b6cb0; display: flex; justify-content: space-between; align-items: center; }
 
-        /* Cuadrícula del Calendario Mensual */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 20px; }
+        /* Cuadrícula del Calendario Mensual con Semáforo de Colores */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
         .cal-header { text-align: center; font-weight: bold; font-size: 0.8rem; color: #718096; padding: 6px 0; }
-        .cal-day { min-height: 45px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 4px; cursor: pointer; font-size: 0.85rem; }
-        .cal-day:hover { background: #ebf8ff; border-color: #90cdf4; }
-        .cal-day.has-appt { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; font-weight: bold; }
-        .cal-day.selected { background: #3182ce; color: white; }
-        .dot-indicator { width: 6px; height: 6px; background: #3182ce; border-radius: 50%; margin-top: 3px; }
+        .cal-day { min-height: 50px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 6px 4px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+        .cal-day:hover { opacity: 0.85; transform: scale(1.02); }
+        .cal-day.selected { border: 2px solid #1a202c !important; font-weight: bold; }
+
+        /* Colores del Semáforo de Citas */
+        .cal-day.status-green { background: #c6f6d5; border-color: #38a169; color: #22543d; }
+        .cal-day.status-yellow { background: #feebc8; border-color: #d69e2e; color: #744210; }
+        .cal-day.status-red { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
+
+        .badge-count { font-size: 0.65rem; background: rgba(0,0,0,0.1); padding: 1px 5px; border-radius: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -38,7 +40,7 @@
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
-        <!-- Selector de Vistas (Únicamente Día y Mes) -->
+        <!-- Selector de Vistas -->
         <div class="tab-buttons">
             <button type="button" class="tab-btn active" data-tab="day">📅 Día (Hoy)</button>
             <button type="button" class="tab-btn" data-tab="month">🗓️ Mes</button>
@@ -109,7 +111,6 @@
             attachEmployeeListeners();
         }
 
-        // Renderizador común para las vistas de Día (incluye detección de clientes cercanos sin cita a < 1 km)
         function renderDayViewContainer(container, dateStr, titleText) {
             const dayClients = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
 
@@ -122,9 +123,8 @@
                 return;
             }
 
-            // Buscar clientes cercanos (a menos de 1 km) que NO tienen cita asignada
             const clientsWithoutAppointment = allClients.filter(c => !c.appointment_date && c.latitude && c.longitude);
-            let opportunitiesMap = new Map(); // clienteId -> nombre del cliente agendado cercano
+            let opportunitiesMap = new Map();
 
             dayClients.forEach(appClient => {
                 if (!appClient.latitude || !appClient.longitude) return;
@@ -149,7 +149,6 @@
 
             let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
 
-            // Mostrar sección de oportunidades cercanas si existen
             if (opportunitiesMap.size > 0) {
                 html += `<div style="background: #ebf8ff; border: 1px solid #90cdf4; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
                     <strong style="font-size: 0.9rem; color: #2b6cb0;">💡 Oportunidades a menos de 1 km (Sin cita):</strong>
@@ -176,7 +175,7 @@
             container.innerHTML = html;
         }
 
-        // VISTA DE MES (Calendario interactivo)
+        // VISTA DE MES (Calendario con semáforo de colores)
         function renderMonthView(container) {
             const year = selectedMonthDate.getFullYear();
             const month = selectedMonthDate.getMonth();
@@ -203,7 +202,7 @@
             `;
 
             for (let i = 0; i < offset; i++) {
-                calendarHtml += `<div class="cal-day" style="background: transparent; border: none;"></div>`;
+                calendarHtml += `<div class="cal-day" style="background: transparent; border: none; cursor: default;"></div>`;
             }
 
             for (let day = 1; day <= totalDays; day++) {
@@ -211,17 +210,27 @@
                 const monthStr = String(month + 1).padStart(2, '0');
                 const dateStr = `${year}-${monthStr}-${dayStr}`;
 
-                const hasAppt = allClients.some(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+                // Contar cuántas citas hay en este día exacto
+                const dayAppointments = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+                const count = dayAppointments.length;
                 const isSelected = selectedCalendarDateStr === dateStr;
 
                 let classes = 'cal-day';
-                if (hasAppt) classes += ' has-appt';
                 if (isSelected) classes += ' selected';
+
+                // Lógica del semáforo de colores según la cantidad de citas
+                if (count >= 1 && count <= 2) {
+                    classes += ' status-green';
+                } else if (count > 2 && count <= 4) {
+                    classes += ' status-yellow';
+                } else if (count >= 4) {
+                    classes += ' status-red';
+                }
 
                 calendarHtml += `
                     <div class="${classes}" data-date="${dateStr}">
                         <span>${day}</span>
-                        ${hasAppt ? '<div class="dot-indicator"></div>' : ''}
+                        ${count > 0 ? `<span class="badge-count">${count} cit${count > 1 ? 's' : ''}</span>` : ''}
                     </div>
                 `;
             }
