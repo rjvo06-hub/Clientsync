@@ -3,37 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Panel Admin - Asignación de Empleados</title>
+    <title>ClientSync | Control de Citas y Empleados</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
-        .container { max-width: 700px; margin: 20px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
+        .container { max-width: 700px; margin: 15px auto 60px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
+        
+        /* Botones de Pestañas (Día, Semana, Mes) */
+        .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; background: #edf2f7; padding: 4px; border-radius: 8px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-weight: bold; color: #4a5568; border-radius: 6px; cursor: pointer; font-size: 0.9rem; text-align: center; }
+        .tab-btn.active { background: white; color: #2b6cb0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
         select, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; }
-        .admin-row { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .client-row { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+
+        /* Cuadrícula del Calendario Mensual */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 20px; }
+        .cal-header { text-align: center; font-weight: bold; font-size: 0.8rem; color: #718096; padding: 6px 0; }
+        .cal-day { min-height: 45px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 4px; cursor: pointer; font-size: 0.85rem; }
+        .cal-day:hover { background: #ebf8ff; border-color: #90cdf4; }
+        .cal-day.has-appt { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; font-weight: bold; }
+        .cal-day.selected { background: #3182ce; color: white; }
+        .dot-indicator { width: 6px; height: 6px; background: #3182ce; border-radius: 50%; margin-top: 3px; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">🛠️ Panel Admin: Asignar Empleados</h1>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">🛠️ Control de Citas</h1>
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
-        <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
-            Aquí puedes ver todos los clientes con cita programada y asignar qué técnico se hará cargo de cada servicio.
-        </p>
+        <!-- Selector de Vistas -->
+        <div class="tab-buttons">
+            <button type="button" class="tab-btn active" data-tab="day">📅 Hoy</button>
+            <button type="button" class="tab-btn" data-tab="week">📊 Semana</button>
+            <button type="button" class="tab-btn" data-tab="month">🗓️ Mes</button>
+        </div>
 
-        <div id="admin-clients-list">
-            <p style="text-align: center; color: #718096;">Cargando lista de clientes...</p>
+        <!-- Contenedor dinámico según la pestaña seleccionada -->
+        <div id="view-content">
+            <p style="text-align: center; color: #718096;">Cargando información...</p>
         </div>
     </div>
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        async function loadAdminList() {
-            const listContainer = document.getElementById('admin-clients-list');
+        let allClients = [];
+        let currentTab = 'day';
+        let selectedMonthDate = new Date();
+        let selectedCalendarDateStr = null;
+
+        async function initAdminPanel() {
             try {
                 const { data: clients, error } = await supabase
                     .from('clients')
@@ -41,65 +64,242 @@
                     .order('appointment_date', { ascending: true });
 
                 if (error) throw error;
-
-                if (!clients || clients.length === 0) {
-                    listContainer.innerHTML = '<p style="text-align: center; color: #718096;">No hay clientes registrados.</p>';
-                    return;
-                }
-
-                let html = '';
-                clients.forEach(client => {
-                    const hasAppt = Boolean(client.appointment_date);
-                    const dateStr = hasAppt ? new Date(client.appointment_date).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin cita';
-                    const currentEmp = client.assigned_employee || 'General';
-
-                    html += `
-                        <div class="admin-row">
-                            <div style="flex: 2; min-width: 200px;">
-                                <strong style="color: #2b6cb0; font-size: 0.95rem;">${client.name}</strong><br>
-                                <span style="font-size: 0.8rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
-                                <span style="font-size: 0.8rem; color: #2f855a;">📅 ${dateStr}</span>
-                            </div>
-                            <div style="flex: 1; min-width: 160px; display: flex; gap: 5px; align-items: center;">
-                                <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">
-                                    <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>General / Sin asignar</option>
-                                    <option value="Ramiro" ${currentEmp === 'Ramiro' ? 'selected' : ''}>Ramiro</option>
-                                    <option value="Técnico 1" ${currentEmp === 'Técnico 1' ? 'selected' : ''}>Técnico 1</option>
-                                    <option value="Técnico 2" ${currentEmp === 'Técnico 2' ? 'selected' : ''}>Técnico 2</option>
-                                </select>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                listContainer.innerHTML = html;
-
-                document.querySelectorAll('.emp-dropdown').forEach(sel => {
-                    sel.addEventListener('change', async (e) => {
-                        const clientId = e.target.getAttribute('data-client-id');
-                        const newEmp = e.target.value;
-
-                        const { error: updErr } = await supabase
-                            .from('clients')
-                            .update({ assigned_employee: newEmp })
-                            .eq('id', clientId);
-
-                        if (updErr) {
-                            alert('Error al actualizar empleado: ' + updErr.message);
-                        } else {
-                            e.target.style.borderColor = '#38a169';
-                            setTimeout(() => e.target.style.borderColor = '#cbd5e0', 1000);
-                        }
-                    });
-                });
-
+                allClients = clients || [];
+                renderCurrentView();
             } catch (err) {
-                console.error('Error cargando admin:', err);
-                listContainer.innerHTML = '<p style="color: #e53e3e; text-align: center;">Error al cargar datos.</p>';
+                console.error('Error al cargar datos:', err);
+                document.getElementById('view-content').innerHTML = '<p style="color: #e53e3e; text-align: center;">Error al conectar con la base de datos.</p>';
             }
         }
 
-        loadAdminList();
+        // Cambio de pestañas
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTab = e.target.getAttribute('data-tab');
+                selectedCalendarDateStr = null; // Resetear selección del mes
+                renderCurrentView();
+            });
+        });
+
+        function renderCurrentView() {
+            const container = document.getElementById('view-content');
+
+            if (currentTab === 'day') {
+                renderDayView(container);
+            } else if (currentTab === 'week') {
+                renderWeekView(container);
+            } else if (currentTab === 'month') {
+                renderMonthView(container);
+            }
+
+            attachEmployeeListeners();
+        }
+
+        // 1. VISTA DE HOY
+        function renderDayView(container) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayClients = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(todayStr));
+
+            if (todayClients.length === 0) {
+                container.innerHTML = `
+                    <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;">
+                        <strong>No hay citas programadas para hoy (${todayStr}).</strong>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 Citas para Hoy (${todayStr})</h3>`;
+            todayClients.forEach(client => {
+                html += buildClientCardHtml(client);
+            });
+            container.innerHTML = html;
+        }
+
+        // 2. VISTA DE SEMANA
+        function renderWeekView(container) {
+            const now = new Date();
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Lunes
+            const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 7)); // Domingo
+
+            const weekClients = allClients.filter(c => {
+                if (!c.appointment_date) return false;
+                const cDate = new Date(c.appointment_date);
+                return cDate >= startOfWeek && cDate <= endOfWeek;
+            });
+
+            if (weekClients.length === 0) {
+                container.innerHTML = `
+                    <div style="background: #f7fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; text-align: center; color: #4a5568;">
+                        <strong>No hay citas programadas para esta semana.</strong>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📊 Citas de esta Semana</h3>`;
+            weekClients.forEach(client => {
+                html += buildClientCardHtml(client);
+            });
+            container.innerHTML = html;
+        }
+
+        // 3. VISTA DE MES (Calendario interactivo)
+        function renderMonthView(container) {
+            const year = selectedMonthDate.getFullYear();
+            const month = selectedMonthDate.getMonth();
+            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // Ajuste para que empiece en Lunes
+
+            let calendarHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <button type="button" id="prev-month" style="padding: 6px 12px; cursor: pointer;">◀</button>
+                    <strong style="font-size: 1.05rem; color: #2d3748;">${monthNames[month]} ${year}</strong>
+                    <button type="button" id="next-month" style="padding: 6px 12px; cursor: pointer;">▶</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="cal-header">Lun</div>
+                    <div class="cal-header">Mar</div>
+                    <div class="cal-header">Mié</div>
+                    <div class="cal-header">Jue</div>
+                    <div class="cal-header">Vie</div>
+                    <div class="cal-header">Sáb</div>
+                    <div class="cal-header">Dom</div>
+            `;
+
+            // Celdas vacías del mes anterior
+            for (let i = 0; i < offset; i++) {
+                calendarHtml += `<div class="cal-day" style="background: transparent; border: none;"></div>`;
+            }
+
+            // Días del mes
+            for (let day = 1; day <= totalDays; day++) {
+                const dayStr = String(day).padStart(2, '0');
+                const monthStr = String(month + 1).padStart(2, '0');
+                const dateStr = `${year}-${monthStr}-${dayStr}`;
+
+                const hasAppt = allClients.some(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+                const isSelected = selectedCalendarDateStr === dateStr;
+
+                let classes = 'cal-day';
+                if (hasAppt) classes += ' has-appt';
+                if (isSelected) classes += ' selected';
+
+                calendarHtml += `
+                    <div class="${classes}" data-date="${dateStr}">
+                        <span>${day}</span>
+                        ${hasAppt ? '<div class="dot-indicator"></div>' : ''}
+                    </div>
+                `;
+            }
+
+            calendarHtml += `</div><div id="calendar-day-details"></div>`;
+            container.innerHTML = calendarHtml;
+
+            // Navegación de meses
+            document.getElementById('prev-month').addEventListener('click', () => {
+                selectedMonthDate.setMonth(selectedMonthDate.getMonth() - 1);
+                selectedCalendarDateStr = null;
+                renderMonthView(container);
+            });
+            document.getElementById('next-month').addEventListener('click', () => {
+                selectedMonthDate.setMonth(selectedMonthDate.getMonth() + 1);
+                selectedCalendarDateStr = null;
+                renderMonthView(container);
+            });
+
+            // Clic en un día del calendario
+            document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
+                cell.addEventListener('click', () => {
+                    selectedCalendarDateStr = cell.getAttribute('data-date');
+                    renderMonthView(container); // Recargar para marcar la selección
+                    renderDayDetailsInMonth(selectedCalendarDateStr);
+                });
+            });
+
+            // Si ya hay un día seleccionado, mostrar sus detalles automáticamente
+            if (selectedCalendarDateStr) {
+                renderDayDetailsInMonth(selectedCalendarDateStr);
+            }
+        }
+
+        function renderDayDetailsInMonth(dateStr) {
+            const detailsContainer = document.getElementById('calendar-day-details');
+            if (!detailsContainer) return;
+
+            const dayClients = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+
+            if (dayClients.length === 0) {
+                detailsContainer.innerHTML = `<p style="text-align: center; color: #718096; font-size: 0.85rem; margin-top: 15px;">No hay citas para el ${dateStr}.</p>`;
+                return;
+            }
+
+            let html = `<h4 style="font-size: 0.95rem; color: #2d3748; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 10px;">Citas del ${dateStr}:</h4>`;
+            dayClients.forEach(client => {
+                html += buildClientCardHtml(client);
+            });
+            detailsContainer.innerHTML = html;
+            attachEmployeeListeners();
+        }
+
+        // Estructura visual de cada tarjeta de cliente
+        function buildClientCardHtml(client) {
+            const dateObj = new Date(client.appointment_date);
+            const dateStr = dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+            const currentEmp = client.assigned_employee || 'General';
+            const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
+
+            return `
+                <div class="client-row">
+                    <div style="flex: 2; min-width: 200px;">
+                        <strong style="color: #2b6cb0; font-size: 0.95rem;">${client.name}</strong><br>
+                        <span style="font-size: 0.8rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
+                        <span style="font-size: 0.8rem; color: #2f855a;">📅 ${dateStr}${hoursInfo}</span>
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">
+                            <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Sin asignar</option>
+                            <option value="Ramiro" ${currentEmp === 'Ramiro' ? 'selected' : ''}>Ramiro</option>
+                            <option value="Técnico 1" ${currentEmp === 'Técnico 1' ? 'selected' : ''}>Técnico 1</option>
+                            <option value="Técnico 2" ${currentEmp === 'Técnico 2' ? 'selected' : ''}>Técnico 2</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Vincular cambios de empleado en Supabase
+        function attachEmployeeListeners() {
+            document.querySelectorAll('.emp-dropdown').forEach(sel => {
+                sel.addEventListener('change', async (e) => {
+                    const clientId = e.target.getAttribute('data-client-id');
+                    const newEmp = e.target.value;
+
+                    const { error: updErr } = await supabase
+                        .from('clients')
+                        .update({ assigned_employee: newEmp })
+                        .eq('id', clientId);
+
+                    if (updErr) {
+                        alert('Error al actualizar empleado: ' + updErr.message);
+                    } else {
+                        // Actualizar en el arreglo local
+                        const clientObj = allClients.find(c => c.id === clientId);
+                        if (clientObj) clientObj.assigned_employee = newEmp;
+
+                        e.target.style.borderColor = '#38a169';
+                        setTimeout(() => e.target.style.borderColor = '#cbd5e0', 1000);
+                    }
+                });
+            });
+        }
+
+        initAdminPanel();
     </script>
 </body>
 </html>
