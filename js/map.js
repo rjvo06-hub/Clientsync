@@ -2,6 +2,19 @@ import { supabase } from './supabaseClient.js';
 
 let map;
 
+// Función matemática de Haversine para calcular distancia en kilómetros
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 function initMapWhenReady() {
     if (typeof google === 'object' && typeof google.maps === 'object') {
         startMap();
@@ -39,7 +52,7 @@ async function startMap() {
         // 1. Cargar y renderizar Zonas
         await loadAndRenderZones(map, bounds);
 
-        // 2. Cargar y renderizar Clientes con gestión interactiva de citas
+        // 2. Cargar y renderizar Clientes con agendación inteligente unificada
         await loadAndRenderClients(map, bounds);
 
         // Ajuste automático del mapa
@@ -115,7 +128,7 @@ async function loadAndRenderZones(mapInstance, bounds) {
     }
 }
 
-// Renderizar Marcadores de Clientes con Citas Interactivas desde el Mapa
+// Renderizar Marcadores de Clientes con Lógica Unificada de 1 km y Horarios
 async function loadAndRenderClients(mapInstance, bounds) {
     try {
         const { data: clients, error } = await supabase
@@ -152,25 +165,69 @@ async function loadAndRenderClients(mapInstance, bounds) {
                 const infoWindow = new google.maps.InfoWindow();
 
                 marker.addListener('click', () => {
-                    let formattedDefaultVal = '';
+                    let currentAppointmentInfo = 'No programada';
                     if (client.appointment_date) {
                         const d = new Date(client.appointment_date);
-                        const pad = (n) => String(n).padStart(2, '0');
-                        formattedDefaultVal = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                        const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
+                        currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
+                    }
+
+                    // Buscar clientes cercanos a menos de 1 km para sugerir fechas de ruta
+                    const nearbyClients = clients.filter(c => {
+                        if (!c.appointment_date || c.id === client.id || !c.latitude || !c.longitude) return false;
+                        const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(c.latitude), Number(c.longitude));
+                        return dist <= 1.0;
+                    });
+
+                    let suggestionsHtml = '';
+                    if (nearbyClients.length > 0) {
+                        const activeDates = [...new Set(nearbyClients.map(c => c.appointment_date.split('T')[0]))];
+                        activeDates.forEach(dateStr => {
+                            const dateClients = nearbyClients.filter(c => c.appointment_date.startsWith(dateStr));
+                            let details = '';
+                            dateClients.forEach(dc => {
+                                const dcTime = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                                const dcHrs = dc.estimated_hours ? ` [${dc.estimated_hours}h]` : '';
+                                details += `<div style="font-size: 0.75rem; color: #4a5568;">• ${dc.name} a las ${dcTime}h${dcHrs}</div>`;
+                            });
+
+                            suggestionsHtml += `
+                                <div style="background: #f0f4f8; padding: 6px; border-radius: 4px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong style="font-size: 0.8rem; color: #2b6cb0;">📅 Ruta el ${dateStr}</strong>
+                                        ${details}
+                                    </div>
+                                    <button type="button" class="map-pick-date" data-client-id="${client.id}" data-date="${dateStr}" style="background: #38a169; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Usar</button>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        suggestionsHtml = `<p style="font-size: 0.75rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Puedes asignar una fecha libre:</p>`;
                     }
 
                     const contentString = `
-                        <div style="font-family: Arial, sans-serif; padding: 5px; min-width: 220px;">
-                            <h3 style="margin: 0 0 5px 0; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'}; font-size: 1.1rem;">
+                        <div style="font-family: Arial, sans-serif; padding: 5px; min-width: 230px; max-width: 280px;">
+                            <h3 style="margin: 0 0 4px 0; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'}; font-size: 1rem;">
                                 ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                             </h3>
-                            <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #4a5568;"><strong>Dir:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
-                            <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: #4a5568;"><strong>Tel:</strong> ${client.phone || 'N/A'}</p>
+                            <p style="margin: 0 0 2px 0; font-size: 0.8rem; color: #4a5568;"><strong>Dir:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
+                            <p style="margin: 0 0 2px 0; font-size: 0.8rem; color: #4a5568;"><strong>Tel:</strong> ${client.phone || 'N/A'}</p>
+                            <p style="margin: 0 0 6px 0; font-size: 0.8rem; color: #2b6cb0;"><strong>Cita actual:</strong> ${currentAppointmentInfo}</p>
                             
-                            <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 5px;">
-                                <label style="font-size: 0.8rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 3px;">📅 Agendar / Editar Cita:</label>
-                                <input type="datetime-local" id="map-appt-${client.id}" value="${formattedDefaultVal}" style="width: 100%; padding: 6px; font-size: 0.8rem; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; margin-bottom: 6px;">
-                                <button id="save-appt-btn-${client.id}" style="width: 100%; background: #38a169; color: white; border: none; padding: 7px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; cursor: pointer;">Guardar Cita</button>
+                            <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 4px;">
+                                <label style="font-size: 0.75rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 2px;">⏰ Hora de atención:</label>
+                                <input type="time" id="map-time-${client.id}" value="09:00" style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; margin-bottom: 4px;">
+                                
+                                <label style="font-size: 0.75rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 2px;">⏳ Horas estimadas (opcional):</label>
+                                <input type="number" id="map-hours-${client.id}" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; margin-bottom: 6px;">
+
+                                <div style="font-size: 0.8rem; font-weight: bold; color: #2d3748; margin-bottom: 2px;">Sugerencias por Proximidad (1 km):</div>
+                                ${suggestionsHtml}
+
+                                <div style="margin-top: 6px; display: flex; gap: 4px;">
+                                    <input type="date" id="map-free-date-${client.id}" style="flex: 1; padding: 4px; font-size: 0.75rem; border: 1px solid #cbd5e0; border-radius: 4px;">
+                                    <button type="button" id="map-save-free-${client.id}" style="background: #2b6cb0; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Guardar Libre</button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -178,30 +235,64 @@ async function loadAndRenderClients(mapInstance, bounds) {
                     infoWindow.open(mapInstance, marker);
                 });
 
-                // Habilitar la interactividad del botón una vez que la ventana de información se renderiza en el DOM
+                // Gestionar clics dentro de la ventana informativa del mapa
                 google.maps.event.addListener(infoWindow, 'domready', () => {
-                    const saveBtn = document.getElementById(`save-appt-btn-${client.id}`);
-                    if (saveBtn) {
-                        saveBtn.addEventListener('click', async () => {
-                            const inputVal = document.getElementById(`map-appt-${client.id}`).value;
-                            const newDate = inputVal ? new Date(inputVal).toISOString() : null;
+                    // Botón de sugerencia rápida por proximidad ("Usar")
+                    const pickButtons = document.querySelectorAll(`.map-pick-date[data-client-id="${client.id}"]`);
+                    pickButtons.forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const dateStr = btn.getAttribute('data-date');
+                            const timeVal = document.getElementById(`map-time-${client.id}`).value || '09:00';
+                            const hoursVal = document.getElementById(`map-hours-${client.id}`).value;
+                            const finalTimestamp = `${dateStr}T${timeVal}:00.000Z`;
 
-                            saveBtn.textContent = 'Guardando...';
-                            saveBtn.disabled = true;
-
-                            const { error: updateError } = await supabase
+                            btn.textContent = 'Guardando...';
+                            const { error: updErr } = await supabase
                                 .from('clients')
-                                .update({ appointment_date: newDate })
+                                .update({
+                                    appointment_date: finalTimestamp,
+                                    estimated_hours: hoursVal ? parseFloat(hoursVal) : null
+                                })
                                 .eq('id', client.id);
 
-                            if (updateError) {
-                                alert('Error al guardar la cita: ' + updateError.message);
-                                saveBtn.textContent = 'Guardar Cita';
-                                saveBtn.disabled = false;
+                            if (updErr) {
+                                alert('Error al actualizar: ' + updErr.message);
                             } else {
-                                alert('¡Cita actualizada con éxito!');
+                                alert('¡Cita agendada por proximidad con éxito!');
                                 infoWindow.close();
-                                startMap(); // Recarga el mapa para reflejar el cambio de icono (rojo a azul)
+                                startMap();
+                            }
+                        });
+                    });
+
+                    // Botón para guardar con fecha libre elegida manualmente desde el mapa
+                    const saveFreeBtn = document.getElementById(`map-save-free-${client.id}`);
+                    if (saveFreeBtn) {
+                        saveFreeBtn.addEventListener('click', async () => {
+                            const freeDate = document.getElementById(`map-free-date-${client.id}`).value;
+                            if (!freeDate) {
+                                alert('Selecciona una fecha libre en el campo de fecha.');
+                                return;
+                            }
+                            const timeVal = document.getElementById(`map-time-${client.id}`).value || '09:00';
+                            const hoursVal = document.getElementById(`map-hours-${client.id}`).value;
+                            const finalTimestamp = `${freeDate}T${timeVal}:00.000Z`;
+
+                            saveFreeBtn.textContent = '...';
+                            const { error: updErr } = await supabase
+                                .from('clients')
+                                .update({
+                                    appointment_date: finalTimestamp,
+                                    estimated_hours: hoursVal ? parseFloat(hoursVal) : null
+                                })
+                                .eq('id', client.id);
+
+                            if (updErr) {
+                                alert('Error al actualizar: ' + updErr.message);
+                            } else {
+                                alert('¡Cita agendada con éxito!');
+                                infoWindow.close();
+                                startMap();
                             }
                         });
                     }
