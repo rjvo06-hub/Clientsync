@@ -76,7 +76,10 @@
                 <div class="inline-row">
                     <div class="inline-col">
                         <label id="date-label-text" style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
+                        <!-- Input de fecha real -->
                         <input type="date" id="free-date-input">
+                        <!-- Campo de texto alternativo para mostrar la fecha sugerida en formato DD/MM/AAAA -->
+                        <input type="text" id="selected-date-display-box" style="display: none; background: #edf2f7; font-weight: bold; color: #2d3748;" readonly>
                     </div>
                     <div class="inline-col">
                         <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Hora de atención:</label>
@@ -195,7 +198,13 @@
             
             selectedDateOnly = '';
             document.getElementById('selected-appointment-date').value = '';
+            
+            // Restablecer campos de fecha
             document.getElementById('free-date-input').value = '';
+            document.getElementById('free-date-input').style.display = 'block';
+            document.getElementById('selected-date-display-box').style.display = 'none';
+            document.getElementById('selected-date-display-box').value = '';
+            
             document.getElementById('appointment-time').value = '';
             document.getElementById('date-label-text').textContent = 'O elige otra fecha libre:';
             saveBtn.disabled = true;
@@ -277,9 +286,14 @@
 
                         document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
                         btn.classList.add('selected-suggestion');
-                        document.getElementById('free-date-input').value = '';
+                        
+                        // Ocultar input real de fecha libre y mostrar la fecha seleccionada en su lugar (en formato DD/MM/YYYY)
+                        document.getElementById('free-date-input').style.display = 'none';
+                        const displayBox = document.getElementById('selected-date-display-box');
+                        displayBox.value = formattedDate;
+                        displayBox.style.display = 'block';
 
-                        document.getElementById('date-label-text').textContent = `Fecha seleccionada: ${formattedDate}`;
+                        document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
 
                         saveBtn.disabled = false;
                         saveBtn.style.opacity = '1';
@@ -309,8 +323,14 @@
             document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
 
             const formattedDate = formatDateToDDMMYYYY(freeDate);
-            document.getElementById('date-label-text').textContent = `Fecha seleccionada: ${formattedDate}`;
+            document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
             
+            // Mostrar también en el cuadro de texto en lugar del input date si se prefiere
+            document.getElementById('free-date-input').style.display = 'none';
+            const displayBox = document.getElementById('selected-date-display-box');
+            displayBox.value = formattedDate;
+            displayBox.style.display = 'block';
+
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = false;
             saveBtn.style.opacity = '1';
