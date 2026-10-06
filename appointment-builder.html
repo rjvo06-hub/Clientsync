@@ -12,6 +12,10 @@
         .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
         
+        /* Contenedor en la misma línea para fecha libre y hora */
+        .inline-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .inline-col { flex: 1; min-width: 200px; }
+        
         /* Botones de fechas sugeridas con indicadores de color y diseño estructurado */
         .suggestion-item-btn {
             width: 100%;
@@ -70,29 +74,30 @@
                     <div id="suggestions-list"></div>
                 </div>
 
-                <div id="free-date-container">
-                    <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
-                    <input type="date" id="free-date-input" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; background: white;">
+                <!-- FECHA LIBRE Y HORA DE ATENCIÓN EN LA MISMA LÍNEA -->
+                <div id="free-date-container" class="inline-row">
+                    <div class="inline-col">
+                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
+                        <input type="date" id="free-date-input">
+                    </div>
+                    <div class="inline-col">
+                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Hora de atención:</label>
+                        <input type="time" id="appointment-time" required>
+                    </div>
                 </div>
             </div>
 
             <input type="hidden" id="selected-appointment-date" required>
-
-            <!-- 3. HORA DE ATENCIÓN -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">3. Hora de atención:</label>
-                <input type="time" id="appointment-time" value="09:00" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;" required>
-            </div>
 
             <!-- MENSAJE DE CONFIRMACIÓN -->
             <div id="selected-date-display" style="margin-bottom: 15px; font-weight: bold; color: #2f855a; font-size: 0.9rem; display:none; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
                 ✅ Fecha elegida: <span id="txt-chosen-date">-</span>
             </div>
             
-            <!-- 4. HORAS ESTIMADAS -->
+            <!-- 3. HORAS ESTIMADAS (OPCIONAL) -->
             <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">4. Horas estimadas de trabajo (Opcional):</label>
-                <input type="number" id="estimated-hours" step="0.5" min="0.5" value="3" placeholder="Ej. 3" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">3. Horas estimadas de trabajo (Opcional):</label>
+                <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
             </div>
 
             <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; opacity: 0.6; margin-bottom: 30px; width: 100%;" disabled>
@@ -128,6 +133,7 @@
             return dateStr;
         }
 
+        // Sugerir hora: mínimo 1 hora después de la última cita de ese día (o 09:00 si está libre)
         function suggestNextTimeForDate(dateStr) {
             const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
             if (clientsOnDate.length === 0) return "09:00";
@@ -141,7 +147,7 @@
                 const m = dateObj.getMinutes();
                 const totalMins = h * 60 + m;
                 
-                const durationMins = c.estimated_hours ? (Number(c.estimated_hours) * 60) : 180;
+                const durationMins = c.estimated_hours ? (Number(c.estimated_hours) * 60) : 60; // Mínimo 1 hora después
                 const endMins = totalMins + durationMins;
 
                 const currentLatestMins = latestHour * 60 + latestMinute;
@@ -150,6 +156,8 @@
                     latestMinute = endMins % 60;
                 }
             });
+
+            if (latestHour > 20) latestHour = 20; // Límite razonable
 
             const formattedH = String(latestHour).padStart(2, '0');
             const formattedM = String(latestMinute).padStart(2, '0');
@@ -197,7 +205,7 @@
             document.getElementById('selected-appointment-date').value = '';
             document.getElementById('selected-date-display').style.display = 'none';
             document.getElementById('free-date-input').value = '';
-            document.getElementById('free-date-container').style.display = 'block';
+            document.getElementById('appointment-time').value = '';
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.6';
 
@@ -232,7 +240,6 @@
                 activeDates.forEach(dateStr => {
                     const clientsOnThisDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
                     
-                    // 🎯 ORDENAR CRONOLÓGICAMENTE DE MENOR A MAYOR HORA
                     clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
 
                     const count = clientsOnThisDate.length;
@@ -278,9 +285,9 @@
 
                         document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
                         btn.classList.add('selected-suggestion');
-                        document.getElementById('free-date-container').style.display = 'none';
                         document.getElementById('free-date-input').value = '';
 
+                        const formattedDate = formatDateToDDMMYYYY(dateStr);
                         document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${suggestedTime}`;
                         document.getElementById('selected-date-display').style.display = 'block';
                         
@@ -345,7 +352,7 @@
             const hoursVal = document.getElementById('estimated-hours').value;
 
             if (!clientId || !apptVal) {
-                alert('Selecciona un cliente y uma fecha/hora válida.');
+                alert('Selecciona un cliente y una fecha/hora válida.');
                 return;
             }
 
@@ -355,7 +362,7 @@
 
             const updatePayload = {
                 appointment_date: apptVal,
-                estimated_hours: hoursVal ? parseFloat(hoursVal) : 3
+                estimated_hours: hoursVal ? parseFloat(hoursVal) : null
             };
 
             const { error } = await supabase
