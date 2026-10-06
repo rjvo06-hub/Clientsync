@@ -16,7 +16,7 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">👷‍♂️️ Mis Citas de Hoy</h1>
+            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">👷‍♂️ Mis Citas de Hoy</h1>
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
@@ -50,7 +50,6 @@
             container.innerHTML = '<p style="text-align: center; color: #718096;">Cargando tus citas...</p>';
 
             try {
-                // Obtener fecha actual en formato YYYY-MM-DD
                 const todayStr = new Date().toISOString().split('T')[0];
 
                 const { data: clients, error } = await supabase
@@ -61,7 +60,6 @@
 
                 if (error) throw error;
 
-                // Filtrar las que corresponden estrictamente al día de hoy
                 const todayClients = (clients || []).filter(c => c.appointment_date && c.appointment_date.startsWith(todayStr));
 
                 if (todayClients.length === 0) {
