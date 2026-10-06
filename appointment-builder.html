@@ -84,7 +84,7 @@
                 <input type="time" id="appointment-time" value="09:00" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;" required>
             </div>
 
-            <!-- MENSAJE DE CONFIRMACIÓN (Aparece únicamente después de tener fecha y hora listas) -->
+            <!-- MENSAJE DE CONFIRMACIÓN -->
             <div id="selected-date-display" style="margin-bottom: 15px; font-weight: bold; color: #2f855a; font-size: 0.9rem; display:none; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
                 ✅ Fecha elegida: <span id="txt-chosen-date">-</span>
             </div>
@@ -92,7 +92,7 @@
             <!-- 4. HORAS ESTIMADAS -->
             <div style="margin-bottom: 20px;">
                 <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">4. Horas estimadas de trabajo (Opcional):</label>
-                <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
+                <input type="number" id="estimated-hours" step="0.5" min="0.5" value="3" placeholder="Ej. 3" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
             </div>
 
             <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; opacity: 0.6; margin-bottom: 30px; width: 100%;" disabled>
@@ -126,6 +126,37 @@
                 return `${parts[2]}/${parts[1]}/${parts[0]}`;
             }
             return dateStr;
+        }
+
+        // Sugerir hora calculando la última cita de ese día + 3 horas por defecto
+        function suggestNextTimeForDate(dateStr) {
+            const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+            if (clientsOnDate.length === 0) return "09:00";
+
+            let latestHour = 9;
+            let latestMinute = 0;
+
+            clientsOnDate.forEach(c => {
+                const dateObj = new Date(c.appointment_date);
+                const h = dateObj.getHours();
+                const m = dateObj.getMinutes();
+                const totalMins = h * 60 + m;
+                
+                // Considerar duración estimada si la tiene (por defecto 3 horas = 180 mins)
+                const durationMins = c.estimated_hours ? (Number(c.estimated_hours) * 60) : 180;
+                const endMins = totalMins + durationMins;
+
+                const currentLatestMins = latestHour * 60 + latestMinute;
+                if (endMins > currentLatestMins) {
+                    latestHour = Math.floor(endMins / 60);
+                    latestMinute = endMins % 60;
+                }
+            });
+
+            // Formatear a HH:MM con ceros a la izquierda
+            const formattedH = String(latestHour).padStart(2, '0');
+            const formattedM = String(latestMinute).padStart(2, '0');
+            return `${formattedH}:${formattedM}`;
         }
 
         async function initForm() {
@@ -238,17 +269,19 @@
 
                     btn.addEventListener('click', () => {
                         selectedDateOnly = dateStr;
+                        
+                        // Sugerir hora automáticamente basada en la última cita de ese día + 3h
+                        const suggestedTime = suggestNextTimeForDate(dateStr);
+                        document.getElementById('appointment-time').value = suggestedTime;
+
                         updateFinalTimestamp();
 
-                        // Resaltar visualmente la sugerencia seleccionada y ocultar el selector libre
                         document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
                         btn.classList.add('selected-suggestion');
                         document.getElementById('free-date-container').style.display = 'none';
                         document.getElementById('free-date-input').value = '';
 
-                        // Mostrar resumen final con la hora actual
-                        const timeVal = document.getElementById('appointment-time').value || '09:00';
-                        document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${timeVal}`;
+                        document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${suggestedTime}`;
                         document.getElementById('selected-date-display').style.display = 'block';
                         
                         saveBtn.disabled = false;
@@ -270,14 +303,17 @@
             if (!freeDate) return;
 
             selectedDateOnly = freeDate;
+            
+            // Para fecha libre por defecto sugerimos a las 09:00 o la calculada
+            const suggestedTime = suggestNextTimeForDate(freeDate);
+            document.getElementById('appointment-time').value = suggestedTime;
+
             updateFinalTimestamp();
 
-            // Limpiar selección de sugerencias si el usuario decide usar fecha libre
             document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
 
-            const timeVal = document.getElementById('appointment-time').value || '09:00';
             const formattedDate = formatDateToDDMMYYYY(freeDate);
-            document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${timeVal}`;
+            document.getElementById('txt-chosen-date').textContent = `${formattedDate} a las ${suggestedTime}`;
             document.getElementById('selected-date-display').style.display = 'block';
             
             const saveBtn = document.getElementById('save-btn');
@@ -320,7 +356,7 @@
 
             const updatePayload = {
                 appointment_date: apptVal,
-                estimated_hours: hoursVal ? parseFloat(hoursVal) : null
+                estimated_hours: hoursVal ? parseFloat(hoursVal) : 3
             };
 
             const { error } = await supabase
