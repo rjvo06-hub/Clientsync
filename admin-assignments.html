@@ -13,9 +13,10 @@
         .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-weight: bold; color: #4a5568; border-radius: 6px; cursor: pointer; font-size: 0.9rem; text-align: center; }
         .tab-btn.active { background: white; color: #2b6cb0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        select, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; }
+        select, input, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; box-sizing: border-box; }
         
-        .client-row { background: #ffffff; border: 1px solid #cbd5e0; border-left: 5px solid #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .client-row { background: #ffffff; border: 1px solid #cbd5e0; border-left: 5px solid #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+        .client-row-content { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
 
         .opportunity-trigger-btn { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; padding: 12px 15px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; box-sizing: border-box; }
         .opportunity-trigger-btn:hover { background: #e1f5fe; }
@@ -33,6 +34,10 @@
         .cal-day.status-red { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
 
         .badge-count { font-size: 0.65rem; background: rgba(0,0,0,0.1); padding: 1px 5px; border-radius: 10px; font-weight: bold; }
+        
+        .edit-form-box { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-top: 12px; display: none; }
+        .inline-edit-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .inline-edit-col { flex: 1; min-width: 130px; }
     </style>
 </head>
 <body>
@@ -117,8 +122,6 @@
             } else if (currentTab === 'month') {
                 renderMonthView(container);
             }
-
-            attachEmployeeListeners();
         }
 
         function renderDayViewContainer(container, dateStr, titleText) {
@@ -138,23 +141,10 @@
             const currentSeason = getSeasonByDate(targetDateObj);
             const targetYear = targetDateObj.getFullYear();
 
-            // Filtrar clientes que NO tienen cita agendada Y QUE NO HAYAN SIDO ATENDIDOS en la temporada actual
+            // Filtrar clientes que NO tienen cita agendada
             const clientsWithoutAppointment = allClients.filter(c => {
-                if (c.appointment_date) return false; // Si tiene cita, descartar
-                if (!c.latitude || !c.longitude) return false; // Sin coordenadas no sirve
-
-                // Verificar si el cliente tuvo alguna cita previa en esta misma temporada y año
-                // (Nota: Si el campo appointment_date histórico se guardaba, comprobamos si cae en currentSeason.months)
-                // Para asegurarnos de manera estricta, revisamos si tiene historial de citas en la temporada.
-                return true; 
-            });
-
-            // Refinamiento estricto por temporada: si el cliente tiene una cita pasada registrada en la temporada actual, se descarta.
-            // (Si en tu BD guardas el historial o si reutilizas appointment_date, aquí filtramos los que no tengan cita en los meses de la temporada).
-            // Como 'appointment_date' se actualiza al agendar, validamos contra los registros que tengan fecha en este rango estacional.
-            const eligibleFreeClients = clientsWithoutAppointment.filter(freeClient => {
-                // Si el cliente tiene una cita registrada dentro del año y los meses de la temporada actual, ya fue atendido.
-                // (Si freeClient.appointment_date es nulo, pasa directo).
+                if (c.appointment_date) return false;
+                if (!c.latitude || !c.longitude) return false;
                 return true;
             });
 
@@ -162,7 +152,7 @@
 
             dayClients.forEach(appClient => {
                 if (!appClient.latitude || !appClient.longitude) return;
-                eligibleFreeClients.forEach(freeClient => {
+                clientsWithoutAppointment.forEach(freeClient => {
                     const dist = calculateDistanceKm(
                         Number(appClient.latitude), Number(appClient.longitude), 
                         Number(freeClient.latitude), Number(freeClient.longitude)
@@ -183,12 +173,12 @@
 
             let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
 
-            // 1. PRIORIDAD ABSOLUTA: Mostrar primero las citas actuales del día
+            // 1. Mostrar las citas actuales del día
             dayClients.forEach(client => {
                 html += buildClientCardHtml(client);
             });
 
-            // 2. BOTÓN DE OPORTUNIDADES CERCANAS EN ESTA TEMPORADA (Invierno/Primavera/Verano/Otoño)
+            // 2. Botón de oportunidades cercanas en la temporada
             if (opportunitiesMap.size > 0) {
                 html += `
                     <button type="button" id="toggle-opportunities" class="opportunity-trigger-btn">
@@ -215,6 +205,7 @@
             }
 
             container.innerHTML = html;
+            attachEventListeners();
 
             const toggleBtn = document.getElementById('toggle-opportunities');
             const oppBox = document.getElementById('opportunities-box');
@@ -323,52 +314,158 @@
 
         function buildClientCardHtml(client) {
             const dateObj = new Date(client.appointment_date);
-            const dateStr = dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+            const dateStrFormatted = dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
             const currentEmp = client.assigned_employee || 'General';
             const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
 
+            const rawDatePart = client.appointment_date.split('T')[0];
+            const rawTimePart = client.appointment_date.split('T')[1] ? client.appointment_date.split('T')[1].substring(0, 5) : '09:00';
+
             return `
-                <div class="client-row">
-                    <div style="flex: 2; min-width: 200px;">
-                        <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
-                        <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
-                        <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStr}${hoursInfo}</span>
+                <div class="client-row" id="card-${client.id}">
+                    <div class="client-row-content">
+                        <div style="flex: 2; min-width: 200px;">
+                            <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
+                            <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
+                            <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}${hoursInfo}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
+                            <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">
+                                <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Sin asignar</option>
+                                <option value="Ramiro" ${currentEmp === 'Ramiro' ? 'selected' : ''}>Ramiro</option>
+                                <option value="Técnico 1" ${currentEmp === 'Técnico 1' ? 'selected' : ''}>Técnico 1</option>
+                                <option value="Técnico 2" ${currentEmp === 'Técnico 2' ? 'selected' : ''}>Técnico 2</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button type="button" class="toggle-edit-btn" data-client-id="${client.id}" style="background: #edf2f7; color: #2b6cb0; border: 1px solid #cbd5e0; font-size: 0.8rem; cursor: pointer; padding: 8px 12px; border-radius: 6px;">✏️ Modificar cita</button>
+                        </div>
                     </div>
-                    <div style="flex: 1; min-width: 150px;">
-                        <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
-                        <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">
-                            <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Sin asignar</option>
-                            <option value="Ramiro" ${currentEmp === 'Ramiro' ? 'selected' : ''}>Ramiro</option>
-                            <option value="Técnico 1" ${currentEmp === 'Técnico 1' ? 'selected' : ''}>Técnico 1</option>
-                            <option value="Técnico 2" ${currentEmp === 'Técnico 2' ? 'selected' : ''}>Técnico 2</option>
-                        </select>
+
+                    <!-- Formulario desplegable para modificar fecha, hora y duración -->
+                    <div class="edit-form-box" id="edit-box-${client.id}">
+                        <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 8px;">Reagendar / Modificar Cita:</div>
+                        <div class="inline-edit-row">
+                            <div class="inline-edit-col">
+                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Nueva Fecha:</label>
+                                <input type="date" id="edit-date-${client.id}" value="${rawDatePart}" style="width: 100%;">
+                            </div>
+                            <div class="inline-edit-col">
+                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Hora:</label>
+                                <input type="time" id="edit-time-${client.id}" value="${rawTimePart}" style="width: 100%;">
+                            </div>
+                            <div class="inline-edit-col">
+                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Horas est.:</label>
+                                <input type="number" id="edit-hours-${client.id}" step="0.5" min="0.5" value="${client.estimated_hours || ''}" placeholder="Ej. 1.5" style="width: 100%;">
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
+                            <button type="button" class="cancel-edit-btn" data-client-id="${client.id}" style="background: #e2e8f0; color: #4a5568; border: none; padding: 6px 12px; font-size: 0.8rem; cursor: pointer;">Cancelar</button>
+                            <button type="button" class="save-edit-btn" data-client-id="${client.id}" style="background: #38a169; color: white; border: none; padding: 6px 14px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">Guardar Cambios</button>
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        function attachEmployeeListeners() {
+        function attachEventListeners() {
+            // Cambio de empleado
             document.querySelectorAll('.emp-dropdown').forEach(sel => {
-                sel.addEventListener('change', async (e) => {
-                    const clientId = e.target.getAttribute('data-client-id');
-                    const newEmp = e.target.value;
-
-                    const { error: updErr } = await supabase
-                        .from('clients')
-                        .update({ assigned_employee: newEmp })
-                        .eq('id', clientId);
-
-                    if (updErr) {
-                        alert('Error al actualizar empleado: ' + updErr.message);
-                    } else {
-                        const clientObj = allClients.find(c => c.id === clientId);
-                        if (clientObj) clientObj.assigned_employee = newEmp;
-
-                        e.target.style.borderColor = '#38a169';
-                        setTimeout(() => e.target.style.borderColor = '#cbd5e0', 1000);
-                    }
-                });
+                sel.removeEventListener('change', handleEmpChange);
+                sel.addEventListener('change', handleEmpChange);
             });
+
+            // Botón mostrar/ocultar formulario de edición
+            document.querySelectorAll('.toggle-edit-btn').forEach(btn => {
+                btn.removeEventListener('click', handleToggleEdit);
+                btn.addEventListener('click', handleToggleEdit);
+            });
+
+            // Botón cancelar edición
+            document.querySelectorAll('.cancel-edit-btn').forEach(btn => {
+                btn.removeEventListener('click', handleCancelEdit);
+                btn.addEventListener('click', handleCancelEdit);
+            });
+
+            // Botón guardar cambios de cita
+            document.querySelectorAll('.save-edit-btn').forEach(btn => {
+                btn.removeEventListener('click', handleSaveEdit);
+                btn.addEventListener('click', handleSaveEdit);
+            });
+        }
+
+        async function handleEmpChange(e) {
+            const clientId = e.target.getAttribute('data-client-id');
+            const newEmp = e.target.value;
+
+            const { error: updErr } = await supabase
+                .from('clients')
+                .update({ assigned_employee: newEmp })
+                .eq('id', clientId);
+
+            if (updErr) {
+                alert('Error al actualizar empleado: ' + updErr.message);
+            } else {
+                const clientObj = allClients.find(c => c.id === clientId);
+                if (clientObj) clientObj.assigned_employee = newEmp;
+
+                e.target.style.borderColor = '#38a169';
+                setTimeout(() => e.target.style.borderColor = '#cbd5e0', 1000);
+            }
+        }
+
+        function handleToggleEdit(e) {
+            const clientId = e.target.getAttribute('data-client-id');
+            const editBox = document.getElementById(`edit-box-${clientId}`);
+            if (editBox) {
+                editBox.style.display = editBox.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function handleCancelEdit(e) {
+            const clientId = e.target.getAttribute('data-client-id');
+            const editBox = document.getElementById(`edit-box-${clientId}`);
+            if (editBox) editBox.style.display = 'none';
+        }
+
+        async function handleSaveEdit(e) {
+            const clientId = e.target.getAttribute('data-client-id');
+            const newDate = document.getElementById(`edit-date-${clientId}`).value;
+            const newTime = document.getElementById(`edit-time-${clientId}`).value || '09:00';
+            const newHours = document.getElementById(`edit-hours-${clientId}`).value;
+
+            if (!newDate) {
+                alert('Por favor selecciona una fecha válida.');
+                return;
+            }
+
+            const fullTimestamp = `${newDate}T${newTime}:00.000Z`;
+
+            const updatePayload = {
+                appointment_date: fullTimestamp,
+                estimated_hours: newHours ? parseFloat(newHours) : null
+            };
+
+            const { error } = await supabase
+                .from('clients')
+                .update(updatePayload)
+                .eq('id', clientId);
+
+            if (error) {
+                alert('Error al actualizar la cita: ' + error.message);
+            } else {
+                alert('¡Cita modificada con éxito!');
+                const clientObj = allClients.find(c => c.id === clientId);
+                if (clientObj) {
+                    clientObj.appointment_date = fullTimestamp;
+                    clientObj.estimated_hours = newHours ? parseFloat(newHours) : null;
+                }
+                renderCurrentView();
+                if (selectedCalendarDateStr) {
+                    renderDayDetailsInMonth(selectedCalendarDateStr);
+                }
+            }
         }
 
         initAdminPanel();
