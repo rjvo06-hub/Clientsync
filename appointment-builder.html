@@ -76,10 +76,17 @@
                 <div class="inline-row">
                     <div class="inline-col">
                         <label id="date-label-text" style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
-                        <!-- Input de fecha real -->
-                        <input type="date" id="free-date-input">
-                        <!-- Campo de texto alternativo para mostrar la fecha sugerida en formato DD/MM/AAAA -->
-                        <input type="text" id="selected-date-display-box" style="display: none; background: #edf2f7; font-weight: bold; color: #2d3748;" readonly>
+                        
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <!-- Input de fecha real (calendario) -->
+                            <input type="date" id="free-date-input" style="flex: 1;">
+                            
+                            <!-- Caja de texto que muestra la fecha seleccionada de la sugerencia -->
+                            <input type="text" id="selected-date-display-box" style="display: none; flex: 1; background: #edf2f7; font-weight: bold; color: #2d3748;" readonly>
+                            
+                            <!-- Botón para cambiar la fecha y volver al calendario si se desea otra -->
+                            <button type="button" id="change-date-btn" style="display: none; width: auto; padding: 12px 14px; background: #4a5568; color: white; border: none; border-radius: 8px; cursor: pointer;" title="Cambiar fecha">📅</button>
+                        </div>
                     </div>
                     <div class="inline-col">
                         <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Hora de atención:</label>
@@ -204,6 +211,7 @@
             document.getElementById('free-date-input').style.display = 'block';
             document.getElementById('selected-date-display-box').style.display = 'none';
             document.getElementById('selected-date-display-box').value = '';
+            document.getElementById('change-date-btn').style.display = 'none';
             
             document.getElementById('appointment-time').value = '';
             document.getElementById('date-label-text').textContent = 'O elige otra fecha libre:';
@@ -287,11 +295,12 @@
                         document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
                         btn.classList.add('selected-suggestion');
                         
-                        // Ocultar input real de fecha libre y mostrar la fecha seleccionada en su lugar (en formato DD/MM/YYYY)
+                        // Ocultar input real y mostrar caja de texto con botón de calendario para poder cambiar si se desea
                         document.getElementById('free-date-input').style.display = 'none';
                         const displayBox = document.getElementById('selected-date-display-box');
                         displayBox.value = formattedDate;
                         displayBox.style.display = 'block';
+                        document.getElementById('change-date-btn').style.display = 'block';
 
                         document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
 
@@ -307,6 +316,24 @@
                 suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Selecciona una fecha libre abajo.</p>`;
                 suggestionBox.style.display = 'block';
             }
+        });
+
+        // Botón para cambiar la fecha seleccionada y volver al calendario
+        document.getElementById('change-date-btn').addEventListener('click', () => {
+            document.getElementById('selected-date-display-box').style.display = 'none';
+            document.getElementById('change-date-btn').style.display = 'none';
+            
+            const freeInput = document.getElementById('free-date-input');
+            freeInput.style.display = 'block';
+            freeInput.value = '';
+            
+            document.getElementById('date-label-text').textContent = 'O elige otra fecha libre:';
+            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
+            
+            selectedDateOnly = '';
+            document.getElementById('selected-appointment-date').value = '';
+            document.getElementById('save-btn').disabled = true;
+            document.getElementById('save-btn').style.opacity = '0.6';
         });
 
         document.getElementById('free-date-input').addEventListener('change', (e) => {
@@ -325,11 +352,11 @@
             const formattedDate = formatDateToDDMMYYYY(freeDate);
             document.getElementById('date-label-text').textContent = 'Fecha seleccionada:';
             
-            // Mostrar también en el cuadro de texto en lugar del input date si se prefiere
             document.getElementById('free-date-input').style.display = 'none';
             const displayBox = document.getElementById('selected-date-display-box');
             displayBox.value = formattedDate;
             displayBox.style.display = 'block';
+            document.getElementById('change-date-btn').style.display = 'block';
 
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = false;
