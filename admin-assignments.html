@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClientSync | Panel Admin - Asignación de Empleados</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
+        .container { max-width: 700px; margin: 20px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
+        select, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; }
+        .admin-row { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">🛠️ Panel Admin: Asignar Empleados</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
+        </div>
+
+        <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
+            Aquí puedes ver todos los clientes con cita programada y asignar qué técnico se hará cargo de cada servicio.
+        </p>
+
+        <div id="admin-clients-list">
+            <p style="text-align: center; color: #718096;">Cargando lista de clientes...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        async function loadAdminList() {
+            const listContainer = document.getElementById('admin-clients-list');
+            try {
+                const { data: clients, error } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .order('appointment_date', { ascending: true });
+
+                if (error) throw error;
+
+                if (!clients || clients.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align: center; color: #718096;">No hay clientes registrados.</p>';
+                    return;
+                }
+
+                let html = '';
+                clients.forEach(client => {
+                    const hasAppt = Boolean(client.appointment_date);
+                    const dateStr = hasAppt ? new Date(client.appointment_date).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin cita';
+                    const currentEmp = client.assigned_employee || 'General';
+
+                    html += `
+                        <div class="admin-row">
+                            <div style="flex: 2; min-width: 200px;">
+                                <strong style="color: #2b6cb0; font-size: 0.95rem;">${client.name}</strong><br>
+                                <span style="font-size: 0.8rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
+                                <span style="font-size: 0.8rem; color: #2f855a;">📅 ${dateStr}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 160px; display: flex; gap: 5px; align-items: center;">
+                                <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">
+                                    <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>General / Sin asignar</option>
+                                    <option value="Ramiro" ${currentEmp === 'Ramiro' ? 'selected' : ''}>Ramiro</option>
+                                    <option value="Técnico 1" ${currentEmp === 'Técnico 1' ? 'selected' : ''}>Técnico 1</option>
+                                    <option value="Técnico 2" ${currentEmp === 'Técnico 2' ? 'selected' : ''}>Técnico 2</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listContainer.innerHTML = html;
+
+                // Escuchar cambios en los selectores para actualizar automáticamente en Supabase
+                document.querySelectorAll('.emp-dropdown').forEach(sel => {
+                    sel.addEventListener('change', async (e) => {
+                        const clientId = e.target.getAttribute('data-client-id');
+                        const newEmp = e.target.value;
+
+                        const { error: updErr } = await supabase
+                            .from('clients')
+                            .update({ assigned_employee: newEmp })
+                            .eq('id', clientId);
+
+                        if (updErr) {
+                            alert('Error al actualizar empleado: ' + updErr.message);
+                        } else {
+                            // Feedback visual rápido
+                            e.target.style.borderColor = '#38a169';
+                            setTimeout(() => e.target.style.borderColor = '#cbd5e0', 1000);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                console.error('Error cargando admin:', err);
+                listContainer.innerHTML = '<p style="color: #e53e3e; text-align: center;">Error al cargar datos.</p>';
+            }
+        }
+
+        loadAdminList();
+    </script>
+</body>
+</html>
