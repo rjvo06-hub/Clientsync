@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient.js';
 
 let map;
+let activeClientModal = null;
 
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -42,6 +43,9 @@ async function startMap() {
             ]
         });
 
+        // Crear contenedor estético inferior para móviles (Bottom Sheet Modal)
+        createMobileBottomSheetContainer();
+
         const bounds = new google.maps.LatLngBounds();
         await loadAndRenderZones(map, bounds);
         await loadAndRenderClients(map, bounds);
@@ -55,6 +59,47 @@ async function startMap() {
         }
     } catch (e) {
         console.error("❌ Error crítico al instanciar el mapa:", e);
+    }
+}
+
+// Inyectar el contenedor flotante inferior en el DOM para una vista móvil perfecta
+function createMobileBottomSheetContainer() {
+    if (document.getElementById('client-bottom-sheet')) return;
+
+    const sheet = document.createElement('div');
+    sheet.id = 'client-bottom-sheet';
+    sheet.style.cssText = `
+        position: fixed;
+        bottom: -100%;
+        left: 0;
+        width: 100%;
+        max-height: 85vh;
+        background: white;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        box-shadow: 0 -5px 25px rgba(0,0,0,0.2);
+        z-index: 1000;
+        transition: bottom 0.3s ease-in-out;
+        box-sizing: border-box;
+        padding: 20px;
+        overflow-y: auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+    document.body.appendChild(sheet);
+}
+
+function openMobileBottomSheet(htmlContent) {
+    const sheet = document.getElementById('client-bottom-sheet');
+    if (sheet) {
+        sheet.innerHTML = htmlContent;
+        sheet.style.bottom = '0';
+    }
+}
+
+function closeMobileBottomSheet() {
+    const sheet = document.getElementById('client-bottom-sheet');
+    if (sheet) {
+        sheet.style.bottom = '-100%';
     }
 }
 
@@ -124,8 +169,7 @@ async function loadAndRenderClients(mapInstance, bounds) {
                     icon: { url: markerIcon }
                 });
 
-                const infoWindow = new google.maps.InfoWindow();
-
+                // Al hacer clic en el pin, abrimos nuestro panel inferior optimizado para móvil
                 marker.addListener('click', () => {
                     let currentAppointmentInfo = 'No programada';
                     if (client.appointment_date) {
@@ -149,60 +193,71 @@ async function loadAndRenderClients(mapInstance, bounds) {
                             dateClients.forEach(dc => {
                                 const dcTime = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
                                 const dcHrs = dc.estimated_hours ? ` [${dc.estimated_hours}h]` : '';
-                                details += `<div style="font-size: 0.75rem; color: #4a5568;">• ${dc.name} a las ${dcTime}h${dcHrs}</div>`;
+                                details += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 2px;">• ${dc.name} a las ${dcTime}h${dcHrs}</div>`;
                             });
 
                             suggestionsHtml += `
-                                <div style="background: #f0f4f8; padding: 6px; border-radius: 4px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="background: #f0f4f8; padding: 10px; border-radius: 8px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e0;">
                                     <div>
-                                        <strong style="font-size: 0.8rem; color: #2b6cb0;">📅 Ruta el ${dateStr}</strong>
+                                        <strong style="font-size: 0.9rem; color: #2b6cb0;">📅 Ruta el ${dateStr}</strong>
                                         ${details}
                                     </div>
-                                    <button type="button" class="map-pick-date" data-client-id="${client.id}" data-date="${dateStr}" style="background: #38a169; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Usar</button>
+                                    <button type="button" class="sheet-pick-date" data-client-id="${client.id}" data-date="${dateStr}" style="background: #38a169; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">Usar</button>
                                 </div>
                             `;
                         });
                     } else {
-                        suggestionsHtml = `<p style="font-size: 0.75rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Asigna una fecha libre:</p>`;
+                        suggestionsHtml = `<p style="font-size: 0.85rem; color: #718096; margin: 8px 0;">No hay citas a menos de 1 km. Selecciona una fecha libre abajo:</p>`;
                     }
 
-                    const contentString = `
-                        <div style="font-family: Arial, sans-serif; padding: 5px; min-width: 230px; max-width: 280px;">
-                            <h3 style="margin: 0 0 4px 0; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'}; font-size: 1rem;">
+                    const sheetContent = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px;">
+                            <h2 style="margin: 0; font-size: 1.2rem; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'};">
                                 ${hasAppointment ? '🔵' : '🔴'} ${client.name}
-                            </h3>
-                            <p style="margin: 0 0 2px 0; font-size: 0.8rem; color: #4a5568;"><strong>Dir:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
-                            <p style="margin: 0 0 2px 0; font-size: 0.8rem; color: #4a5568;"><strong>Tel:</strong> ${client.phone || 'N/A'}</p>
-                            <p style="margin: 0 0 6px 0; font-size: 0.8rem; color: #2b6cb0;"><strong>Cita actual:</strong> ${currentAppointmentInfo}</p>
+                            </h2>
+                            <button type="button" id="close-sheet-btn" style="background: #e2e8f0; border: none; font-size: 1.2rem; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold;">✕</button>
+                        </div>
+
+                        <p style="margin: 0 0 6px 0; font-size: 0.9rem; color: #4a5568;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
+                        <p style="margin: 0 0 6px 0; font-size: 0.9rem; color: #4a5568;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
+                        <p style="margin: 0 0 15px 0; font-size: 0.9rem; color: #2b6cb0;"><strong>📅 Cita actual:</strong> ${currentAppointmentInfo}</p>
+                        
+                        <div style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                            <div style="margin-bottom: 12px;">
+                                <label style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 4px;">⏰ Hora de atención:</label>
+                                <input type="time" id="sheet-time-${client.id}" value="09:00" style="width: 100%; padding: 10px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
+                            </div>
                             
-                            <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 4px;">
-                                <label style="font-size: 0.75rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 2px;">⏰ Hora de atención:</label>
-                                <input type="time" id="map-time-${client.id}" value="09:00" style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; margin-bottom: 4px;">
-                                
-                                <label style="font-size: 0.75rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 2px;">⏳ Horas estimadas:</label>
-                                <input type="number" id="map-hours-${client.id}" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 4px; font-size: 0.8rem; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; margin-bottom: 6px;">
+                            <div style="margin-bottom: 12px;">
+                                <label style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 4px;">⏳ Horas estimadas (opcional):</label>
+                                <input type="number" id="sheet-hours-${client.id}" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 10px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
+                            </div>
 
-                                <div style="font-size: 0.8rem; font-weight: bold; color: #2d3748; margin-bottom: 2px;">Sugerencias por Proximidad (1 km):</div>
-                                ${suggestionsHtml}
+                            <div style="font-size: 0.9rem; font-weight: bold; color: #2d3748; margin-top: 15px; margin-bottom: 5px;">💡 Sugerencias por Proximidad (1 km):</div>
+                            ${suggestionsHtml}
 
-                                <div style="margin-top: 6px; display: flex; gap: 4px;">
-                                    <input type="date" id="map-free-date-${client.id}" style="flex: 1; padding: 4px; font-size: 0.75rem; border: 1px solid #cbd5e0; border-radius: 4px;">
-                                    <button type="button" id="map-save-free-${client.id}" style="background: #2b6cb0; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Guardar Libre</button>
+                            <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid #cbd5e0;">
+                                <label style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 4px;">O elige una fecha libre:</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="date" id="sheet-free-date-${client.id}" style="flex: 1; padding: 10px; font-size: 0.9rem; border: 1px solid #cbd5e0; border-radius: 8px; background: white;">
+                                    <button type="button" id="sheet-save-free-${client.id}" style="background: #2b6cb0; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer;">Guardar</button>
                                 </div>
                             </div>
                         </div>
                     `;
-                    infoWindow.setContent(contentString);
-                    infoWindow.open(mapInstance, marker);
-                });
 
-                google.maps.event.addListener(infoWindow, 'domready', () => {
-                    const pickButtons = document.querySelectorAll(`.map-pick-date[data-client-id="${client.id}"]`);
+                    openMobileBottomSheet(sheetContent);
+
+                    // Vincular eventos de los botones dentro del panel inferior
+                    document.getElementById('close-sheet-btn').addEventListener('click', closeMobileBottomSheet);
+
+                    // Botones de sugerencia rápida ("Usar")
+                    const pickButtons = document.querySelectorAll(`.sheet-pick-date[data-client-id="${client.id}"]`);
                     pickButtons.forEach(btn => {
                         btn.addEventListener('click', async () => {
                             const dateStr = btn.getAttribute('data-date');
-                            const timeVal = document.getElementById(`map-time-${client.id}`).value || '09:00';
-                            const hoursVal = document.getElementById(`map-hours-${client.id}`).value;
+                            const timeVal = document.getElementById(`sheet-time-${client.id}`).value || '09:00';
+                            const hoursVal = document.getElementById(`sheet-hours-${client.id}`).value;
                             const finalTimestamp = `${dateStr}T${timeVal}:00.000Z`;
 
                             btn.textContent = 'Guardando...';
@@ -218,22 +273,23 @@ async function loadAndRenderClients(mapInstance, bounds) {
                                 alert('Error al actualizar: ' + updErr.message);
                             } else {
                                 alert('¡Cita agendada con éxito!');
-                                infoWindow.close();
+                                closeMobileBottomSheet();
                                 startMap();
                             }
                         });
                     });
 
-                    const saveFreeBtn = document.getElementById(`map-save-free-${client.id}`);
+                    // Botón para guardar con fecha libre
+                    const saveFreeBtn = document.getElementById(`sheet-save-free-${client.id}`);
                     if (saveFreeBtn) {
                         saveFreeBtn.addEventListener('click', async () => {
-                            const freeDate = document.getElementById(`map-free-date-${client.id}`).value;
+                            const freeDate = document.getElementById(`sheet-free-date-${client.id}`).value;
                             if (!freeDate) {
-                                alert('Selecciona una fecha libre.');
+                                alert('Selecciona una fecha libre en el calendario.');
                                 return;
                             }
-                            const timeVal = document.getElementById(`map-time-${client.id}`).value || '09:00';
-                            const hoursVal = document.getElementById(`map-hours-${client.id}`).value;
+                            const timeVal = document.getElementById(`sheet-time-${client.id}`).value || '09:00';
+                            const hoursVal = document.getElementById(`sheet-hours-${client.id}`).value;
                             const finalTimestamp = `${freeDate}T${timeVal}:00.000Z`;
 
                             saveFreeBtn.textContent = '...';
@@ -249,7 +305,7 @@ async function loadAndRenderClients(mapInstance, bounds) {
                                 alert('Error al actualizar: ' + updErr.message);
                             } else {
                                 alert('¡Cita agendada con éxito!');
-                                infoWindow.close();
+                                closeMobileBottomSheet();
                                 startMap();
                             }
                         });
