@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Ruta del Día (Empleados)</title>
+    <title>ClientSync | Heutige Tour (Mitarbeiter)</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
@@ -16,22 +16,22 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">👷‍♂️ Mis Citas de Hoy</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
+            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">👷‍♂️ Meine Termine heute</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Karte</a>
         </div>
 
         <div style="margin-bottom: 20px;">
-            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Selecciona tu nombre (Técnico):</label>
+            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Wählen Sie Ihren Namen (Techniker):</label>
             <select id="employee-selector">
-                <option value="">-- Elige quién eres --</option>
+                <option value="">-- Wer sind Sie? --</option>
                 <option value="Ramiro">Ramiro</option>
-                <option value="Técnico 1">Técnico 1</option>
-                <option value="Técnico 2">Técnico 2</option>
+                <option value="Técnico 1">Techniker 1</option>
+                <option value="Técnico 2">Techniker 2</option>
             </select>
         </div>
 
         <div id="today-schedule-container">
-            <p style="color: #718096; text-align: center; font-size: 0.9rem;">Selecciona tu nombre arriba para ver tus tareas asignadas para hoy.</p>
+            <p style="color: #718096; text-align: center; font-size: 0.9rem;">Wählen Sie oben Ihren Namen aus, um Ihre heutigen Aufgaben zu sehen.</p>
         </div>
     </div>
 
@@ -43,11 +43,11 @@
             const container = document.getElementById('today-schedule-container');
 
             if (!employeeName) {
-                container.innerHTML = '<p style="color: #718096; text-align: center; font-size: 0.9rem;">Selecciona tu nombre arriba.</p>';
+                container.innerHTML = '<p style="color: #718096; text-align: center; font-size: 0.9rem;">Bitte wählen Sie oben Ihren Namen aus.</p>';
                 return;
             }
 
-            container.innerHTML = '<p style="text-align: center; color: #718096;">Cargando tus citas...</p>';
+            container.innerHTML = '<p style="text-align: center; color: #718096;">Termine werden geladen...</p>';
 
             try {
                 const todayStr = new Date().toISOString().split('T')[0];
@@ -65,28 +65,28 @@
                 if (todayClients.length === 0) {
                     container.innerHTML = `
                         <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 8px; text-align: center; color: #c05621;">
-                            <strong>No tienes citas programadas para hoy (${todayStr}).</strong>
-                            <p style="font-size: 0.85rem; margin: 5px 0 0 0;">Revisa con el administrador si hay asignaciones pendientes.</p>
+                            <strong>Für heute (${todayStr}) sind keine Termine eingeteilt.</strong>
+                            <p style="font-size: 0.85rem; margin: 5px 0 0 0;">Bitte wenden Sie sich bei offenen Zuweisungen an die Administration.</p>
                         </div>
                     `;
                     return;
                 }
 
-                let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 10px;">📅 Agenda para hoy (${todayStr}):</h3>`;
+                let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 10px;">📅 Heutiger Zeitplan (${todayStr}):</h3>`;
 
                 todayClients.forEach(client => {
-                    const timeStr = new Date(client.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                    const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h de duración)` : '';
+                    const timeStr = new Date(client.appointment_date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                    const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours} Std. Dauer)` : '';
 
                     html += `
                         <div class="client-card">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong style="font-size: 1.05rem; color: #2b6cb0;">⏰ ${timeStr}h</strong>
-                                <span style="font-size: 0.8rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${client.postal_code || 'CP N/A'}</span>
+                                <strong style="font-size: 1.05rem; color: #2b6cb0;">⏰ ${timeStr} Uhr</strong>
+                                <span style="font-size: 0.8rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">PLZ ${client.postal_code || 'N/A'}</span>
                             </div>
                             <h4 style="margin: 5px 0; font-size: 1rem; color: #2d3748;">${client.name}</h4>
-                            <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dirección'}${hoursInfo}</p>
-                            <p style="margin: 0; font-size: 0.85rem; color: #4a5568;">📞 Tel: ${client.phone || 'No registrado'}</p>
+                            <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Keine Adresse'}${hoursInfo}</p>
+                            <p style="margin: 0; font-size: 0.85rem; color: #4a5568;">📞 Tel: ${client.phone || 'Nicht registriert'}</p>
                         </div>
                     `;
                 });
@@ -94,8 +94,8 @@
                 container.innerHTML = html;
 
             } catch (err) {
-                console.error('Error cargando agenda:', err);
-                container.innerHTML = '<p style="color: #e53e3e; text-align: center;">Error al cargar los datos del servidor.</p>';
+                console.error('Fehler beim Laden des Zeitplans:', err);
+                container.innerHTML = '<p style="color: #e53e3e; text-align: center;">Fehler beim Laden der Serverdaten.</p>';
             }
         });
     </script>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Creador de Zonas</title>
+    <title>ClientSync | Zonenerstellung</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body {
@@ -38,7 +38,7 @@
             align-items: center;
         }
         input, select, button {
-            font-size: 16px; /* Evita el zoom automático en móviles */
+            font-size: 16px;
             box-sizing: border-box;
         }
         @media (max-width: 600px) {
@@ -53,43 +53,43 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">Creador de Zonas</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
+            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">Zonenerstellung</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Karte</a>
         </div>
 
         <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
-            Ingresa el nombre de la zona, el código postal y los vértices (latitud y longitud) que delimitan el perímetro.
+            Geben Sie den Namen der Zone, die Postleitzahl und die Eckpunkte (Breitengrad und Längengrad) zur Begrenzung ein.
         </p>
 
         <form id="zone-form">
             <div class="row-group">
                 <div class="col-flex" style="flex: 2;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Nombre de la Zona:</label>
-                    <input type="text" id="zone-name" placeholder="Ej. Zona Ottobrunn Norte" required style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Zonenname:</label>
+                    <input type="text" id="zone-name" placeholder="Bsp. Zone Ottobrunn Nord" required style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px;">
                 </div>
                 <div class="col-flex" style="flex: 1;">
-                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Código Postal:</label>
-                    <input type="text" id="zone-postal" placeholder="Ej. 85521" required style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Postleitzahl:</label>
+                    <input type="text" id="zone-postal" placeholder="Bsp. 85521" required style="width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px;">
                 </div>
             </div>
 
             <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Color de la Zona (Hex):</label>
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Zonenfarbe (Hex):</label>
                 <input type="color" id="zone-color" value="#3182ce" style="width: 100%; height: 45px; border: 1px solid #cbd5e0; border-radius: 8px; padding: 4px; background: white; cursor: pointer;">
             </div>
 
-            <h3 style="font-size: 1rem; color: #2d3748; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-top: 25px;">Vértices del Perímetro</h3>
+            <h3 style="font-size: 1rem; color: #2d3748; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-top: 25px;">Eckpunkte des Umkreises</h3>
             
             <div id="vertices-container" style="margin-bottom: 15px;">
-                <!-- Los vértices se añaden dinámicamente aquí -->
+                <!-- Vértices dinámicos -->
             </div>
 
             <button type="button" id="add-vertex-btn" style="width: 100%; padding: 10px; background: #2b6cb0; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;">
-                + Añadir Vértice (Coordenada)
+                + Eckpunkt hinzufügen (Koordinate)
             </button>
 
             <button type="submit" id="save-zone-btn" style="width: 100%; padding: 14px; background: #38a169; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer;">
-                Guardar Zona en Supabase
+                Zone in Supabase speichern
             </button>
         </form>
     </div>
@@ -104,8 +104,8 @@
             const row = document.createElement('div');
             row.className = 'vertex-row';
             row.innerHTML = `
-                <input type="text" placeholder="Latitud (ej. 48.06)" value="${lat}" required style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px;">
-                <input type="text" placeholder="Longitud (ej. 11.62)" value="${lng}" required style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px;">
+                <input type="text" placeholder="Breitengrad (Bsp. 48.06)" value="${lat}" required style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px;">
+                <input type="text" placeholder="Längengrad (Bsp. 11.62)" value="${lng}" required style="flex: 1; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px;">
                 <button type="button" class="remove-btn" style="background: #e53e3e; color: white; border: none; padding: 10px 14px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕</button>
             `;
             row.querySelector('.remove-btn').addEventListener('click', () => {
@@ -114,7 +114,6 @@
             verticesContainer.appendChild(row);
         }
 
-        // Añadir al menos 3 vértices por defecto para formar un polígono válido
         if (verticesContainer.children.length === 0) {
             addVertexRow();
             addVertexRow();
@@ -145,12 +144,12 @@
             });
 
             if (polygon_coords.length < 3) {
-                alert('Una zona poligonal necesita al menos 3 vértices válidos.');
+                alert('Eine polygonale Zone benötigt mindestens 3 gültige Eckpunkte.');
                 return;
             }
 
             const btn = document.getElementById('save-zone-btn');
-            btn.textContent = 'Guardando zona...';
+            btn.textContent = 'Zone wird gespeichert...';
             btn.disabled = true;
 
             const { error } = await supabase.from('zones').insert([
@@ -163,11 +162,11 @@
             ]);
 
             if (error) {
-                alert('Error al guardar la zona en Supabase: ' + error.message);
-                btn.textContent = 'Guardar Zona en Supabase';
+                alert('Fehler beim Speichern der Zone in Supabase: ' + error.message);
+                btn.textContent = 'Zone in Supabase speichern';
                 btn.disabled = false;
             } else {
-                alert('¡Zona guardada con éxito!');
+                alert('Zone erfolgreich gespeichert!');
                 window.location.href = './index.html';
             }
         });
