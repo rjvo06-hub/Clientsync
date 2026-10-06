@@ -45,7 +45,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        /* Estilos del botón principal para abrir el mapa/sectores */
+        /* Botón principal para abrir el mapa/sectores */
         .btn-open-modal {
             background: #2b6cb0;
             color: white;
@@ -105,4 +105,205 @@
             font-weight: bold;
             font-size: 0.95rem;
             text-align: left;
-            cursor: pointer
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .sector-modal-btn:hover {
+            background: #e2e8f0;
+            border-color: #a0aec0;
+        }
+        .sector-modal-btn.priority {
+            background: #ebf8ff;
+            border-color: #3182ce;
+            color: #2b6cb0;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 style="margin-bottom: 15px; color: #2d3748;">ClientSync | WerkSolutions</h1>
+
+        <!-- Barra de navegación con todas las opciones integradas -->
+        <div class="nav-buttons">
+            <a href="./zone-builder.html" style="background: #2b6cb0;">🗺 Zonas</a>
+            <a href="./client-builder.html" style="background: #d69e2e;">🏢 Nuevo Cliente</a>
+            <a href="./appointment-builder.html" style="background: #319795;">📅 Agendar</a>
+            <a href="./admin-assignments.html" style="background: #4a5568;">🛠️ Admin</a>
+            <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Empleados</a>
+        </div>
+
+        <!-- Filtro superior -->
+        <div class="filter-section" style="margin-bottom: 15px;">
+            <label for="filter-employee" style="font-size: 0.9rem; font-weight: bold; color: #4a5568;">Filtrar por técnico:</label><br>
+            <select id="filter-employee" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #cbd5e0; background: white;">
+                <option value="all">Todo el equipo</option>
+            </select>
+        </div>
+
+        <!-- Botón principal para abrir el selector de sectores en ventana emergente -->
+        <button type="button" id="btn-open-modal" class="btn-open-modal">
+            📍 Visualizar Mapa y Seleccionar Sector
+        </button>
+
+        <!-- Sección del Mapa (Inicialmente oculto) -->
+        <section id="map-section-wrapper" class="map-section" style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 id="map-sector-title" style="margin: 0; font-size: 1.1rem; color: #2d3748;">Ubicación y Zonas de Trabajo</h2>
+                <button type="button" id="btn-close-map" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✕ Cerrar Mapa</button>
+            </div>
+            <div id="map"></div>
+        </section>
+    </div>
+
+    <!-- VENTANA EMERGENTE (MODAL) DE SECTORES -->
+    <div id="sectors-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 1.1rem; color: #2d3748;">Selecciona un Sector</h3>
+                <button type="button" id="modal-close-btn" style="background: #e2e8f0; border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold;">✕</button>
+            </div>
+            <p style="font-size: 0.85rem; color: #718096; margin-bottom: 15px;">Tus zonas principales (Ottobrunn y alrededores) aparecen arriba:</p>
+            
+            <div id="modal-sectors-list" class="sectors-grid-modal">
+                <span style="font-size: 0.85rem; color: #718096; text-align: center; padding: 20px;">Cargando sectores...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cargar Google Maps -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
+
+    <!-- Scripts de la app -->
+    <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/map.js"></script>
+
+    <!-- Script blindado para el modal -->
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        const postalCityMap = {
+            '85521': 'Ottobrunn',
+            '82008': 'Unterhaching',
+            '85649': 'Brunnthal',
+            '85635': 'Höhenkirchen-Siegertsbrunn',
+            '82031': 'Grünwald',
+            '82054': 'Sauerlach',
+            '83626': 'Valley',
+            '85653': 'Aying',
+            '81737': 'Múnich (Neuperlach)',
+            '81543': 'Múnich (Au-Haidhausen)',
+            '81549': 'Múnich (Giesing)',
+            '81827': 'Múnich (Trudering)',
+            '81671': 'Múnich (Berg am Laim)',
+            '81675': 'Múnich (Bogenhausen)',
+            '80331': 'Múnich (Centro)',
+            '80634': 'Múnich (Nymphenburg)',
+            '80638': 'Múnich (Neuhausen)',
+            '81377': 'Múnich (Hadern)'
+        };
+
+        const priorityPostals = ['85521', '82008', '85649', '85635', '82031', '82054'];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const openModalBtn = document.getElementById('btn-open-modal');
+            const modalOverlay = document.getElementById('sectors-modal');
+            const closeModalBtn = document.getElementById('modal-close-btn');
+            const closeMapBtn = document.getElementById('btn-close-map');
+            const mapWrapper = document.getElementById('map-section-wrapper');
+
+            if (openModalBtn && modalOverlay) {
+                openModalBtn.addEventListener('click', async () => {
+                    modalOverlay.style.display = 'flex';
+                    await loadModalSectors();
+                });
+            }
+
+            if (closeModalBtn && modalOverlay) {
+                closeModalBtn.addEventListener('click', () => {
+                    modalOverlay.style.display = 'none';
+                });
+            }
+
+            if (modalOverlay) {
+                modalOverlay.addEventListener('click', (e) => {
+                    if (e.target === modalOverlay) {
+                        modalOverlay.style.display = 'none';
+                    }
+                });
+            }
+
+            if (closeMapBtn && mapWrapper) {
+                closeMapBtn.addEventListener('click', () => {
+                    mapWrapper.style.display = 'none';
+                });
+            }
+        });
+
+        async function loadModalSectors() {
+            const container = document.getElementById('modal-sectors-list');
+            if (!container) return;
+
+            try {
+                const { data: clients, error } = await supabase.from('clients').select('postal_code');
+                if (error || !clients) {
+                    container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Error al cargar sectores.</span>';
+                    return;
+                }
+
+                const postals = [...new Set(clients.map(c => c.postal_code ? c.postal_code.trim() : null))].filter(Boolean);
+
+                if (postals.length === 0) {
+                    container.innerHTML = '<span style="font-size: 0.85rem; color: #718096;">No hay códigos postales registrados.</span>';
+                    return;
+                }
+
+                postals.sort((a, b) => {
+                    const isAPriori = priorityPostals.includes(a);
+                    const isBPriori = priorityPostals.includes(b);
+                    if (isAPriori && !isBPriori) return -1;
+                    if (!isAPriori && isBPriori) return 1;
+                    return a.localeCompare(b);
+                });
+
+                container.innerHTML = '';
+
+                postals.forEach(postal => {
+                    const cityName = postalCityMap[postal] || 'Zona / Ciudad';
+                    const isPriority = priorityPostals.includes(postal);
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `sector-modal-btn ${isPriority ? 'priority' : ''}`;
+                    btn.innerHTML = `
+                        <span><strong>${cityName}</strong> (${postal})</span>
+                        <span style="font-size: 0.8rem; background: ${isPriority ? '#3182ce' : '#cbd5e0'}; color: white; padding: 3px 8px; border-radius: 12px;">Ver zona →</span>
+                    `;
+
+                    btn.addEventListener('click', () => {
+                        document.getElementById('sectors-modal').style.display = 'none';
+                        const mapWrapper = document.getElementById('map-section-wrapper');
+                        if (mapWrapper) {
+                            mapWrapper.style.display = 'block';
+                            document.getElementById('map-sector-title').textContent = `📍 Sector: ${cityName} (${postal})`;
+                            mapWrapper.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    });
+
+                    container.appendChild(btn);
+                });
+
+            } catch (err) {
+                console.error("Error cargando sectores en modal:", err);
+            }
+        }
+    </script>
+</body>
+</html>
