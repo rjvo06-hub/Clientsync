@@ -74,7 +74,6 @@
 
                 listContainer.innerHTML = html;
 
-                // Escuchar cambios en los selectores para actualizar automáticamente en Supabase
                 document.querySelectorAll('.emp-dropdown').forEach(sel => {
                     sel.addEventListener('change', async (e) => {
                         const clientId = e.target.getAttribute('data-client-id');
@@ -88,7 +87,6 @@
                         if (updErr) {
                             alert('Error al actualizar empleado: ' + updErr.message);
                         } else {
-                            // Feedback visual rápido
                             e.target.style.borderColor = '#38a169';
                             setTimeout(() => e.target.style.borderColor = '#cbd5e0', 1000);
                         }
