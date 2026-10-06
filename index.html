@@ -44,6 +44,31 @@
             box-sizing: border-box;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        /* Estilo para los botones de sectores táctiles ideales para móvil */
+        .sectors-grid {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .sector-btn {
+            background: #2b6cb0;
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background 0.2s;
+        }
+        .sector-btn:hover {
+            background: #2c5282;
+        }
+        .sector-btn.active {
+            background: #38a169; /* Verde cuando está activo el sector en el mapa */
+        }
         @media (max-width: 600px) {
             h1 { font-size: 1.3rem; }
         }
@@ -71,17 +96,119 @@
             </select>
         </div>
 
-        <!-- Sección del Mapa -->
-        <section class="map-section" style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            <h2 style="margin-top: 0; font-size: 1.1rem; color: #2d3748;">Ubicación y Zonas de Trabajo</h2>
+        <!-- Botones de Sectores (Se generan dinámicamente según los códigos postales registrados) -->
+        <div class="filter-section" style="margin-bottom: 15px;">
+            <label style="font-size: 0.9rem; font-weight: bold; color: #4a5568;">Selecciona un sector para ver el mapa:</label>
+            <div id="sectors-container" class="sectors-grid" style="margin-top: 8px;">
+                <span style="font-size: 0.85rem; color: #718096;">Cargando sectores...</span>
+            </div>
+        </div>
+
+        <!-- Sección del Mapa (Inicialmente oculto hasta que selecciones un sector) -->
+        <section id="map-section-wrapper" class="map-section" style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 id="map-sector-title" style="margin: 0; font-size: 1.1rem; color: #2d3748;">Ubicación y Zonas de Trabajo</h2>
+                <button type="button" id="btn-close-map" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;">✕ Cerrar Mapa</button>
+            </div>
             <div id="map"></div>
         </section>
     </div>
 
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
+    <!-- Scripts originales intactos -->
     <script type="module" src="./js/app.js"></script>
     <script type="module" src="./js/map.js"></script>
 
+    <!-- Script rápido para controlar la visibilidad por sectores sin romper tu js/map.js -->
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        // Diccionario de referencia para tus códigos postales en la zona de Múnich
+        const postalCityMap = {
+            '85521': 'Ottobrunn',
+            '82008': 'Unterhaching',
+            '81737': 'Múnich (Neuperlach)',
+            '85540': 'Haar',
+            '81543': 'Múnich (Au-Haidhausen)',
+            '85649': 'Brunnthal',
+            '81377': 'Múnich (Hadern)',
+            '82031': 'Grünwald',
+            '81675': 'Múnich (Bogenhausen)',
+            '81827': 'Múnich (Trudering)',
+            '80331': 'Múnich (Centro)',
+            '80634': 'Múnich (Nymphenburg)',
+            '83626': 'Valley',
+            '85635': 'Höhenkirchen',
+            '85653': 'Aying',
+            '82054': 'Sauerlach',
+            '81549': 'Múnich (Giesing)',
+            '80638': 'Múnich (Neuhausen)',
+            '81671': 'Múnich (Berg am Laim)'
+        };
+
+        async function setupSectorButtons() {
+            const container = document.getElementById('sectors-container');
+            const mapWrapper = document.getElementById('map-section-wrapper');
+            const closeBtn = document.getElementById('btn-close-map');
+
+            try {
+                const { data: clients, error } = await supabase.from('clients').select('postal_code');
+                if (error || !clients) {
+                    container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Error al cargar sectores.</span>';
+                    return;
+                }
+
+                // Extraer códigos postales únicos
+                const postals = [...new Set(clients.map(c => c.postal_code ? c.postal_code.trim() : null))].filter(Boolean).sort();
+
+                if (postals.length === 0) {
+                    container.innerHTML = '<span style="font-size: 0.85rem; color: #718096;">No hay códigos postales registrados.</span>';
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                // Crear un botón táctil para cada código postal / sector
+                postals.forEach(postal => {
+                    const cityName = postalCityMap[postal] || 'Zona';
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'sector-btn';
+                    btn.textContent = `${cityName} (${postal})`;
+
+                    btn.addEventListener('click', () => {
+                        // Marcar botón activo
+                        document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+
+                        // Mostrar sección del mapa y actualizar título
+                        mapWrapper.style.display = 'block';
+                        document.getElementById('map-sector-title').textContent = `📍 Sector: ${cityName} (${postal})`;
+                        
+                        // Desplazar suavemente hacia el mapa
+                        mapWrapper.scrollIntoView({ behavior: 'smooth' });
+
+                        // NOTA: Tu archivo js/map.js se encarga de renderizar los pines. 
+                        // Si deseas que filtre los marcadores del mapa al hacer clic en un sector, 
+                        // puedes emitir un evento personalizado aquí que js/map.js escuche.
+                    });
+
+                    container.appendChild(btn);
+                });
+
+                // Botón para cerrar el mapa
+                closeBtn.addEventListener('click', () => {
+                    mapWrapper.style.display = 'none';
+                    document.querySelectorAll('.sector-btn').forEach(b => b.classList.remove('active'));
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', setupSectorButtons);
+    </script>
 </body>
 </html>
