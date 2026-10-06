@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Intelligente Terminplanung</title>
+    <title>ClientSync | Agendación Inteligente</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
@@ -18,40 +18,42 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">📅 Intelligente Terminplanung (1 km)</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Karte</a>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">📅 Agendación Inteligente (1 km)</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
         <p style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
-            Wählen Sie den Kunden aus, bestimmen Sie das Datum (gemäß Nähe-Vorschlägen oder frei) sowie Uhrzeit und Dauer.
+            Selecciona el cliente, elige la fecha (según sugerencias de proximidad o calendario libre), y asigna la hora y duración.
         </p>
 
         <form id="appointment-form">
+            <!-- 1. NOMBRE DEL CLIENTE -->
             <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">1. Kunden auswählen:</label>
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">1. Seleccionar Cliente:</label>
                 <select id="client-select" required>
-                    <option value="">-- Kunden auswählen --</option>
+                    <option value="">-- Elige un cliente --</option>
                 </select>
             </div>
 
             <div id="client-details" class="info-card">
-                <strong>Adresse:</strong> <span id="det-address">-</span><br>
-                <strong>Koordinaten:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span>
+                <strong>Dirección:</strong> <span id="det-address">-</span><br>
+                <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span>
             </div>
 
+            <!-- 2. SELECCIÓN DE FECHA (Sugerencias 1 km + Fecha libre) -->
             <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
-                <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Datum auswählen:</label>
+                <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha:</label>
                 
                 <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
-                    <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Nähe-Vorschläge (1 km):</div>
+                    <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Sugerencias por Proximidad (1 km):</div>
                     <div id="suggestions-list"></div>
                 </div>
 
                 <div>
-                    <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Oder ein anderes freies Datum wählen:</label>
+                    <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
                     <div style="display: flex; gap: 8px;">
                         <input type="date" id="free-date-input" style="flex: 1; padding: 10px; font-size: 0.9rem; border: 1px solid #cbd5e0; border-radius: 8px; background: white;">
-                        <button type="button" id="pick-free-btn" style="background: #2b6cb0; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">Verwenden</button>
+                        <button type="button" id="pick-free-btn" style="background: #2b6cb0; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">Usar</button>
                     </div>
                 </div>
             </div>
@@ -59,21 +61,23 @@
             <input type="hidden" id="selected-appointment-date" required>
 
             <div id="selected-date-display" style="margin-bottom: 15px; font-weight: bold; color: #2f855a; font-size: 0.9rem; display:none; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
-                ✅ Gewähltes Datum: <span id="txt-chosen-date">-</span>
+                ✅ Fecha elegida: <span id="txt-chosen-date">-</span>
             </div>
 
+            <!-- 3. HORA DE ATENCIÓN -->
             <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">3. Uhrzeit:</label>
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">3. Hora de atención:</label>
                 <input type="time" id="appointment-time" value="09:00" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;" required>
             </div>
             
+            <!-- 4. HORAS ESTIMADAS -->
             <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">4. Geschätzte Arbeitsstunden (Optional):</label>
-                <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Bsp. 1.5" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">4. Horas estimadas de trabajo (Opcional):</label>
+                <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
             </div>
 
             <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; opacity: 0.6; margin-bottom: 30px; width: 100%;" disabled>
-                Bestätigen & Termin anlegen
+                Confirmar y Agendar Cita
             </button>
         </form>
     </div>
@@ -103,17 +107,17 @@
 
                 allClients = data || [];
                 const select = document.getElementById('client-select');
-                select.innerHTML = '<option value="">-- Kunden auswählen --</option>';
+                select.innerHTML = '<option value="">-- Elige un cliente --</option>';
 
                 allClients.forEach(client => {
                     const opt = document.createElement('option');
                     opt.value = client.id;
-                    opt.textContent = `${client.name} (${client.address || 'Keine Adresse'})`;
+                    opt.textContent = `${client.name} (${client.address || 'Sin dirección'})`;
                     select.appendChild(opt);
                 });
             } catch (err) {
-                console.error('Initialisierungsfehler:', err);
-                alert('Beim Laden der Kunden ist ein Fehler aufgetreten.');
+                console.error('Error al inicializar:', err);
+                alert('Hubo un error al cargar los clientes.');
             }
         }
 
@@ -139,11 +143,11 @@
 
             const client = allClients.find(c => c.id === clientId);
             if (!client || !client.latitude || !client.longitude) {
-                alert('Für diesen Kunden sind keine geografischen Koordinaten hinterlegt.');
+                alert('Este cliente no tiene coordenadas geográficas registradas.');
                 return;
             }
 
-            document.getElementById('det-address').textContent = `${client.address || 'Keine Straße'}, PLZ: ${client.postal_code || 'N/A'}`;
+            document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
             detailsCard.style.display = 'block';
             dateSection.style.display = 'block';
@@ -168,24 +172,24 @@
                     let detailsHtml = '';
                     clientsOnThisDate.forEach(c => {
                         const dateObj = new Date(c.appointment_date);
-                        const timeStr = dateObj.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-                        const hoursInfo = c.estimated_hours ? ` [${c.estimated_hours} Std.]` : '';
-                        detailsHtml += `<div style="font-size: 0.8rem; color: #4a5568; margin-top: 2px;">• ${c.name} um ${timeStr} Uhr${hoursInfo}</div>`;
+                        const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                        const hoursInfo = c.estimated_hours ? ` [${c.estimated_hours}h]` : '';
+                        detailsHtml += `<div style="font-size: 0.8rem; color: #4a5568; margin-top: 2px;">• ${c.name} a las ${timeStr}h${hoursInfo}</div>`;
                     });
 
                     item.innerHTML = `
                         <div>
-                            <strong style="font-size: 0.9rem; color: #2b6cb0;">📅 Tour am ${dateStr}</strong>
+                            <strong style="font-size: 0.9rem; color: #2b6cb0;">📅 Ruta el ${dateStr}</strong>
                             ${detailsHtml}
                         </div>
-                        <button type="button" class="pick-date-btn" style="width: auto; padding: 8px 14px; background: #38a169; color: white; border: none; border-radius: 6px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">Verwenden</button>
+                        <button type="button" class="pick-date-btn" style="width: auto; padding: 8px 14px; background: #38a169; color: white; border: none; border-radius: 6px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">Usar</button>
                     `;
 
                     item.querySelector('.pick-date-btn').addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         updateFinalTimestamp();
                         const timeVal = document.getElementById('appointment-time').value || '09:00';
-                        document.getElementById('txt-chosen-date').textContent = `${dateStr} um ${timeVal} Uhr`;
+                        document.getElementById('txt-chosen-date').textContent = `${dateStr} a las ${timeVal}`;
                         document.getElementById('selected-date-display').style.display = 'block';
                         
                         saveBtn.disabled = false;
@@ -197,7 +201,7 @@
 
                 suggestionBox.style.display = 'block';
             } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">Keine Termine im Umkreis von 1 km. Wählen Sie unten ein freies Datum.</p>`;
+                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Selecciona una fecha libre abajo.</p>`;
                 suggestionBox.style.display = 'block';
             }
         });
@@ -205,13 +209,13 @@
         document.getElementById('pick-free-btn').addEventListener('click', () => {
             const freeDate = document.getElementById('free-date-input').value;
             if (!freeDate) {
-                alert('Bitte wählen Sie ein freies Datum im Kalender aus.');
+                alert('Selecciona una fecha libre en el calendario.');
                 return;
             }
             selectedDateOnly = freeDate;
             updateFinalTimestamp();
             const timeVal = document.getElementById('appointment-time').value || '09:00';
-            document.getElementById('txt-chosen-date').textContent = `${freeDate} um ${timeVal} Uhr`;
+            document.getElementById('txt-chosen-date').textContent = `${freeDate} a las ${timeVal}`;
             document.getElementById('selected-date-display').style.display = 'block';
             
             const saveBtn = document.getElementById('save-btn');
@@ -223,7 +227,7 @@
             if (selectedDateOnly) {
                 updateFinalTimestamp();
                 const timeVal = document.getElementById('appointment-time').value || '09:00';
-                document.getElementById('txt-chosen-date').textContent = `${selectedDateOnly} um ${timeVal} Uhr`;
+                document.getElementById('txt-chosen-date').textContent = `${selectedDateOnly} a las ${timeVal}`;
             }
         });
 
@@ -243,12 +247,12 @@
             const hoursVal = document.getElementById('estimated-hours').value;
 
             if (!clientId || !apptVal) {
-                alert('Bitte wählen Sie einen Kunden und ein gültiges Datum/Uhrzeit aus.');
+                alert('Selecciona un cliente y una fecha/hora válida.');
                 return;
             }
 
             const btn = document.getElementById('save-btn');
-            btn.textContent = 'Wird gespeichert...';
+            btn.textContent = 'Agendando...';
             btn.disabled = true;
 
             const updatePayload = {
@@ -262,11 +266,11 @@
                 .eq('id', clientId);
 
             if (error) {
-                alert('Fehler bei der Terminvergabe: ' + error.message);
-                btn.textContent = 'Bestätigen & Termin anlegen';
+                alert('Error al agendar: ' + error.message);
+                btn.textContent = 'Confirmar y Agendar Cita';
                 btn.disabled = false;
             } else {
-                alert('Termin erfolgreich angelegt!');
+                alert('¡Cita agendada con éxito!');
                 window.location.href = './index.html';
             }
         });

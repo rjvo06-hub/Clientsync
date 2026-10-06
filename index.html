@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Zonen & Termine</title>
+    <title>ClientSync | Zonas y Citas</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body {
@@ -44,6 +44,8 @@
             box-sizing: border-box;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
+        /* Botón principal para abrir el mapa/sectores con respuesta táctil inmediata */
         .btn-open-modal {
             background: #2b6cb0;
             color: white;
@@ -62,6 +64,8 @@
         .btn-open-modal:active {
             background: #1a365d;
         }
+
+        /* Estilos de la Ventana Emergente (Modal) - Forzamos display flex cuando esté activa */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -117,6 +121,7 @@
             border-color: #3182ce;
             color: #2b6cb0;
         }
+
         @media (max-width: 600px) {
             h1 { font-size: 1.3rem; }
         }
@@ -127,49 +132,56 @@
     <div class="container">
         <h1 style="margin-bottom: 15px; color: #2d3748;">ClientSync | WerkSolutions</h1>
 
+        <!-- Barra de navegación con todas las opciones integradas -->
         <div class="nav-buttons">
-            <a href="./zone-builder.html" style="background: #2b6cb0;">🗺 Zonen</a>
-            <a href="./client-builder.html" style="background: #d69e2e;">🏢 Neuer Kunde</a>
-            <a href="./appointment-builder.html" style="background: #319795;">📅 Termin planen</a>
+            <a href="./zone-builder.html" style="background: #2b6cb0;">🗺 Zonas</a>
+            <a href="./client-builder.html" style="background: #d69e2e;">🏢 Nuevo Cliente</a>
+            <a href="./appointment-builder.html" style="background: #319795;">📅 Agendar</a>
             <a href="./admin-assignments.html" style="background: #4a5568;">🛠️ Admin</a>
-            <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Mitarbeiter</a>
+            <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Empleados</a>
         </div>
 
+        <!-- Filtro superior -->
         <div class="filter-section" style="margin-bottom: 15px;">
-            <label for="filter-employee" style="font-size: 0.9rem; font-weight: bold; color: #4a5568;">Nach Mitarbeiter filtern:</label><br>
+            <label for="filter-employee" style="font-size: 0.9rem; font-weight: bold; color: #4a5568;">Filtrar por técnico:</label><br>
             <select id="filter-employee" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #cbd5e0; background: white;">
-                <option value="all">Gesamtes Team</option>
+                <option value="all">Todo el equipo</option>
             </select>
         </div>
 
+        <!-- Botón principal con onclick directo para garantizar respuesta táctil inmediata -->
         <button type="button" id="btn-open-modal" class="btn-open-modal" onclick="openSectorsModal()">
-            📍 Karte anzeigen & Sektor auswählen
+            📍 Visualizar Mapa y Seleccionar Sector
         </button>
 
+        <!-- Sección del Mapa (Inicialmente oculto) -->
         <section id="map-section-wrapper" class="map-section" style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h2 id="map-sector-title" style="margin: 0; font-size: 1.1rem; color: #2d3748;">Standort und Arbeitsbereiche</h2>
-                <button type="button" id="btn-close-map" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;" onclick="closeMapSection()">✕ Karte schließen</button>
+                <h2 id="map-sector-title" style="margin: 0; font-size: 1.1rem; color: #2d3748;">Ubicación y Zonas de Trabajo</h2>
+                <button type="button" id="btn-close-map" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;" onclick="closeMapSection()">✕ Cerrar Mapa</button>
             </div>
             <div id="map"></div>
         </section>
     </div>
 
+    <!-- VENTANA EMERGENTE (MODAL) DE SECTORES -->
     <div id="sectors-modal" class="modal-overlay">
         <div class="modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 10px;">
-                <h3 style="margin: 0; font-size: 1.1rem; color: #2d3748;">Sektor auswählen</h3>
+                <h3 style="margin: 0; font-size: 1.1rem; color: #2d3748;">Selecciona un Sector</h3>
                 <button type="button" id="modal-close-btn" style="background: #e2e8f0; border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold;" onclick="closeSectorsModal()">✕</button>
             </div>
-            <p style="font-size: 0.85rem; color: #718096; margin-bottom: 15px;">Hauptzonen (Ottobrunn und Umgebung) erscheinen oben:</p>
+            <p style="font-size: 0.85rem; color: #718096; margin-bottom: 15px;">Tus zonas principales (Ottobrunn y alrededores) aparecen arriba:</p>
             
             <div id="modal-sectors-list" class="sectors-grid-modal">
-                <span style="font-size: 0.85rem; color: #718096; text-align: center; padding: 20px;">Sektoren werden geladen...</span>
+                <span style="font-size: 0.85rem; color: #718096; text-align: center; padding: 20px;">Cargando sectores...</span>
             </div>
         </div>
     </div>
 
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
+
+    <!-- Scripts de la app -->
     <script type="module" src="./js/app.js"></script>
     <script type="module" src="./js/map.js"></script>
 
@@ -185,20 +197,21 @@
             '82054': 'Sauerlach',
             '83626': 'Valley',
             '85653': 'Aying',
-            '81737': 'München (Neuperlach)',
-            '81543': 'München (Au-Haidhausen)',
-            '81549': 'München (Giesing)',
-            '81827': 'München (Trudering)',
-            '81671': 'München (Berg am Laim)',
-            '81675': 'München (Bogenhausen)',
-            '80331': 'München (Zentrum)',
-            '80634': 'München (Nymphenburg)',
-            '80638': 'München (Neuhausen)',
-            '81377': 'München (Hadern)'
+            '81737': 'Múnich (Neuperlach)',
+            '81543': 'Múnich (Au-Haidhausen)',
+            '81549': 'Múnich (Giesing)',
+            '81827': 'Múnich (Trudering)',
+            '81671': 'Múnich (Berg am Laim)',
+            '81675': 'Múnich (Bogenhausen)',
+            '80331': 'Múnich (Centro)',
+            '80634': 'Múnich (Nymphenburg)',
+            '80638': 'Múnich (Neuhausen)',
+            '81377': 'Múnich (Hadern)'
         };
 
         const priorityPostals = ['85521', '82008', '85649', '85635', '82031', '82054'];
 
+        // Funciones globales accesibles por el HTML directamente
         window.openSectorsModal = async function() {
             const modalOverlay = document.getElementById('sectors-modal');
             if (modalOverlay) {
@@ -221,6 +234,7 @@
             }
         };
 
+        // Cerrar modal al hacer clic fuera de la caja blanca
         document.addEventListener('DOMContentLoaded', () => {
             const modalOverlay = document.getElementById('sectors-modal');
             if (modalOverlay) {
@@ -236,19 +250,19 @@
             const container = document.getElementById('modal-sectors-list');
             if (!container) return;
 
-            container.innerHTML = '<span style="font-size: 0.85rem; color: #718096; text-align: center; padding: 20px;">Sektoren werden geladen...</span>';
+            container.innerHTML = '<span style="font-size: 0.85rem; color: #718096; text-align: center; padding: 20px;">Cargando sectores...</span>';
 
             try {
                 const { data: clients, error } = await supabase.from('clients').select('postal_code');
                 if (error || !clients) {
-                    container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Fehler beim Laden der Sektoren aus der Datenbank.</span>';
+                    container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Error al cargar sectores de la base de datos.</span>';
                     return;
                 }
 
                 const postals = [...new Set(clients.map(c => c.postal_code ? c.postal_code.trim() : null))].filter(Boolean);
 
                 if (postals.length === 0) {
-                    container.innerHTML = '<span style="font-size: 0.85rem; color: #718096;">Keine Postleitzahlen registriert.</span>';
+                    container.innerHTML = '<span style="font-size: 0.85rem; color: #718096;">No hay códigos postales registrados.</span>';
                     return;
                 }
 
@@ -263,7 +277,7 @@
                 container.innerHTML = '';
 
                 postals.forEach(postal => {
-                    const cityName = postalCityMap[postal] || 'Zone / Stadt';
+                    const cityName = postalCityMap[postal] || 'Zona / Ciudad';
                     const isPriority = priorityPostals.includes(postal);
 
                     const btn = document.createElement('button');
@@ -271,7 +285,7 @@
                     btn.className = `sector-modal-btn ${isPriority ? 'priority' : ''}`;
                     btn.innerHTML = `
                         <span><strong>${cityName}</strong> (${postal})</span>
-                        <span style="font-size: 0.8rem; background: ${isPriority ? '#3182ce' : '#cbd5e0'}; color: white; padding: 3px 8px; border-radius: 12px;">Zone anzeigen →</span>
+                        <span style="font-size: 0.8rem; background: ${isPriority ? '#3182ce' : '#cbd5e0'}; color: white; padding: 3px 8px; border-radius: 12px;">Ver zona →</span>
                     `;
 
                     btn.addEventListener('click', () => {
@@ -279,9 +293,10 @@
                         const mapWrapper = document.getElementById('map-section-wrapper');
                         if (mapWrapper) {
                             mapWrapper.style.display = 'block';
-                            document.getElementById('map-sector-title').textContent = `📍 Sektor: ${cityName} (${postal})`;
+                            document.getElementById('map-sector-title').textContent = `📍 Sector: ${cityName} (${postal})`;
                             mapWrapper.scrollIntoView({ behavior: 'smooth' });
 
+                            // Disparar evento para que el mapa haga zoom en este código postal
                             const event = new CustomEvent('sectorSelected', { detail: { postalCode: postal } });
                             document.dispatchEvent(event);
                         }
@@ -291,8 +306,8 @@
                 });
 
             } catch (err) {
-                console.error("Ausnahme beim Laden der Sektoren:", err);
-                container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Verbindungsfehler mit Supabase.</span>';
+                console.error("Excepción cargando sectores:", err);
+                container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Error de conexión con Supabase.</span>';
             }
         }
     </script>

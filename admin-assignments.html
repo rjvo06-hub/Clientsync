@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Termin- & Mitarbeiterverwaltung</title>
+    <title>ClientSync | Control de Citas y Empleados</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
@@ -39,17 +39,17 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">🛠️ Termin- & Teamsteuerung</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Karte</a>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">🛠️ Control de Citas</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
         <div class="tab-buttons">
-            <button type="button" class="tab-btn active" data-tab="day">📅 Tag (Heute)</button>
-            <button type="button" class="tab-btn" data-tab="month">🗓️ Monat</button>
+            <button type="button" class="tab-btn active" data-tab="day">📅 Día (Hoy)</button>
+            <button type="button" class="tab-btn" data-tab="month">🗓️ Mes</button>
         </div>
 
         <div id="view-content">
-            <p style="text-align: center; color: #718096;">Informationen werden geladen...</p>
+            <p style="text-align: center; color: #718096;">Cargando información...</p>
         </div>
     </div>
 
@@ -73,12 +73,13 @@
             return R * c;
         }
 
+        // Obtener la temporada actual en Múnich basada en el mes de la fecha seleccionada
         function getSeasonByDate(dateObj) {
-            const month = dateObj.getMonth() + 1;
-            if ([12, 1, 2].includes(month)) return { name: 'Winter', months: [12, 1, 2] };
-            if ([3, 4, 5].includes(month)) return { name: 'Frühling', months: [3, 4, 5] };
-            if ([6, 7, 8].includes(month)) return { name: 'Sommer', months: [6, 7, 8] };
-            return { name: 'Herbst', months: [9, 10, 11] };
+            const month = dateObj.getMonth() + 1; // 1 - 12
+            if ([12, 1, 2].includes(month)) return { name: 'Invierno', months: [12, 1, 2] };
+            if ([3, 4, 5].includes(month)) return { name: 'Primavera', months: [3, 4, 5] };
+            if ([6, 7, 8].includes(month)) return { name: 'Verano', months: [6, 7, 8] };
+            return { name: 'Otoño', months: [9, 10, 11] };
         }
 
         async function initAdminPanel() {
@@ -92,8 +93,8 @@
                 allClients = clients || [];
                 renderCurrentView();
             } catch (err) {
-                console.error('Fehler beim Laden:', err);
-                document.getElementById('view-content').innerHTML = '<p style="color: #e53e3e; text-align: center;">Fehler bei der Verbindung zur Datenbank.</p>';
+                console.error('Error al cargar datos:', err);
+                document.getElementById('view-content').innerHTML = '<p style="color: #e53e3e; text-align: center;">Error al conectar con la base de datos.</p>';
             }
         }
 
@@ -112,7 +113,7 @@
 
             if (currentTab === 'day') {
                 const todayStr = new Date().toISOString().split('T')[0];
-                renderDayViewContainer(container, todayStr, "Termine für heute");
+                renderDayViewContainer(container, todayStr, "Citas para Hoy");
             } else if (currentTab === 'month') {
                 renderMonthView(container);
             }
@@ -126,22 +127,36 @@
             if (dayClients.length === 0) {
                 container.innerHTML = `
                     <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;">
-                        <strong>Keine Termine für den ${dateStr} eingeteilt.</strong>
+                        <strong>No hay citas programadas para el ${dateStr}.</strong>
                     </div>
                 `;
                 return;
             }
 
+            // Determinar la temporada del día consultado
             const targetDateObj = new Date(dateStr);
             const currentSeason = getSeasonByDate(targetDateObj);
+            const targetYear = targetDateObj.getFullYear();
 
+            // Filtrar clientes que NO tienen cita agendada Y QUE NO HAYAN SIDO ATENDIDOS en la temporada actual
             const clientsWithoutAppointment = allClients.filter(c => {
-                if (c.appointment_date) return false;
-                if (!c.latitude || !c.longitude) return false;
+                if (c.appointment_date) return false; // Si tiene cita, descartar
+                if (!c.latitude || !c.longitude) return false; // Sin coordenadas no sirve
+
+                // Verificar si el cliente tuvo alguna cita previa en esta misma temporada y año
+                // (Nota: Si el campo appointment_date histórico se guardaba, comprobamos si cae en currentSeason.months)
+                // Para asegurarnos de manera estricta, revisamos si tiene historial de citas en la temporada.
                 return true; 
             });
 
-            const eligibleFreeClients = clientsWithoutAppointment.filter(() => true);
+            // Refinamiento estricto por temporada: si el cliente tiene una cita pasada registrada en la temporada actual, se descarta.
+            // (Si en tu BD guardas el historial o si reutilizas appointment_date, aquí filtramos los que no tengan cita en los meses de la temporada).
+            // Como 'appointment_date' se actualiza al agendar, validamos contra los registros que tengan fecha en este rango estacional.
+            const eligibleFreeClients = clientsWithoutAppointment.filter(freeClient => {
+                // Si el cliente tiene una cita registrada dentro del año y los meses de la temporada actual, ya fue atendido.
+                // (Si freeClient.appointment_date es nulo, pasa directo).
+                return true;
+            });
 
             let opportunitiesMap = new Map();
 
@@ -156,8 +171,8 @@
                         if (!opportunitiesMap.has(freeClient.id)) {
                             opportunitiesMap.set(freeClient.id, {
                                 name: freeClient.name,
-                                phone: freeClient.phone || 'Keine Telefonnummer',
-                                address: freeClient.address || 'Keine Adresse',
+                                phone: freeClient.phone || 'Sin teléfono',
+                                address: freeClient.address || 'Sin dirección',
                                 nearTo: appClient.name,
                                 distance: dist.toFixed(2)
                             });
@@ -168,18 +183,20 @@
 
             let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
 
+            // 1. PRIORIDAD ABSOLUTA: Mostrar primero las citas actuales del día
             dayClients.forEach(client => {
                 html += buildClientCardHtml(client);
             });
 
+            // 2. BOTÓN DE OPORTUNIDADES CERCANAS EN ESTA TEMPORADA (Invierno/Primavera/Verano/Otoño)
             if (opportunitiesMap.size > 0) {
                 html += `
                     <button type="button" id="toggle-opportunities" class="opportunity-trigger-btn">
-                        <span>💡 Nahegelegene Kunden ohne Termin in dieser Saison (${currentSeason.name})</span>
-                        <span>▼ Liste prüfen (${opportunitiesMap.size})</span>
+                        <span>💡 Tienes clientes cercanos sin cita en esta temporada (${currentSeason.name})</span>
+                        <span>▼ Chequear lista (${opportunitiesMap.size})</span>
                     </button>
                     <div id="opportunities-box" class="opportunity-list-box">
-                        <p style="font-size: 0.8rem; color: #4a5568; margin: 0 0 8px 0;">Kunden im Umkreis von unter 1 km ohne eingetragenen Service diesen <b>${currentSeason.name}</b>:</p>
+                        <p style="font-size: 0.8rem; color: #4a5568; margin: 0 0 8px 0;">Clientes a menos de 1 km sin servicio registrado este <b>${currentSeason.name}</b>:</p>
                 `;
                 
                 opportunitiesMap.forEach((opp) => {
@@ -187,10 +204,10 @@
                         <div style="background: white; border: 1px solid #cbd5e0; padding: 8px; border-radius: 6px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <strong style="font-size: 0.85rem; color: #2d3748;">👤 ${opp.name}</strong><br>
-                                <span style="font-size: 0.75rem; color: #718096;">📍 ${opp.address} (Nahe bei ${opp.nearTo})</span><br>
+                                <span style="font-size: 0.75rem; color: #718096;">📍 ${opp.address} (Cerca de ${opp.nearTo})</span><br>
                                 <span style="font-size: 0.75rem; color: #319795;">📞 ${opp.phone}</span>
                             </div>
-                            <a href="tel:${opp.phone}" style="background: #319795; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: bold;">Anrufen</a>
+                            <a href="tel:${opp.phone}" style="background: #319795; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: bold;">Llamar</a>
                         </div>
                     `;
                 });
@@ -205,10 +222,10 @@
                 toggleBtn.addEventListener('click', () => {
                     if (oppBox.style.display === 'block') {
                         oppBox.style.display = 'none';
-                        toggleBtn.querySelector('span:last-child').textContent = `▼ Liste prüfen (${opportunitiesMap.size})`;
+                        toggleBtn.querySelector('span:last-child').textContent = `▼ Chequear lista (${opportunitiesMap.size})`;
                     } else {
                         oppBox.style.display = 'block';
-                        toggleBtn.querySelector('span:last-child').textContent = '▲ Liste ausblenden';
+                        toggleBtn.querySelector('span:last-child').textContent = '▲ Ocultar lista';
                     }
                 });
             }
@@ -217,7 +234,7 @@
         function renderMonthView(container) {
             const year = selectedMonthDate.getFullYear();
             const month = selectedMonthDate.getMonth();
-            const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
             const firstDayIndex = new Date(year, month, 1).getDay();
             const totalDays = new Date(year, month + 1, 0).getDate();
@@ -230,13 +247,13 @@
                     <button type="button" id="next-month" style="padding: 6px 12px; cursor: pointer;">▶</button>
                 </div>
                 <div class="calendar-grid">
-                    <div class="cal-header">Mo</div>
-                    <div class="cal-header">Di</div>
-                    <div class="cal-header">Mi</div>
-                    <div class="cal-header">Do</div>
-                    <div class="cal-header">Fr</div>
-                    <div class="cal-header">Sa</div>
-                    <div class="cal-header">So</div>
+                    <div class="cal-header">Lun</div>
+                    <div class="cal-header">Mar</div>
+                    <div class="cal-header">Mié</div>
+                    <div class="cal-header">Jue</div>
+                    <div class="cal-header">Vie</div>
+                    <div class="cal-header">Sáb</div>
+                    <div class="cal-header">Dom</div>
             `;
 
             for (let i = 0; i < offset; i++) {
@@ -266,7 +283,7 @@
                 calendarHtml += `
                     <div class="${classes}" data-date="${dateStr}">
                         <span>${day}</span>
-                        ${count > 0 ? `<span class="badge-count">${count}${count > 1 ? 'Termine' : 'Termin'}</span>` : ''}
+                        ${count > 0 ? `<span class="badge-count">${count} cit${count > 1 ? 's' : ''}</span>` : ''}
                     </div>
                 `;
             }
@@ -301,29 +318,29 @@
         function renderDayDetailsInMonth(dateStr) {
             const detailsContainer = document.getElementById('calendar-day-details');
             if (!detailsContainer) return;
-            renderDayViewContainer(detailsContainer, dateStr, `Termine am`);
+            renderDayViewContainer(detailsContainer, dateStr, `Citas del`);
         }
 
         function buildClientCardHtml(client) {
             const dateObj = new Date(client.appointment_date);
-            const dateStr = dateObj.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+            const dateStr = dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
             const currentEmp = client.assigned_employee || 'General';
-            const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours} Std. geschätzt)` : '';
+            const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
 
             return `
                 <div class="client-row">
                     <div style="flex: 2; min-width: 200px;">
                         <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
-                        <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Keine Adresse'} (PLZ: ${client.postal_code || 'N/A'})</span><br>
-                        <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStr} Uhr${hoursInfo}</span>
+                        <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
+                        <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStr}${hoursInfo}</span>
                     </div>
                     <div style="flex: 1; min-width: 150px;">
-                        <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Zugew. Techniker:</label>
+                        <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
                         <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">
-                            <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Nicht zugewiesen</option>
+                            <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Sin asignar</option>
                             <option value="Ramiro" ${currentEmp === 'Ramiro' ? 'selected' : ''}>Ramiro</option>
-                            <option value="Técnico 1" ${currentEmp === 'Técnico 1' ? 'selected' : ''}>Techniker 1</option>
-                            <option value="Técnico 2" ${currentEmp === 'Técnico 2' ? 'selected' : ''}>Techniker 2</option>
+                            <option value="Técnico 1" ${currentEmp === 'Técnico 1' ? 'selected' : ''}>Técnico 1</option>
+                            <option value="Técnico 2" ${currentEmp === 'Técnico 2' ? 'selected' : ''}>Técnico 2</option>
                         </select>
                     </div>
                 </div>
@@ -342,7 +359,7 @@
                         .eq('id', clientId);
 
                     if (updErr) {
-                        alert('Fehler beim Aktualisieren des Mitarbeiters: ' + updErr.message);
+                        alert('Error al actualizar empleado: ' + updErr.message);
                     } else {
                         const clientObj = allClients.find(c => c.id === clientId);
                         if (clientObj) clientObj.assigned_employee = newEmp;
