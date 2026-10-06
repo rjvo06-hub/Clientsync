@@ -9,13 +9,16 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
         .container { max-width: 700px; margin: 15px auto 60px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
         
-        /* Botones de Pestañas (Día, Semana, Mes) */
+        /* Botones de Pestañas (Solo Día y Mes) */
         .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; background: #edf2f7; padding: 4px; border-radius: 8px; }
         .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-weight: bold; color: #4a5568; border-radius: 6px; cursor: pointer; font-size: 0.9rem; text-align: center; }
         .tab-btn.active { background: white; color: #2b6cb0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
         select, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; }
         .client-row { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        
+        /* Tarjeta de oportunidad para clientes cercanos sin cita */
+        .opportunity-card { background: #ebf8ff; border: 1px dashed #3182ce; padding: 10px; border-radius: 8px; margin-top: 8px; margin-bottom: 15px; font-size: 0.85rem; color: #2b6cb0; display: flex; justify-content: space-between; align-items: center; }
 
         /* Cuadrícula del Calendario Mensual */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 20px; }
@@ -35,14 +38,13 @@
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
-        <!-- Selector de Vistas -->
+        <!-- Selector de Vistas (Únicamente Día y Mes) -->
         <div class="tab-buttons">
-            <button type="button" class="tab-btn active" data-tab="day">📅 Hoy</button>
-            <button type="button" class="tab-btn" data-tab="week">📊 Semana</button>
+            <button type="button" class="tab-btn active" data-tab="day">📅 Día (Hoy)</button>
             <button type="button" class="tab-btn" data-tab="month">🗓️ Mes</button>
         </div>
 
-        <!-- Contenedor dinámico según la pestaña seleccionada -->
+        <!-- Contenedor dinámico -->
         <div id="view-content">
             <p style="text-align: center; color: #718096;">Cargando información...</p>
         </div>
@@ -55,6 +57,18 @@
         let currentTab = 'day';
         let selectedMonthDate = new Date();
         let selectedCalendarDateStr = null;
+
+        function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
 
         async function initAdminPanel() {
             try {
@@ -72,13 +86,12 @@
             }
         }
 
-        // Cambio de pestañas
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 currentTab = e.target.getAttribute('data-tab');
-                selectedCalendarDateStr = null; // Resetear selección del mes
+                selectedCalendarDateStr = null;
                 renderCurrentView();
             });
         });
@@ -87,9 +100,8 @@
             const container = document.getElementById('view-content');
 
             if (currentTab === 'day') {
-                renderDayView(container);
-            } else if (currentTab === 'week') {
-                renderWeekView(container);
+                const todayStr = new Date().toISOString().split('T')[0];
+                renderDayViewContainer(container, todayStr, "Citas para Hoy");
             } else if (currentTab === 'month') {
                 renderMonthView(container);
             }
@@ -97,56 +109,74 @@
             attachEmployeeListeners();
         }
 
-        // 1. VISTA DE HOY
-        function renderDayView(container) {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const todayClients = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(todayStr));
+        // Renderizador común para las vistas de Día (incluye detección de clientes cercanos sin cita a < 1 km)
+        function renderDayViewContainer(container, dateStr, titleText) {
+            const dayClients = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
 
-            if (todayClients.length === 0) {
+            if (dayClients.length === 0) {
                 container.innerHTML = `
                     <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;">
-                        <strong>No hay citas programadas para hoy (${todayStr}).</strong>
+                        <strong>No hay citas programadas para el ${dateStr}.</strong>
                     </div>
                 `;
                 return;
             }
 
-            let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 Citas para Hoy (${todayStr})</h3>`;
-            todayClients.forEach(client => {
-                html += buildClientCardHtml(client);
+            // Buscar clientes cercanos (a menos de 1 km) que NO tienen cita asignada
+            const clientsWithoutAppointment = allClients.filter(c => !c.appointment_date && c.latitude && c.longitude);
+            let opportunitiesMap = new Map(); // clienteId -> nombre del cliente agendado cercano
+
+            dayClients.forEach(appClient => {
+                if (!appClient.latitude || !appClient.longitude) return;
+                clientsWithoutAppointment.forEach(freeClient => {
+                    const dist = calculateDistanceKm(
+                        Number(appClient.latitude), Number(appClient.longitude), 
+                        Number(freeClient.latitude), Number(freeClient.longitude)
+                    );
+                    if (dist <= 1.0) {
+                        if (!opportunitiesMap.has(freeClient.id)) {
+                            opportunitiesMap.set(freeClient.id, {
+                                name: freeClient.name,
+                                phone: freeClient.phone || 'Sin teléfono',
+                                address: freeClient.address || 'Sin dirección',
+                                nearTo: appClient.name,
+                                distance: dist.toFixed(2)
+                            });
+                        }
+                    }
+                });
             });
-            container.innerHTML = html;
-        }
 
-        // 2. VISTA DE SEMANA
-        function renderWeekView(container) {
-            const now = new Date();
-            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Lunes
-            const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 7)); // Domingo
+            let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
 
-            const weekClients = allClients.filter(c => {
-                if (!c.appointment_date) return false;
-                const cDate = new Date(c.appointment_date);
-                return cDate >= startOfWeek && cDate <= endOfWeek;
-            });
-
-            if (weekClients.length === 0) {
-                container.innerHTML = `
-                    <div style="background: #f7fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; text-align: center; color: #4a5568;">
-                        <strong>No hay citas programadas para esta semana.</strong>
-                    </div>
-                `;
-                return;
+            // Mostrar sección de oportunidades cercanas si existen
+            if (opportunitiesMap.size > 0) {
+                html += `<div style="background: #ebf8ff; border: 1px solid #90cdf4; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong style="font-size: 0.9rem; color: #2b6cb0;">💡 Oportunidades a menos de 1 km (Sin cita):</strong>
+                    <p style="font-size: 0.8rem; color: #4a5568; margin: 4px 0 8px 0;">Puedes llamarlos y aprovechar el viaje:</p>`;
+                
+                opportunitiesMap.forEach((opp) => {
+                    html += `
+                        <div style="background: white; border: 1px solid #bee3f8; padding: 8px; border-radius: 6px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 0.85rem; color: #2d3748;">👤 ${opp.name}</strong><br>
+                                <span style="font-size: 0.75rem; color: #718096;">📍 ${opp.address} (Cerca de ${opp.nearTo})</span><br>
+                                <span style="font-size: 0.75rem; color: #319795;">📞 ${opp.phone}</span>
+                            </div>
+                            <a href="tel:${opp.phone}" style="background: #319795; color: white; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: bold;">Llamar</a>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
             }
 
-            let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📊 Citas de esta Semana</h3>`;
-            weekClients.forEach(client => {
+            dayClients.forEach(client => {
                 html += buildClientCardHtml(client);
             });
             container.innerHTML = html;
         }
 
-        // 3. VISTA DE MES (Calendario interactivo)
+        // VISTA DE MES (Calendario interactivo)
         function renderMonthView(container) {
             const year = selectedMonthDate.getFullYear();
             const month = selectedMonthDate.getMonth();
@@ -154,7 +184,7 @@
 
             const firstDayIndex = new Date(year, month, 1).getDay();
             const totalDays = new Date(year, month + 1, 0).getDate();
-            const offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // Ajuste para que empiece en Lunes
+            const offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
             let calendarHtml = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -172,12 +202,10 @@
                     <div class="cal-header">Dom</div>
             `;
 
-            // Celdas vacías del mes anterior
             for (let i = 0; i < offset; i++) {
                 calendarHtml += `<div class="cal-day" style="background: transparent; border: none;"></div>`;
             }
 
-            // Días del mes
             for (let day = 1; day <= totalDays; day++) {
                 const dayStr = String(day).padStart(2, '0');
                 const monthStr = String(month + 1).padStart(2, '0');
@@ -201,7 +229,6 @@
             calendarHtml += `</div><div id="calendar-day-details"></div>`;
             container.innerHTML = calendarHtml;
 
-            // Navegación de meses
             document.getElementById('prev-month').addEventListener('click', () => {
                 selectedMonthDate.setMonth(selectedMonthDate.getMonth() - 1);
                 selectedCalendarDateStr = null;
@@ -213,16 +240,14 @@
                 renderMonthView(container);
             });
 
-            // Clic en un día del calendario
             document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
                 cell.addEventListener('click', () => {
                     selectedCalendarDateStr = cell.getAttribute('data-date');
-                    renderMonthView(container); // Recargar para marcar la selección
+                    renderMonthView(container);
                     renderDayDetailsInMonth(selectedCalendarDateStr);
                 });
             });
 
-            // Si ya hay un día seleccionado, mostrar sus detalles automáticamente
             if (selectedCalendarDateStr) {
                 renderDayDetailsInMonth(selectedCalendarDateStr);
             }
@@ -231,23 +256,9 @@
         function renderDayDetailsInMonth(dateStr) {
             const detailsContainer = document.getElementById('calendar-day-details');
             if (!detailsContainer) return;
-
-            const dayClients = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
-
-            if (dayClients.length === 0) {
-                detailsContainer.innerHTML = `<p style="text-align: center; color: #718096; font-size: 0.85rem; margin-top: 15px;">No hay citas para el ${dateStr}.</p>`;
-                return;
-            }
-
-            let html = `<h4 style="font-size: 0.95rem; color: #2d3748; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 10px;">Citas del ${dateStr}:</h4>`;
-            dayClients.forEach(client => {
-                html += buildClientCardHtml(client);
-            });
-            detailsContainer.innerHTML = html;
-            attachEmployeeListeners();
+            renderDayViewContainer(detailsContainer, dateStr, `Citas del`);
         }
 
-        // Estructura visual de cada tarjeta de cliente
         function buildClientCardHtml(client) {
             const dateObj = new Date(client.appointment_date);
             const dateStr = dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
@@ -273,7 +284,6 @@
             `;
         }
 
-        // Vincular cambios de empleado en Supabase
         function attachEmployeeListeners() {
             document.querySelectorAll('.emp-dropdown').forEach(sel => {
                 sel.addEventListener('change', async (e) => {
@@ -288,7 +298,6 @@
                     if (updErr) {
                         alert('Error al actualizar empleado: ' + updErr.message);
                     } else {
-                        // Actualizar en el arreglo local
                         const clientObj = allClients.find(c => c.id === clientId);
                         if (clientObj) clientObj.assigned_employee = newEmp;
 
