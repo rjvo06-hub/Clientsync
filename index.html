@@ -178,14 +178,12 @@
         </div>
     </div>
 
-    <!-- Cargar Google Maps -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
     <!-- Scripts de la app -->
     <script type="module" src="./js/app.js"></script>
     <script type="module" src="./js/map.js"></script>
 
-    <!-- Script blindado para el modal -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -294,8 +292,14 @@
                             mapWrapper.style.display = 'block';
                             document.getElementById('map-sector-title').textContent = `📍 Sector: ${cityName} (${postal})`;
                             mapWrapper.scrollIntoView({ behavior: 'smooth' });
+
+                            // DISPARAR EVENTO PERSONALIZADO PARA QUE EL MAPA HAGA ZOOM EN ESTE CÓDIGO POSTAL
+                            const event = new CustomEvent('sectorSelected', { detail: { postalCode: postal } });
+                            document.dispatchEvent(event);
                         }
                     });
+
+                    container.appendChild(eventCallback => eventCallback); // (mantiene sintaxis limpia)
 
                     container.appendChild(btn);
                 });
