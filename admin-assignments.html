@@ -39,7 +39,7 @@
         .inline-edit-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
         .inline-edit-col { flex: 1; min-width: 140px; }
         
-        .day-load-preview { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 8px 10px; border-radius: 6px; margin-top: 8px; font-size: 0.8rem; color: #2d3748; display: none; }
+        .day-load-preview { background: #edf2f7; border: 1px solid #cbd5e0; padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; color: #2d3748; display: block; }
     </style>
 </head>
 <body>
@@ -97,7 +97,6 @@
             return dateStr;
         }
 
-        // Lógica inteligente para sugerir la siguiente hora libre en función de las citas del día (excluyendo la cita actual que se está editando)
         function suggestNextTimeForDate(dateStr, excludeClientId) {
             const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr) && c.id !== excludeClientId);
             if (clientsOnDate.length === 0) return "09:00";
@@ -379,17 +378,14 @@
                         </div>
                     </div>
 
-                    <!-- Formulario desplegable para reagendar con el mismo principio inteligente -->
+                    <!-- Formulario desplegable con vista previa de volumen y clientes en la fecha -->
                     <div class="edit-form-box" id="edit-box-${client.id}">
                         <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 8px;">💡 Reagendar / Modificar Cita:</div>
-                        
-                        <!-- Caja de volumen y citas existentes en la fecha seleccionada -->
-                        <div class="day-load-preview" id="load-preview-${client.id}"></div>
 
-                        <div class="inline-edit-row" style="margin-top: 10px;">
+                        <div class="inline-edit-row">
                             <div class="inline-edit-col">
                                 <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Nueva Fecha:</label>
-                                <input type="date" class="edit-date-input" data-client-id="${client.id}" value="${rawDatePart}" style="width: 100%;">
+                                <input type="date" class="edit-date-input" data-client-id="${client.id}" id="edit-date-${client.id}" value="${rawDatePart}" style="width: 100%;">
                             </div>
                             <div class="inline-edit-col">
                                 <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Hora de atención:</label>
@@ -400,6 +396,10 @@
                                 <input type="number" id="edit-hours-${client.id}" step="0.5" min="0.5" value="${client.estimated_hours || ''}" placeholder="Ej. 1.5" style="width: 100%;">
                             </div>
                         </div>
+
+                        <!-- Caja donde se listan los clientes ya agendados en esa fecha -->
+                        <div class="day-load-preview" id="load-preview-${client.id}"></div>
+
                         <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
                             <button type="button" class="cancel-edit-btn" data-client-id="${client.id}" style="background: #e2e8f0; color: #4a5568; border: none; padding: 6px 12px; font-size: 0.8rem; cursor: pointer;">Cancelar</button>
                             <button type="button" class="save-edit-btn" data-client-id="${client.id}" style="background: #38a169; color: white; border: none; padding: 6px 14px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">Guardar Cambios</button>
@@ -422,57 +422,53 @@
                 return;
             }
 
-            // Buscar citas en esa fecha (excluyendo al cliente actual para ver el volumen real del día)
+            // Filtrar clientes agendados en esa fecha (excluyendo al cliente actual para ver el volumen real del día)
             const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(chosenDate) && c.id !== clientId);
             const formattedDateStr = formatDateToDDMMYYYY(chosenDate);
 
             if (clientsOnDate.length > 0) {
                 clientsOnDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
-                let detailsHtml = `<strong style="color: #2b6cb0;">📅 ${formattedDateStr} (${clientsOnDate.length} cita${clientsOnDate.length > 1 ? 's' : ''} ya agendada${clientsOnDate.length > 1 ? 's' : ''}):</strong><br>`;
+                let detailsHtml = `<strong style="color: #2b6cb0;">📅 Citas ya programadas para el ${formattedDateStr} (${clientsOnDate.length}):</strong><div style="margin-top: 4px;">`;
                 
                 clientsOnDate.forEach(dc => {
                     const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                    detailsHtml += `• <b>${dc.name}</b> (${dc.address || 'Sin dirección'}) a las ${timeStr}h<br>`;
+                    detailsHtml += `<div style="margin-top: 3px; font-size: 0.8rem; color: #4a5568;">• <strong>${dc.name}</strong> — 📍 ${dc.address || 'Sin dirección'} a las <b>${timeStr}h</b></div>`;
                 });
+                detailsHtml += `</div>`;
 
                 previewBox.innerHTML = detailsHtml;
                 previewBox.style.display = 'block';
             } else {
-                previewBox.innerHTML = `<strong style="color: #2b6cb0;">📅 ${formattedDateStr}:</strong> No hay otras citas en esta fecha. (Día libre)`;
+                previewBox.innerHTML = `<strong style="color: #2b6cb0;">📅 Citas para el ${formattedDateStr}:</strong> <span style="color: #38a169;">No hay otras citas este día (Día totalmente libre).</span>`;
                 previewBox.style.display = 'block';
             }
 
-            // Sugerir automáticamente la siguiente hora libre
+            // Sugerir la siguiente hora automáticamente
             const suggestedTime = suggestNextTimeForDate(chosenDate, clientId);
             timeInput.value = suggestedTime;
         }
 
         function attachEventListeners() {
-            // Cambio de empleado
             document.querySelectorAll('.emp-dropdown').forEach(sel => {
                 sel.removeEventListener('change', handleEmpChange);
                 sel.addEventListener('change', handleEmpChange);
             });
 
-            // Botón mostrar/ocultar formulario de edición
             document.querySelectorAll('.toggle-edit-btn').forEach(btn => {
                 btn.removeEventListener('click', handleToggleEdit);
                 btn.addEventListener('click', handleToggleEdit);
             });
 
-            // Al cambiar la fecha en el input de edición, recalcular volumen y hora sugerida
             document.querySelectorAll('.edit-date-input').forEach(input => {
                 input.removeEventListener('change', handleDateInputChange);
                 input.addEventListener('change', handleDateInputChange);
             });
 
-            // Botón cancelar edición
             document.querySelectorAll('.cancel-edit-btn').forEach(btn => {
                 btn.removeEventListener('click', handleCancelEdit);
                 btn.addEventListener('click', handleCancelEdit);
             });
 
-            // Botón guardar cambios de cita
             document.querySelectorAll('.save-edit-btn').forEach(btn => {
                 btn.removeEventListener('click', handleSaveEdit);
                 btn.addEventListener('click', handleSaveEdit);
