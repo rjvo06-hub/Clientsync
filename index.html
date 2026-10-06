@@ -3,85 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Zonas y Citas</title>
-    <link rel="stylesheet" href="./css/main.css">
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f7fafc;
-            margin: 0;
-            padding: 10px;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-        #map {
-            width: 100%;
-            height: 65vh;
-            min-height: 400px;
-            border-radius: 8px;
-            border: 1px solid #cbd5e0;
-        }
-        .nav-buttons {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-        .nav-buttons a {
-            flex: 1;
-            text-align: center;
-            min-width: 100px;
-            padding: 12px 6px;
-            border-radius: 8px;
-            font-weight: bold;
-            text-decoration: none;
-            color: white;
-            font-size: 0.8rem;
-            box-sizing: border-box;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        @media (max-width: 600px) {
-            h1 { font-size: 1.3rem; }
-        }
-    </style>
+    <title>ArbeitsTime - Control de Tiempos</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="app-container">
+        <header>
+            <h1>ArbeitsTime</h1>
+            <p>Control de horas y carga de trabajo</p>
+        </header>
 
-    <div class="container">
-        <h1 style="margin-bottom: 15px; color: #2d3748;">ClientSync | WerkSolutions</h1>
+        <main>
+            <!-- Sección de Resumen / Filtro de Fechas -->
+            <section class="card">
+                <h2>Vista de Jornadas</h2>
+                <div class="date-selector">
+                    <label for="filtro-fecha">Seleccionar Día:</label>
+                    <input type="date" id="filtro-fecha">
+                </div>
+            </section>
 
-        <!-- Barra de navegación con todas las opciones integradas -->
-        <div class="nav-buttons">
-            <a href="./zone-builder.html" style="background: #2b6cb0;">🗺 Zonas</a>
-            <a href="./client-builder.html" style="background: #d69e2e;">🏢 Nuevo Cliente</a>
-            <a href="./appointment-builder.html" style="background: #319795;">📅 Agendar</a>
-            <a href="./admin-assignments.html" style="background: #4a5568;">🛠️ Admin</a>
-            <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Empleados</a>
-        </div>
+            <!-- Contenedor del Semáforo del Día -->
+            <section class="card" id="seccion-semaforo">
+                <h2>Estado de la Jornada</h2>
+                <div id="indicador-semaforo" class="semaforo-card semaforo-green">
+                    <span id="semaforo-texto-estado">Cargando estado...</span>
+                    <span id="semaforo-detalle-clientes">0 clientes registrados</span>
+                </div>
+            </section>
 
-        <!-- Filtro superior -->
-        <div class="filter-section" style="margin-bottom: 15px;">
-            <label for="filter-employee" style="font-size: 0.9rem; font-weight: bold; color: #4a5568;">Filtrar por técnico:</label><br>
-            <select id="filter-employee" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #cbd5e0; background: white;">
-                <option value="all">Todo el equipo</option>
-            </select>
-        </div>
-
-        <!-- Sección del Mapa -->
-        <section class="map-section" style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            <h2 style="margin-top: 0; font-size: 1.1rem; color: #2d3748;">Ubicación y Zonas de Trabajo</h2>
-            <div id="map"></div>
-        </section>
+            <!-- Listado de Clientes del Día -->
+            <section class="card">
+                <h2>Clientes del Día</h2>
+                <div id="lista-clientes-dia">
+                    <!-- Los registros se cargan dinámicamente aquí -->
+                </div>
+            </section>
+        </main>
     </div>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
-
-    <script type="module" src="./js/app.js"></script>
-    <script type="module" src="./js/map.js"></script>
-
+    <!-- Script principal de la aplicación -->
+    <script src="app.js"></script>
 </body>
 </html>
