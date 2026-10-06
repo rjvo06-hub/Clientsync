@@ -3,191 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Selector por Sectores</title>
+    <title>ClientSync | Zonas y Citas</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 15px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .control-group { margin-bottom: 15px; }
-        select, button { font-size: 1rem; padding: 12px; width: 100%; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; }
-        select { background: white; cursor: pointer; }
-        #map-wrapper { display: none; margin-top: 20px; }
-        #map { width: 100%; height: 450px; border-radius: 10px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f7fafc;
+            margin: 0;
+            padding: 10px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #map {
+            width: 100%;
+            height: 65vh;
+            min-height: 400px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .nav-buttons a {
+            flex: 1;
+            text-align: center;
+            min-width: 100px;
+            padding: 12px 6px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+            color: white;
+            font-size: 0.8rem;
+            box-sizing: border-box;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 1.3rem; }
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">🗺️ Zonas de Trabajo</h1>
-            <a href="./client-builder.html" style="padding: 8px 12px; background: #3182ce; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">+ Nuevo Cliente</a>
+        <h1 style="margin-bottom: 15px; color: #2d3748;">ClientSync | WerkSolutions</h1>
+
+        <!-- Barra de navegación con todas las opciones integradas -->
+        <div class="nav-buttons">
+            <a href="./zone-builder.html" style="background: #2b6cb0;">🗺 Zonas</a>
+            <a href="./client-builder.html" style="background: #d69e2e;">🏢 Nuevo Cliente</a>
+            <a href="./appointment-builder.html" style="background: #319795;">📅 Agendar</a>
+            <a href="./admin-assignments.html" style="background: #4a5568;">🛠️ Admin</a>
+            <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Empleados</a>
         </div>
 
-        <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
-            Selecciona el sector o código postal para desplegar el mapa en esa zona específica.
-        </p>
-
-        <!-- Botón o Selector Desplegable para desplegar el mapa por sectores -->
-        <div class="control-group">
-            <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">📍 Desplegar Mapa por Sector:</label>
-            <select id="sector-select">
-                <option value="">-- Cargando sectores y códigos postales... --</option>
+        <!-- Filtro superior -->
+        <div class="filter-section" style="margin-bottom: 15px;">
+            <label for="filter-employee" style="font-size: 0.9rem; font-weight: bold; color: #4a5568;">Filtrar por técnico:</label><br>
+            <select id="filter-employee" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #cbd5e0; background: white;">
+                <option value="all">Todo el equipo</option>
             </select>
         </div>
 
-        <!-- Contenedor del Mapa (Oculto inicialmente) -->
-        <div id="map-wrapper">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 id="map-title" style="margin: 0; font-size: 1rem; color: #2b6cb0;">Mapa del Sector</h3>
-                <button type="button" id="btn-close-map" style="background: #e2e8f0; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar Mapa</button>
-            </div>
+        <!-- Sección del Mapa -->
+        <section class="map-section" style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <h2 style="margin-top: 0; font-size: 1.1rem; color: #2d3748;">Ubicación y Zonas de Trabajo</h2>
             <div id="map"></div>
-        </div>
+        </section>
     </div>
 
-    <!-- Cargar Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=TU_GOOGLE_MAPS_KEY"></script>
-    <script type="module">
-        import { supabase } from './js/supabaseClient.js';
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
-        let map = null;
-        let markers = [];
-        let clientsData = [];
+    <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/map.js"></script>
 
-        // Diccionario de referencia para identificar códigos postales con su respectivo sector/ciudad
-        const postalCityMap = {
-            '85521': 'Ottobrunn',
-            '81737': 'München (Neuperlach / Ramersdorf)',
-            '85540': 'Haar',
-            '81543': 'München (Au-Haidhausen)',
-            '85649': 'Brunnthal',
-            '81377': 'München (Hadern / Sendling-Westpark)',
-            '82031': 'Grünwald',
-            '81675': 'München (Bogenhausen)',
-            '81827': 'München (Trudering-Riem)',
-            '82008': 'Unterhaching',
-            '80331': 'München (Altstadt-Lehel)',
-            '80634': 'München (Nymphenburg / Neuhausen)',
-            '83626': 'Valley',
-            '85635': 'Höhenkirchen-Siegertsbrunn',
-            '85653': 'Aying (Ödenstockach)',
-            '82054': 'Sauerlach',
-            '81549': 'München (Ogiesing / Giesing)',
-            '80638': 'München (Neuhausen-Nymphenburg)',
-            '81671': 'München (Berg am Laim)'
-        };
-
-        async function initSectorSelector() {
-            const selectEl = document.getElementById('sector-select');
-
-            // Consultar clientes en Supabase
-            const { data: clients, error } = await supabase.from('clients').select('*');
-            
-            if (error || !clients) {
-                selectEl.innerHTML = '<option value="">Error al cargar los datos</option>';
-                return;
-            }
-
-            clientsData = clients;
-
-            // Agrupar clientes por código postal
-            const postalGroups = {};
-            clients.forEach(c => {
-                if (c.postal_code) {
-                    const postal = c.postal_code.trim();
-                    if (!postalGroups[postal]) postalGroups[postal] = [];
-                    postalGroups[postal].push(c);
-                }
-            });
-
-            const postals = Object.keys(postalGroups).sort();
-            if (postals.length === 0) {
-                selectEl.innerHTML = '<option value="">No hay códigos postales registrados</option>';
-                return;
-            }
-
-            selectEl.innerHTML = '<option value="">-- Selecciona un sector o código postal --</option>';
-
-            postals.forEach(postal => {
-                const cityName = postalCityMap[postal] || 'Zona Principal';
-                const count = postalGroups[postal].length;
-                
-                const opt = document.createElement('option');
-                opt.value = postal;
-                opt.textContent = `${postal} - ${cityName} (${count} clientes)`;
-                selectEl.appendChild(opt);
-            });
-
-            // Al cambiar la selección en el menú desplegable, se despliega el mapa centrado en ese sector
-            selectEl.addEventListener('change', (e) => {
-                const selectedPostal = e.target.value;
-                if (!selectedPostal) {
-                    document.getElementById('map-wrapper').style.display = 'none';
-                    return;
-                }
-
-                const filteredClients = postalGroups[selectedPostal] || [];
-                const cityName = postalCityMap[selectedPostal] || selectedPostal;
-                showSectorOnMap(selectedPostal, cityName, filteredClients);
-            });
-
-            // Botón para cerrar el mapa y volver a la vista limpia
-            document.getElementById('btn-close-map').addEventListener('click', () => {
-                document.getElementById('map-wrapper').style.display = 'none';
-                selectEl.value = ""; // Resetear selector
-            });
-        }
-
-        function showSectorOnMap(postalCode, cityName, clientList) {
-            const mapWrapper = document.getElementById('map-wrapper');
-            mapWrapper.style.display = 'block';
-            document.getElementById('map-title').textContent = `📍 Sector: ${postalCode} (${cityName}) - ${clientList.length} cliente(s)`;
-
-            // Limpiar marcadores anteriores del mapa
-            if (markers) {
-                markers.forEach(m => m.setMap(null));
-                markers = [];
-            }
-
-            const defaultCenter = { lat: 48.0686, lng: 11.6289 };
-            if (!map) {
-                map = new google.maps.Map(document.getElementById('map'), {
-                    zoom: 12,
-                    center: defaultCenter
-                });
-            }
-
-            const bounds = new google.maps.LatLngBounds();
-            
-            clientList.forEach(client => {
-                if (client.latitude && client.longitude) {
-                    const latLng = { lat: Number(client.latitude), lng: Number(client.longitude) };
-                    bounds.extend(latLng);
-
-                    const marker = new google.maps.Marker({
-                        position: latLng,
-                        map: map,
-                        title: `${client.name} (${client.address || ''})`
-                    });
-                    markers.push(marker);
-                }
-            });
-
-            // Ajustar el zoom automáticamente para abarcar exactamente los puntos de ese sector
-            if (!bounds.isEmpty()) {
-                map.fitBounds(bounds);
-                // Asegurar que no haga un zoom excesivo si hay un solo punto
-                const listener = google.maps.event.addListener(map, "idle", () => {
-                    if (map.getZoom() > 15) map.setZoom(15);
-                    google.maps.event.removeListener(listener);
-                });
-            }
-
-            // Desplazar la pantalla suavemente hacia el mapa desplegado
-            mapWrapper.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        document.addEventListener('DOMContentLoaded', initSectorSelector);
-    </script>
 </body>
 </html>
