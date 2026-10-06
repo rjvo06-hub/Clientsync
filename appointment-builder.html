@@ -3,34 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Agendación Inteligente por Proximidad</title>
+    <title>ClientSync | Agendación Inteligente</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
-        .container { max-width: 600px; margin: 20px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
+        .container { max-width: 600px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
         select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; }
         .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
-        .suggestion-box { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
-        .suggestion-item { background: white; border: 1px solid #bee3f8; padding: 12px; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
+        .suggestion-item { background: white; border: 1px solid #cbd5e0; padding: 10px; border-radius: 6px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.3rem; color: #2d3748;">📅 Agendación con Radio de 1 km</h1>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">📅 Agendación Inteligente (1 km)</h1>
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
-        <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 20px;">
-            Selecciona un cliente. El sistema evaluará el radio de 1 km y te mostrará la hora exacta y duración de las citas previas.
+        <p style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
+            Selecciona el cliente, elige la fecha (según sugerencias de proximidad o calendario libre), y asigna la hora y duración.
         </p>
 
         <form id="appointment-form">
+            <!-- 1. NOMBRE DEL CLIENTE -->
             <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Seleccionar Cliente Existente:</label>
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">1. Seleccionar Cliente:</label>
                 <select id="client-select" required>
-                    <option value="">Cargando clientes...</option>
+                    <option value="">-- Elige un cliente --</option>
                 </select>
             </div>
 
@@ -39,28 +40,43 @@
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span>
             </div>
 
-            <div id="route-suggestions" class="suggestion-box">
-                <strong>💡 Citas a menos de 1 km (con hora y duración):</strong>
-                <div id="suggestions-list"></div>
-            </div>
+            <!-- 2. SELECCIÓN DE FECHA (Sugerencias 1 km + Fecha libre) -->
+            <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
+                <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha:</label>
+                
+                <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
+                    <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Sugerencias por Proximidad (1 km):</div>
+                    <div id="suggestions-list"></div>
+                </div>
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">⏰ Hora para este nuevo cliente:</label>
-                <input type="time" id="appointment-time" value="09:00" required>
-            </div>
-
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">⏳ Horas de Trabajo Estimadas (Opcional):</label>
-                <input type="number" id="estimated-hours" step="0.5" min="0.5" max="12" placeholder="Ej. 1.5 (1 hora y media)">
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">O elige otra fecha libre:</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="date" id="free-date-input" style="flex: 1; padding: 10px; font-size: 0.9rem; border: 1px solid #cbd5e0; border-radius: 8px; background: white;">
+                        <button type="button" id="pick-free-btn" style="background: #2b6cb0; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">Usar</button>
+                    </div>
+                </div>
             </div>
 
             <input type="hidden" id="selected-appointment-date" required>
 
-            <div id="selected-date-display" style="margin-bottom: 20px; font-weight: bold; color: #2f855a; font-size: 0.95rem; display:none;">
-                ✅ Fecha seleccionada: <span id="txt-chosen-date">-</span>
+            <div id="selected-date-display" style="margin-bottom: 15px; font-weight: bold; color: #2f855a; font-size: 0.9rem; display:none; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
+                ✅ Fecha elegida: <span id="txt-chosen-date">-</span>
             </div>
 
-            <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; opacity: 0.6;" disabled>
+            <!-- 3. HORA DE ATENCIÓN -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">3. Hora de atención:</label>
+                <input type="time" id="appointment-time" value="09:00" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;" required>
+            </div>
+            
+            <!-- 4. HORAS ESTIMADAS -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">4. Horas estimadas de trabajo (Opcional):</label>
+                <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%; padding: 12px; font-size: 1rem; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; background: white;">
+            </div>
+
+            <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; opacity: 0.6; margin-bottom: 30px; width: 100%;" disabled>
                 Confirmar y Agendar Cita
             </button>
         </form>
@@ -108,6 +124,7 @@
         document.getElementById('client-select').addEventListener('change', (e) => {
             const clientId = e.target.value;
             const detailsCard = document.getElementById('client-details');
+            const dateSection = document.getElementById('date-section');
             const suggestionBox = document.getElementById('route-suggestions');
             const suggestionsList = document.getElementById('suggestions-list');
             const saveBtn = document.getElementById('save-btn');
@@ -120,7 +137,7 @@
 
             if (!clientId) {
                 detailsCard.style.display = 'none';
-                suggestionBox.style.display = 'none';
+                dateSection.style.display = 'none';
                 return;
             }
 
@@ -133,6 +150,7 @@
             document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
             detailsCard.style.display = 'block';
+            dateSection.style.display = 'block';
 
             const nearbyClients = allClients.filter(c => {
                 if (!c.appointment_date || c.id === client.id || !c.latitude || !c.longitude) return false;
@@ -155,22 +173,23 @@
                     clientsOnThisDate.forEach(c => {
                         const dateObj = new Date(c.appointment_date);
                         const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                        const hoursInfo = c.estimated_hours ? ` (${c.estimated_hours}h est.)` : '';
-                        detailsHtml += `<div style="font-size: 0.85rem; color: #2d3748; margin-top: 3px;">• <b>${c.name}</b> a las <b>${timeStr}h</b>${hoursInfo}</div>`;
+                        const hoursInfo = c.estimated_hours ? ` [${c.estimated_hours}h]` : '';
+                        detailsHtml += `<div style="font-size: 0.8rem; color: #4a5568; margin-top: 2px;">• ${c.name} a las ${timeStr}h${hoursInfo}</div>`;
                     });
 
                     item.innerHTML = `
-                        <div style="flex: 1;">
-                            <strong>📅 Fecha: ${dateStr}</strong>
+                        <div>
+                            <strong style="font-size: 0.9rem; color: #2b6cb0;">📅 Ruta el ${dateStr}</strong>
                             ${detailsHtml}
                         </div>
-                        <button type="button" class="pick-date-btn" style="width: auto; padding: 8px 12px; background: #2b6cb0; color: white; border: none; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-left: 10px;">Seleccionar</button>
+                        <button type="button" class="pick-date-btn" style="width: auto; padding: 8px 14px; background: #38a169; color: white; border: none; border-radius: 6px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">Usar</button>
                     `;
 
                     item.querySelector('.pick-date-btn').addEventListener('click', () => {
                         selectedDateOnly = dateStr;
                         updateFinalTimestamp();
-                        document.getElementById('txt-chosen-date').textContent = `${dateStr} a las ${document.getElementById('appointment-time').value}`;
+                        const timeVal = document.getElementById('appointment-time').value || '09:00';
+                        document.getElementById('txt-chosen-date').textContent = `${dateStr} a las ${timeVal}`;
                         document.getElementById('selected-date-display').style.display = 'block';
                         
                         saveBtn.disabled = false;
@@ -182,39 +201,33 @@
 
                 suggestionBox.style.display = 'block';
             } else {
-                suggestionBox.innerHTML = `
-                    <strong>💡 Radio de 1 km:</strong> No hay citas programadas a menos de 1 km. 
-                    <br><span style="font-size: 0.8rem; color: #4a5568; margin-top: 5px; display:block;">Puedes elegir una fecha libre para abrir ruta en esta zona.</span>
-                `;
-                const freeItem = document.createElement('div');
-                freeItem.style.marginTop = '10px';
-                freeItem.innerHTML = `
-                    <label style="font-size:0.85rem; font-weight:bold; display:block; margin-bottom:3px;">Elige una fecha libre:</label>
-                    <input type="date" id="free-date-input" style="padding:8px; font-size:0.85rem; margin-bottom:5px;">
-                    <button type="button" id="pick-free-btn" style="padding:6px; background:#38a169; color:white; border:none; border-radius:4px; font-size:0.8rem; cursor:pointer;">Usar esta fecha</button>
-                `;
-                freeItem.querySelector('#pick-free-btn').addEventListener('click', () => {
-                    const freeDate = document.getElementById('free-date-input').value;
-                    if (!freeDate) {
-                        alert('Selecciona una fecha');
-                        return;
-                    }
-                    selectedDateOnly = freeDate;
-                    updateFinalTimestamp();
-                    document.getElementById('txt-chosen-date').textContent = `${freeDate} a las ${document.getElementById('appointment-time').value}`;
-                    document.getElementById('selected-date-display').style.display = 'block';
-                    saveBtn.disabled = false;
-                    saveBtn.style.opacity = '1';
-                });
-                suggestionBox.appendChild(freeItem);
+                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas a menos de 1 km. Selecciona una fecha libre abajo.</p>`;
                 suggestionBox.style.display = 'block';
             }
+        });
+
+        document.getElementById('pick-free-btn').addEventListener('click', () => {
+            const freeDate = document.getElementById('free-date-input').value;
+            if (!freeDate) {
+                alert('Selecciona una fecha libre en el calendario.');
+                return;
+            }
+            selectedDateOnly = freeDate;
+            updateFinalTimestamp();
+            const timeVal = document.getElementById('appointment-time').value || '09:00';
+            document.getElementById('txt-chosen-date').textContent = `${freeDate} a las ${timeVal}`;
+            document.getElementById('selected-date-display').style.display = 'block';
+            
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = false;
+            saveBtn.style.opacity = '1';
         });
 
         document.getElementById('appointment-time').addEventListener('change', () => {
             if (selectedDateOnly) {
                 updateFinalTimestamp();
-                document.getElementById('txt-chosen-date').textContent = `${selectedDateOnly} a las ${document.getElementById('appointment-time').value}`;
+                const timeVal = document.getElementById('appointment-time').value || '09:00';
+                document.getElementById('txt-chosen-date').textContent = `${selectedDateOnly} a las ${timeVal}`;
             }
         });
 
