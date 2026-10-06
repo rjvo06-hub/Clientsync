@@ -132,6 +132,15 @@
                     opt.textContent = `${client.name} (${client.address || 'Sin dirección'})`;
                     select.appendChild(opt);
                 });
+
+                // 🎯 AUTODETECTAR CLIENTE SI VIENE DESDE EL MAPA
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetClientId = urlParams.get('client_id');
+                if (targetClientId) {
+                    select.value = targetClientId;
+                    select.dispatchEvent(new Event('change'));
+                }
+
             } catch (err) {
                 console.error('Error al inicializar:', err);
                 alert('Hubo un error al cargar los clientes.');
