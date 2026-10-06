@@ -12,6 +12,7 @@
         .col-flex-2 { flex: 2; min-width: 200px; }
         .col-flex-1 { flex: 1; min-width: 120px; }
         input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; }
+        .import-box { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e2e8f0; text-align: center; }
     </style>
 </head>
 <body>
@@ -26,6 +27,7 @@
             Ingresa los datos del cliente. El sistema calculará sus coordenadas automáticamente.
         </p>
 
+        <!-- Formulario de registro individual -->
         <form id="client-form">
             <div style="margin-bottom: 15px;">
                 <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">Nombre del Cliente / Empresa:</label>
@@ -52,11 +54,24 @@
                 Guardar Cliente
             </button>
         </form>
+
+        <!-- Sección de importación masiva por CSV -->
+        <div class="import-box">
+            <h3 style="font-size: 1.1rem; color: #2d3748; margin-bottom: 10px;">📂 Importación Masiva de Clientes</h3>
+            <p style="color: #718096; font-size: 0.85rem; margin-bottom: 15px;">Sube tu archivo CSV (Nombre, Dirección, Código Postal). Si ya existe, rellenará sus coordenadas; si es nuevo, lo creará.</p>
+            
+            <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+            <button type="button" id="btnImportCsv" style="background: #3182ce; color: white; border: none; font-weight: bold; cursor: pointer; font-size: 0.95rem; padding: 12px; border-radius: 8px;">
+                Seleccionar CSV y Sincronizar
+            </button>
+            <div id="importStatus" style="margin-top: 10px; font-size: 0.9rem; font-weight: bold; color: #2b6cb0;"></div>
+        </div>
     </div>
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
+        // 1. Lógica para guardar un cliente de forma manual
         document.getElementById('client-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -74,34 +89,32 @@
                 const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
                 const data = await response.json();
 
+                let lat = null;
+                let lng = null;
                 if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lng = parseFloat(data[0].lon);
+                    lat = parseFloat(data[0].lat);
+                    lng = parseFloat(data[0].lon);
+                }
 
-                    const { error } = await supabase.from('clients').insert([
-                        {
-                            name: name,
-                            phone: phone,
-                            address: street,
-                            postal_code: postal,
-                            latitude: lat,
-                            longitude: lng,
-                            assigned_employee: 'General'
-                        }
-                    ]);
-
-                    if (error) {
-                        alert('Error al guardar en Supabase: ' + error.message);
-                        btn.textContent = 'Guardar Cliente';
-                        btn.disabled = false;
-                    } else {
-                        alert('¡Cliente guardado con éxito!');
-                        window.location.href = './index.html';
+                const { error } = await supabase.from('clients').insert([
+                    {
+                        name: name,
+                        phone: phone,
+                        address: street,
+                        postal_code: postal,
+                        latitude: lat,
+                        longitude: lng,
+                        assigned_employee: 'General'
                     }
-                } else {
-                    alert('No se pudo encontrar la ubicación exacta con esa dirección.');
+                ]);
+
+                if (error) {
+                    alert('Error al guardar en Supabase: ' + error.message);
                     btn.textContent = 'Guardar Cliente';
                     btn.disabled = false;
+                } else {
+                    alert('¡Cliente guardado con éxito!');
+                    window.location.href = './index.html';
                 }
             } catch (err) {
                 console.error(err);
@@ -109,6 +122,100 @@
                 btn.textContent = 'Guardar Cliente';
                 btn.disabled = false;
             }
+        });
+
+        // 2. Lógica para la importación y validación masiva mediante archivo CSV
+        document.getElementById('btnImportCsv').addEventListener('click', () => {
+            document.getElementById('csvFileInput').click();
+        });
+
+        document.getElementById('csvFileInput').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('importStatus');
+            statusEl.textContent = "Leyendo archivo CSV...";
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const text = e.target.result;
+                const lines = text.split(/\r\n|\n/);
+                
+                let total = lines.filter(l => l.trim() !== '').length;
+                let processed = 0;
+
+                for (let line of lines) {
+                    line = line.trim();
+                    if (!line) continue;
+
+                    const parts = line.split(',');
+                    if (parts.length < 3) continue;
+
+                    const clientName = parts[0].trim();
+                    const street = parts[1].trim();
+                    const postal = parts[2].trim();
+
+                    processed++;
+                    statusEl.textContent = `Procesando (${processed}/${total}): ${clientName}`;
+
+                    // Obtener coordenadas mediante OpenStreetMap (Nominatim)
+                    let lat = null;
+                    let lng = null;
+                    try {
+                        const fullAddress = `${street}, ${postal}`;
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
+                        const mapData = await res.json();
+                        if (mapData && mapData.length > 0) {
+                            lat = parseFloat(mapData[0].lat);
+                            lng = parseFloat(mapData[0].lon);
+                        }
+                    } catch (geoErr) {
+                        console.error(`Error geocodificando a ${clientName}:`, geoErr);
+                    }
+
+                    // Verificar si el cliente ya existe en Supabase buscando por nombre
+                    const { data: existingClient, error: searchError } = await supabase
+                        .from('clients')
+                        .select('*')
+                        .eq('name', clientName)
+                        .maybeSingle();
+
+                    if (existingClient) {
+                        // Si ya existe: actualiza sus coordenadas (si las tenía vacías) y la dirección
+                        await supabase
+                            .from('clients')
+                            .update({
+                                latitude: existingClient.latitude || lat,
+                                longitude: existingClient.longitude || lng,
+                                address: street,
+                                postal_code: postal
+                            })
+                            .eq('id', existingClient.id);
+                    } else {
+                        // Si es un cliente nuevo: se inserta completo
+                        await supabase
+                            .from('clients')
+                            .insert([{
+                                name: clientName,
+                                phone: '',
+                                address: street,
+                                postal_code: postal,
+                                latitude: lat,
+                                longitude: lng,
+                                assigned_employee: 'General'
+                            }]);
+                    }
+
+                    // Pausa de 1 segundo obligatoria para cumplir con las políticas de uso de la API de mapas
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                statusEl.textContent = "¡Importación y validación completada con éxito! 🎉";
+                alert("¡Todos los clientes del archivo han sido procesados y sincronizados correctamente en el mapa!");
+                window.location.href = './index.html';
+            };
+
+            reader.readAsText(file);
         });
     </script>
 </body>
