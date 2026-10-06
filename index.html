@@ -249,10 +249,12 @@
             const container = document.getElementById('modal-sectors-list');
             if (!container) return;
 
+            container.innerHTML = '<span style="font-size: 0.85rem; color: #718096; text-align: center; padding: 20px;">Cargando sectores...</span>';
+
             try {
                 const { data: clients, error } = await supabase.from('clients').select('postal_code');
                 if (error || !clients) {
-                    container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Error al cargar sectores.</span>';
+                    container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Error al cargar sectores de la base de datos.</span>';
                     return;
                 }
 
@@ -282,32 +284,4 @@
                     btn.className = `sector-modal-btn ${isPriority ? 'priority' : ''}`;
                     btn.innerHTML = `
                         <span><strong>${cityName}</strong> (${postal})</span>
-                        <span style="font-size: 0.8rem; background: ${isPriority ? '#3182ce' : '#cbd5e0'}; color: white; padding: 3px 8px; border-radius: 12px;">Ver zona →</span>
-                    `;
-
-                    btn.addEventListener('click', () => {
-                        document.getElementById('sectors-modal').style.display = 'none';
-                        const mapWrapper = document.getElementById('map-section-wrapper');
-                        if (mapWrapper) {
-                            mapWrapper.style.display = 'block';
-                            document.getElementById('map-sector-title').textContent = `📍 Sector: ${cityName} (${postal})`;
-                            mapWrapper.scrollIntoView({ behavior: 'smooth' });
-
-                            // DISPARAR EVENTO PERSONALIZADO PARA QUE EL MAPA HAGA ZOOM EN ESTE CÓDIGO POSTAL
-                            const event = new CustomEvent('sectorSelected', { detail: { postalCode: postal } });
-                            document.dispatchEvent(event);
-                        }
-                    });
-
-                    container.appendChild(eventCallback => eventCallback); // (mantiene sintaxis limpia)
-
-                    container.appendChild(btn);
-                });
-
-            } catch (err) {
-                console.error("Error cargando sectores en modal:", err);
-            }
-        }
-    </script>
-</body>
-</html>
+                        <span style="font-size: 0.8rem; background: ${isPriority ? '#3182ce' : '#cbd5e0'}; color: white; padding: 3px 8px; border-radius: 12px;">Ver zona →
