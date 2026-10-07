@@ -69,6 +69,8 @@
             <a href="./appointment-builder.html" style="background: #319795;">📅 Agendar</a>
             <a href="./admin-assignments.html" style="background: #4a5568;">🛠️ Admin</a>
             <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Empleados</a>
+            <!-- Botón exclusivo para el administrador (Oculto por defecto) -->
+            <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; background: #805ad5;">📄 PDF Tool</a>
         </div>
 
         <!-- Mapa siempre visible con todos los clientes -->
@@ -79,6 +81,19 @@
             <div id="map"></div>
         </section>
     </div>
+
+    <!-- Script de validación para mostrar el botón de admin PDF -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const acceso = localStorage.getItem('usuario_acceso');
+            if (Number(acceso) === 1) {
+                const pdfLink = document.getElementById('navAdminPdf');
+                if (pdfLink) {
+                    pdfLink.style.display = 'block';
+                }
+            }
+        });
+    </script>
 
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
