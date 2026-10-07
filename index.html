@@ -20,8 +20,8 @@
         }
         #map {
             width: 100%;
-            height: 65vh;
-            min-height: 400px;
+            height: 72vh;
+            min-height: 450px;
             border-radius: 8px;
             border: 1px solid #cbd5e0;
         }
@@ -44,80 +44,12 @@
             box-sizing: border-box;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
-        .btn-open-modal {
-            background: #2b6cb0;
-            color: white;
-            border: none;
-            padding: 14px;
-            width: 100%;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
-            transition: background 0.2s;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .btn-open-modal:active {
-            background: #1a365d;
-        }
 
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 99999;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-            box-sizing: border-box;
-        }
-        .modal-content {
+        .map-section {
             background: white;
-            width: 100%;
-            max-width: 500px;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            box-sizing: border-box;
-            max-height: 85vh;
-            overflow-y: auto;
-        }
-        .sectors-grid-modal {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .sector-modal-btn {
-            background: #edf2f7;
-            color: #2d3748;
-            border: 1px solid #cbd5e0;
-            padding: 12px 15px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 0.95rem;
-            text-align: left;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s;
-        }
-        .sector-modal-btn:hover {
-            background: #e2e8f0;
-            border-color: #a0aec0;
-        }
-        .sector-modal-btn.priority {
-            background: #ebf8ff;
-            border-color: #3182ce;
-            color: #2b6cb0;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         @media (max-width: 600px) {
@@ -139,34 +71,13 @@
             <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Empleados</a>
         </div>
 
-        <!-- Botón principal con onclick directo para garantizar respuesta táctil inmediata -->
-        <button type="button" id="btn-open-modal" class="btn-open-modal" onclick="openSectorsModal()">
-            📍 Visualizar Mapa y Seleccionar Sector
-        </button>
-
-        <!-- Sección del Mapa (Inicialmente oculto) -->
-        <section id="map-section-wrapper" class="map-section" style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h2 id="map-sector-title" style="margin: 0; font-size: 1.1rem; color: #2d3748;">Ubicación y Zonas de Trabajo</h2>
-                <button type="button" id="btn-close-map" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;" onclick="closeMapSection()">✕ Cerrar Mapa</button>
+        <!-- Mapa siempre visible con todos los clientes -->
+        <section class="map-section">
+            <div style="margin-bottom: 10px;">
+                <h2 style="margin: 0; font-size: 1.1rem; color: #2d3748;">📍 Mapa General de Clientes y Zonas</h2>
             </div>
             <div id="map"></div>
         </section>
-    </div>
-
-    <!-- VENTANA EMERGENTE (MODAL) DE SECTORES -->
-    <div id="sectors-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 10px;">
-                <h3 style="margin: 0; font-size: 1.1rem; color: #2d3748;">Selecciona un Sector</h3>
-                <button type="button" id="modal-close-btn" style="background: #e2e8f0; border: none; font-size: 1.1rem; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold;" onclick="closeSectorsModal()">✕</button>
-            </div>
-            <p style="font-size: 0.85rem; color: #718096; margin-bottom: 15px;">Tus zonas principales (Ottobrunn y alrededores) aparecen arriba:</p>
-            
-            <div id="modal-sectors-list" class="sectors-grid-modal">
-                <span style="font-size: 0.85rem; color: #718096; text-align: center; padding: 20px;">Cargando sectores...</span>
-            </div>
-        </div>
     </div>
 
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
@@ -174,129 +85,5 @@
     <!-- Scripts de la app -->
     <script type="module" src="./js/app.js"></script>
     <script type="module" src="./js/map.js"></script>
-
-    <script type="module">
-        import { supabase } from './js/supabaseClient.js';
-
-        const postalCityMap = {
-            '85521': 'Ottobrunn',
-            '82008': 'Unterhaching',
-            '85649': 'Brunnthal',
-            '85635': 'Höhenkirchen-Siegertsbrunn',
-            '82031': 'Grünwald',
-            '82054': 'Sauerlach',
-            '83626': 'Valley',
-            '85653': 'Aying',
-            '81737': 'Múnich (Neuperlach)',
-            '81543': 'Múnich (Au-Haidhausen)',
-            '81549': 'Múnich (Giesing)',
-            '81827': 'Múnich (Trudering)',
-            '81671': 'Múnich (Berg am Laim)',
-            '81675': 'Múnich (Bogenhausen)',
-            '80331': 'Múnich (Centro)',
-            '80634': 'Múnich (Nymphenburg)',
-            '80638': 'Múnich (Neuhausen)',
-            '81377': 'Múnich (Hadern)'
-        };
-
-        const priorityPostals = ['85521', '82008', '85649', '85635', '82031', '82054'];
-
-        window.openSectorsModal = async function() {
-            const modalOverlay = document.getElementById('sectors-modal');
-            if (modalOverlay) {
-                modalOverlay.style.display = 'flex';
-                await loadModalSectors();
-            }
-        };
-
-        window.closeSectorsModal = function() {
-            const modalOverlay = document.getElementById('sectors-modal');
-            if (modalOverlay) {
-                modalOverlay.style.display = 'none';
-            }
-        };
-
-        window.closeMapSection = function() {
-            const mapWrapper = document.getElementById('map-section-wrapper');
-            if (mapWrapper) {
-                mapWrapper.style.display = 'none';
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const modalOverlay = document.getElementById('sectors-modal');
-            if (modalOverlay) {
-                modalOverlay.addEventListener('click', (e) => {
-                    if (e.target === modalOverlay) {
-                        modalOverlay.style.display = 'none';
-                    }
-                });
-            }
-        });
-
-        async function loadModalSectors() {
-            const container = document.getElementById('modal-sectors-list');
-            if (!container) return;
-
-            container.innerHTML = '<span style="font-size: 0.85rem; color: #718096; text-align: center; padding: 20px;">Cargando sectores...</span>';
-
-            try {
-                const { data: clients, error } = await supabase.from('clients').select('postal_code');
-                if (error || !clients) {
-                    container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Error al cargar sectores de la base de datos.</span>';
-                    return;
-                }
-
-                const postals = [...new Set(clients.map(c => c.postal_code ? c.postal_code.trim() : null))].filter(Boolean);
-
-                if (postals.length === 0) {
-                    container.innerHTML = '<span style="font-size: 0.85rem; color: #718096;">No hay códigos postales registrados.</span>';
-                    return;
-                }
-
-                postals.sort((a, b) => {
-                    const isAPriori = priorityPostals.includes(a);
-                    const isBPriori = priorityPostals.includes(b);
-                    if (isAPriori && !isBPriori) return -1;
-                    if (!isAPriori && isBPriori) return 1;
-                    return a.localeCompare(b);
-                });
-
-                container.innerHTML = '';
-
-                postals.forEach(postal => {
-                    const cityName = postalCityMap[postal] || 'Zona / Ciudad';
-                    const isPriority = priorityPostals.includes(postal);
-
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = `sector-modal-btn ${isPriority ? 'priority' : ''}`;
-                    btn.innerHTML = `
-                        <span><strong>${cityName}</strong> (${postal})</span>
-                        <span style="font-size: 0.8rem; background: ${isPriority ? '#3182ce' : '#cbd5e0'}; color: white; padding: 3px 8px; border-radius: 12px;">Ver zona →</span>
-                    `;
-
-                    btn.addEventListener('click', () => {
-                        closeSectorsModal();
-                        const mapWrapper = document.getElementById('map-section-wrapper');
-                        if (mapWrapper) {
-                            mapWrapper.style.display = 'block';
-                            document.getElementById('map-sector-title').textContent = `📍 Sector: ${cityName} (${postal})`;
-                            mapWrapper.scrollIntoView({ behavior: 'smooth' });
-
-                            const event = new CustomEvent('sectorSelected', { detail: { postalCode: postal } });
-                            document.dispatchEvent(event);
-                        }
-                    });
-
-                    container.appendChild(btn);
-                });
-
-            } catch (err) {
-                console.error("Excepción cargando sectores:", err);
-                container.innerHTML = '<span style="color: #e53e3e; font-size: 0.85rem;">Error de conexión con Supabase.</span>';
-            }
-        }
-    </script>
 </body>
 </html>
