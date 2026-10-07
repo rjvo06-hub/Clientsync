@@ -45,7 +45,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        /* Botón principal para abrir el mapa/sectores con respuesta táctil inmediata */
         .btn-open-modal {
             background: #2b6cb0;
             color: white;
@@ -65,7 +64,6 @@
             background: #1a365d;
         }
 
-        /* Estilos de la Ventana Emergente (Modal) - Forzamos display flex cuando esté activa */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -141,14 +139,6 @@
             <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Empleados</a>
         </div>
 
-        <!-- Filtro superior -->
-        <div class="filter-section" style="margin-bottom: 15px;">
-            <label for="filter-employee" style="font-size: 0.9rem; font-weight: bold; color: #4a5568;">Filtrar por técnico:</label><br>
-            <select id="filter-employee" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #cbd5e0; background: white;">
-                <option value="all">Todo el equipo</option>
-            </select>
-        </div>
-
         <!-- Botón principal con onclick directo para garantizar respuesta táctil inmediata -->
         <button type="button" id="btn-open-modal" class="btn-open-modal" onclick="openSectorsModal()">
             📍 Visualizar Mapa y Seleccionar Sector
@@ -211,7 +201,6 @@
 
         const priorityPostals = ['85521', '82008', '85649', '85635', '82031', '82054'];
 
-        // Funciones globales accesibles por el HTML directamente
         window.openSectorsModal = async function() {
             const modalOverlay = document.getElementById('sectors-modal');
             if (modalOverlay) {
@@ -234,7 +223,6 @@
             }
         };
 
-        // Cerrar modal al hacer clic fuera de la caja blanca
         document.addEventListener('DOMContentLoaded', () => {
             const modalOverlay = document.getElementById('sectors-modal');
             if (modalOverlay) {
@@ -296,7 +284,6 @@
                             document.getElementById('map-sector-title').textContent = `📍 Sector: ${cityName} (${postal})`;
                             mapWrapper.scrollIntoView({ behavior: 'smooth' });
 
-                            // Disparar evento para que el mapa haga zoom en este código postal
                             const event = new CustomEvent('sectorSelected', { detail: { postalCode: postal } });
                             document.dispatchEvent(event);
                         }
