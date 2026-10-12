@@ -2,81 +2,190 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClientSync | Zonas y Citas</title>
     <link rel="stylesheet" href="./css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f7fafc;
-            margin: 0;
-            padding: 10px;
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+            --radius-lg: 20px;
+            --radius-md: 12px;
         }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            -webkit-font-smoothing: antialiased;
+        }
+
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
             box-sizing: border-box;
         }
-        #map {
-            width: 100%;
-            height: 72vh;
-            min-height: 450px;
-            border-radius: 8px;
-            border: 1px solid #cbd5e0;
-        }
-        .nav-buttons {
+
+        /* Header Moderno */
+        .app-header {
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 8px;
         }
+
+        .app-header h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        /* Barra de navegación moderna tipo píldora / grid táctil */
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+        }
+
         .nav-buttons a {
-            flex: 1;
-            text-align: center;
-            min-width: 100px;
-            padding: 12px 6px;
-            border-radius: 8px;
-            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 12px 8px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
             text-decoration: none;
             color: white;
             font-size: 0.8rem;
             box-sizing: border-box;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
+        .nav-buttons a:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            filter: brightness(1.05);
+        }
+
+        .nav-buttons a:active {
+            transform: translateY(0);
+        }
+
+        /* Colores estilizados para los accesos */
+        .nav-zones { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .nav-client { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .nav-appointment { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+        .nav-admin { background: linear-gradient(135deg, #64748b, #475569); }
+        .nav-employee { background: linear-gradient(135deg, #f97316, #c2410c); }
+        .nav-pdf { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+
+        /* Sección del Mapa */
         .map-section {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
         }
 
-        @media (max-width: 600px) {
-            h1 { font-size: 1.3rem; }
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .map-header h2 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #map {
+            width: 100%;
+            height: 68vh;
+            min-height: 420px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        /* Ajustes específicos para móviles */
+        @media (max-width: 640px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                gap: 12px;
+            }
+            .nav-buttons {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+            .nav-buttons a {
+                padding: 10px 4px;
+                font-size: 0.75rem;
+            }
+            #map {
+                height: 60vh;
+                min-height: 360px;
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1 style="margin-bottom: 15px; color: #2d3748;">ClientSync | WerkSolutions</h1>
+        <!-- Header de la App -->
+        <header class="app-header">
+            <h1>ClientSync</h1>
+            <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); background: #e2e8f0; padding: 4px 10px; border-radius: 20px;">WerkSolutions</span>
+        </header>
 
-        <!-- Barra de navegación con todas las opciones integradas -->
-        <div class="nav-buttons">
-            <a href="./zone-builder.html" style="background: #2b6cb0;">🗺 Zonas</a>
-            <a href="./client-builder.html" style="background: #d69e2e;">🏢 Nuevo Cliente</a>
-            <a href="./appointment-builder.html" style="background: #319795;">📅 Agendar</a>
-            <a href="./admin-assignments.html" style="background: #4a5568;">🛠️ Admin</a>
-            <a href="./employee-schedule.html" style="background: #dd6b20;">👷‍♂️ Empleados</a>
+        <!-- Barra de navegación mejorada -->
+        <nav class="nav-buttons">
+            <a href="./zone-builder.html" class="nav-zones">🗺 Zonas</a>
+            <a href="./client-builder.html" class="nav-client">🏢 Cliente</a>
+            <a href="./appointment-builder.html" class="nav-appointment">📅 Agendar</a>
+            <a href="./admin-assignments.html" class="nav-admin">🛠️ Admin</a>
+            <a href="./employee-schedule.html" class="nav-employee">👷‍♂️ Empleados</a>
             <!-- Botón exclusivo para el administrador (Oculto por defecto) -->
-            <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; background: #805ad5;">📄 PDF Tool</a>
-        </div>
+            <a href="./admin-pdf.html" id="navAdminPdf" class="nav-pdf" style="display: none;">📄 PDF Tool</a>
+        </nav>
 
-        <!-- Mapa siempre visible con todos los clientes -->
+        <!-- Mapa general de clientes y zonas -->
         <section class="map-section">
-            <div style="margin-bottom: 10px;">
-                <h2 style="margin: 0; font-size: 1.1rem; color: #2d3748;">📍 Mapa General de Clientes y Zonas</h2>
+            <div class="map-header">
+                <h2>📍 Mapa General</h2>
             </div>
             <div id="map"></div>
         </section>
@@ -89,7 +198,7 @@
             if (Number(acceso) === 1) {
                 const pdfLink = document.getElementById('navAdminPdf');
                 if (pdfLink) {
-                    pdfLink.style.display = 'block';
+                    pdfLink.style.display = 'flex'; // Usar flex para mantener alineación centrada
                 }
             }
         });
