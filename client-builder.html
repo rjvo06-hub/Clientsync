@@ -84,6 +84,7 @@
 
         .form-group {
             margin-bottom: 16px;
+            position: relative;
         }
 
         label {
@@ -102,7 +103,7 @@
         }
 
         .col-flex-2 { flex: 2; min-width: 180px; }
-        .col-flex-1 { flex: 1; min-width: 100px; }
+        .col-flex-1 { flex: 1; min-width: 120px; }
 
         input {
             font-family: inherit;
@@ -122,6 +123,36 @@
             border-color: var(--primary);
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Lista desplegable de sugerencias para el buscador de código postal / pueblo */
+        .suggestions-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            max-height: 180px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+            margin-top: 4px;
+        }
+
+        .suggestion-item {
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            color: var(--text-main);
+        }
+
+        .suggestion-item:hover {
+            background: #f8fafc;
+            color: var(--primary);
         }
 
         button.btn-primary {
@@ -205,10 +236,10 @@
         </div>
 
         <p class="subtitle">
-            Ingresa los datos del cliente. El sistema calculará sus coordenadas automáticamente.
+            Ingresa los datos. Escribe el pueblo o código postal para consultarlo automáticamente.
         </p>
 
-        <!-- Formulario de registro individual -->
+        <!-- Formulario de registro individual con nuevo orden -->
         <form id="client-form">
             <div class="form-group">
                 <label>Nombre del Cliente / Empresa:</label>
@@ -216,22 +247,24 @@
             </div>
 
             <div class="form-group">
-                <label>Teléfono de Contacto:</label>
-                <input type="tel" id="client-phone" placeholder="Ej. +49 89 1234567">
+                <label>Dirección (Calle y Número):</label>
+                <input type="text" id="client-street" placeholder="Ej. Haidgraben 103" required>
             </div>
 
             <div class="row-group">
-                <div class="col-flex-2">
-                    <label>Calle y Número:</label>
-                    <input type="text" id="client-street" placeholder="Ej. Haidgraben 103" required>
+                <div class="form-group col-flex-1" style="margin-bottom: 0; position: relative;">
+                    <label>Código Postal / Pueblo:</label>
+                    <input type="text" id="client-postal" placeholder="Ej. Taufkirchen o 82041" required autocomplete="off">
+                    <!-- Contenedor para sugerencias de pueblos/CP en Baviera -->
+                    <div id="postal-suggestions" class="suggestions-list"></div>
                 </div>
-                <div class="col-flex-1">
-                    <label>Código Postal:</label>
-                    <input type="text" id="client-postal" placeholder="Ej. 85521" required>
+                <div class="form-group col-flex-2" style="margin-bottom: 0;">
+                    <label>Teléfono de Contacto:</label>
+                    <input type="tel" id="client-phone" placeholder="Ej. +49 89 1234567">
                 </div>
             </div>
 
-            <button type="submit" id="save-btn" class="btn-primary">
+            <button type="submit" id="save-btn" class="btn-primary" style="margin-top: 10px;">
                 Guardar Cliente
             </button>
         </form>
@@ -252,14 +285,71 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
+        // Lógica de consulta en tiempo real para el Código Postal / Pueblo (enfocado en Baviera/Múnich)
+        const postalInput = document.getElementById('client-postal');
+        const suggestionsBox = document.getElementById('postal-suggestions');
+        let searchTimeout = null;
+
+        postalInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            clearTimeout(searchTimeout);
+
+            if (query.length < 2) {
+                suggestionsBox.style.display = 'none';
+                return;
+            }
+
+            // Esperar 400ms tras dejar de escribir para no saturar la API
+            searchTimeout = setTimeout(async () => {
+                try {
+                    // Consultamos acotando a Baviera / Múnich y alrededores para mayor precisión
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Bavaria, Germany")}&addressdetails=1&limit=5`);
+                    const data = await res.json();
+
+                    suggestionsBox.innerHTML = '';
+                    if (data && data.length > 0) {
+                        data.forEach(item => {
+                            const addr = item.address || {};
+                            const postcode = addr.postcode || '';
+                            const city = addr.city || addr.town || addr.village || addr.municipality || item.display_name.split(',')[0];
+                            
+                            if (postcode) {
+                                const div = document.createElement('div');
+                                div.className = 'suggestion-item';
+                                div.textContent = `${postcode} - ${city}`;
+                                div.addEventListener('click', () => {
+                                    postalInput.value = postcode; // Rellena con el código postal exacto
+                                    suggestionsBox.style.display = 'none';
+                                });
+                                suggestionsBox.appendChild(div);
+                            }
+                        });
+                        suggestionsBox.style.display = suggestionsBox.children.length > 0 ? 'block' : 'none';
+                    } else {
+                        suggestionsBox.style.display = 'none';
+                    }
+                } catch (err) {
+                    console.error("Error consultando localidad:", err);
+                    suggestionsBox.style.display = 'none';
+                }
+            }, 400);
+        });
+
+        // Ocultar sugerencias si se hace clic fuera
+        document.addEventListener('click', (e) => {
+            if (!postalInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                suggestionsBox.style.display = 'none';
+            }
+        });
+
         // 1. Lógica para guardar un cliente de forma manual
         document.getElementById('client-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const name = document.getElementById('client-name').value.trim();
-            const phone = document.getElementById('client-phone').value.trim();
             const street = document.getElementById('client-street').value.trim();
             const postal = document.getElementById('client-postal').value.trim();
+            const phone = document.getElementById('client-phone').value.trim();
 
             const fullAddress = `${street}, ${postal}`;
             const btn = document.getElementById('save-btn');
@@ -339,7 +429,6 @@
                     processed++;
                     statusEl.textContent = `Procesando (${processed}/${total}): ${clientName}`;
 
-                    // Obtener coordenadas mediante OpenStreetMap (Nominatim)
                     let lat = null;
                     let lng = null;
                     try {
@@ -354,7 +443,6 @@
                         console.error(`Error geocodificando a ${clientName}:`, geoErr);
                     }
 
-                    // Verificar si el cliente ya existe en Supabase buscando por nombre
                     const { data: existingClient, error: searchError } = await supabase
                         .from('clients')
                         .select('*')
@@ -362,7 +450,6 @@
                         .maybeSingle();
 
                     if (existingClient) {
-                        // Si ya existe: actualiza sus coordenadas (si las tenía vacías) y la dirección
                         await supabase
                             .from('clients')
                             .update({
@@ -373,7 +460,6 @@
                             })
                             .eq('id', existingClient.id);
                     } else {
-                        // Si es un cliente nuevo: se inserta completo
                         await supabase
                             .from('clients')
                             .insert([{
@@ -387,7 +473,6 @@
                             }]);
                     }
 
-                    // Pausa de 1 segundo obligatoria para cumplir con las políticas de uso de la API de mapas
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
 
