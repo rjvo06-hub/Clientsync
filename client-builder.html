@@ -212,7 +212,7 @@
             <div class="row-group">
                 <div class="form-group col-flex-1" style="margin-bottom: 0; position: relative;">
                     <label>Código Postal / Pueblo:</label>
-                    <input type="text" id="client-postal" placeholder="Ej. Taufkirchen o 82041" required autocomplete="off">
+                    <input type="text" id="client-postal" placeholder="Ej. Ottobrunn o 85521" required autocomplete="off">
                     <div id="postal-suggestions" class="suggestions-list"></div>
                 </div>
                 <div class="form-group col-flex-2" style="margin-bottom: 0;">
@@ -251,27 +251,57 @@
 
             searchTimeout = setTimeout(async () => {
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Bavaria, Germany")}&addressdetails=1&limit=5`);
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Bavaria, Germany")}&addressdetails=1&limit=10`);
                     const data = await res.json();
 
                     suggestionsBox.innerHTML = '';
                     if (data && data.length > 0) {
+                        const parsedResults = [];
+                        
                         data.forEach(item => {
                             const addr = item.address || {};
                             const postcode = addr.postcode || '';
                             const city = addr.city || addr.town || addr.village || addr.municipality || item.display_name.split(',')[0];
                             
                             if (postcode) {
-                                const div = document.createElement('div');
-                                div.className = 'suggestion-item';
-                                div.textContent = `${postcode} - ${city}`;
-                                div.addEventListener('click', () => {
-                                    postalInput.value = postcode;
-                                    suggestionsBox.style.display = 'none';
-                                });
-                                suggestionsBox.appendChild(div);
+                                parsedResults.push({ postcode, city });
                             }
                         });
+
+                        // Eliminar duplicados
+                        const uniqueResults = Array.from(new Set(parsedResults.map(a => `${a.postcode}-${a.city} `)))
+                            .map(str => {
+                                const parts = str.trim().split('-');
+                                return { postcode: parts[0], city: parts.slice(1).join('-').trim() };
+                            });
+
+                        const queryLower = query.toLowerCase();
+
+                        // 1. Prioridad: Los que COMIENZAN con el texto escrito (en pueblo o código postal)
+                        const startsWithMatches = uniqueResults.filter(r => 
+                            r.city.toLowerCase().startsWith(queryLower) || r.postcode.toLowerCase().startsWith(queryLower)
+                        );
+
+                        // 2. Secundarios: Los que CONTIENEN el texto en otra parte
+                        const containsMatches = uniqueResults.filter(r => {
+                            const matches = r.city.toLowerCase().includes(queryLower) || r.postcode.toLowerCase().includes(queryLower);
+                            const alreadyAdded = startsWithMatches.some(s => s.postcode === r.postcode && s.city === r.city);
+                            return matches && !alreadyAdded;
+                        });
+
+                        const finalResults = [...startsWithMatches, ...containsMatches];
+
+                        finalResults.forEach(resObj => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            div.textContent = `${resObj.postcode} - ${resObj.city}`;
+                            div.addEventListener('click', () => {
+                                postalInput.value = resObj.postcode;
+                                suggestionsBox.style.display = 'none';
+                            });
+                            suggestionsBox.appendChild(div);
+                        });
+
                         suggestionsBox.style.display = suggestionsBox.children.length > 0 ? 'block' : 'none';
                     } else {
                         suggestionsBox.style.display = 'none';
