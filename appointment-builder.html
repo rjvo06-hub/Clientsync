@@ -425,7 +425,7 @@
             const nearbyClients = allClients.filter(c => {
                 if (!c.appointment_date || c.id === client.id || !c.latitude || !c.longitude) return false;
                 const distance = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(c.latitude), Number(c.longitude));
-                return distance <= 5.0;
+                return distance <= 3.0;
             });
 
             suggestionsList.innerHTML = '';
