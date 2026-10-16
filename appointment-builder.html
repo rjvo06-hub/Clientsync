@@ -108,7 +108,7 @@
         </div>
 
         <p style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
-            Busca un cliente por nombre o calle, elige la fecha sugerida o selecciónala en el calendario, la hora, duración y el trabajo a realizar.
+            Busca un cliente por nombre o calle, revisa las citas del día con sus distancias, elige la fecha, hora, duración y el trabajo a realizar.
         </p>
 
         <form id="appointment-form">
@@ -133,7 +133,7 @@
                 <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora, Duración y Servicio:</label>
                 
                 <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
-                    <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Fechas sugeridas en la zona:</div>
+                    <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Citas agendadas y distancias en las fechas activas:</div>
                     <div id="suggestions-list"></div>
                 </div>
 
@@ -186,6 +186,7 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
+        let activeClient = null;
         let allClients = [];
         let allServices = [];
         let selectedDateOnly = '';
@@ -220,7 +221,7 @@
         }
 
         function suggestNextTimeForDate(dateStr) {
-            const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+            const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr) && c.id !== activeClient?.id);
             if (clientsOnDate.length === 0) {
                 if (dateStr === todayStrSystem) {
                     const now = new Date();
@@ -261,12 +262,10 @@
 
         async function initForm() {
             try {
-                // Cargar clientes
                 const { data: clientData, error: clientError } = await supabase.from('clients').select('*').order('name', { ascending: true });
                 if (clientError) throw clientError;
                 allClients = clientData || [];
 
-                // Cargar catálogo de servicios
                 const { data: serviceData, error: serviceError } = await supabase.from('services').select('*').order('name', { ascending: true });
                 if (!serviceError && serviceData) {
                     allServices = serviceData;
@@ -388,10 +387,10 @@
         });
 
         function selectClient(client) {
+            activeClient = client;
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
 
-            // Pre-llenar el servicio si ya lo tenía guardado previamente
             if (client.service_requested) {
                 serviceSearchInput.value = client.service_requested;
             }
@@ -422,29 +421,31 @@
             detailsCard.style.display = 'block';
             dateSection.style.display = 'block';
 
-            const nearbyClients = allClients.filter(c => {
-                if (!c.appointment_date || c.id === client.id || !c.latitude || !c.longitude) return false;
-                const distance = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(c.latitude), Number(c.longitude));
-                return distance <= 1.5;
-            });
-
+            // Mostrar TODAS las citas programadas en fechas futuras (sin restricción de 5km, calculando distancia)
+            const scheduledClients = allClients.filter(c => c.appointment_date && c.id !== client.id && c.latitude && c.longitude);
             suggestionsList.innerHTML = '';
 
-            if (nearbyClients.length > 0) {
-                const activeDates = [...new Set(nearbyClients.map(c => c.appointment_date.split('T')[0]))].filter(d => d >= todayStrSystem);
+            if (scheduledClients.length > 0) {
+                const activeDates = [...new Set(scheduledClients.map(c => c.appointment_date.split('T')[0]))].filter(d => d >= todayStrSystem);
+                activeDates.sort();
 
                 if (activeDates.length > 0) {
                     activeDates.forEach(dateStr => {
-                        const clientsOnThisDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+                        const clientsOnThisDate = scheduledClients.filter(c => c.appointment_date.startsWith(dateStr));
                         clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
 
                         const count = clientsOnThisDate.length;
-                        let badgeText = `${count} cita${count > 1 ? 's' : ''} en la zona`;
+                        let badgeText = `${count} cita${count > 1 ? 's' : ''} este día`;
 
                         let clientsDetailsHtml = '';
                         clientsOnThisDate.forEach(dc => {
                             const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                            clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h</div>`;
+                            
+                            // Calcular distancia entre el cliente seleccionado y el cliente ya agendado en esa fecha
+                            const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(dc.latitude), Number(dc.longitude));
+                            const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
+
+                            clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
                         });
 
                         const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
@@ -482,11 +483,11 @@
                     });
                     suggestionBox.style.display = 'block';
                 } else {
-                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas futuras cercanas en esta zona. Selecciona una fecha libre abajo.</p>`;
+                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas agendadas en fechas futuras. Selecciona una fecha libre abajo.</p>`;
                     suggestionBox.style.display = 'block';
                 }
             } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas cercanas en un radio de 5km. Selecciona la fecha en el calendario.</p>`;
+                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas registradas en el sistema aún. Selecciona la fecha en el calendario.</p>`;
                 suggestionBox.style.display = 'block';
             }
         }
@@ -619,7 +620,6 @@
             btn.textContent = 'Agendando...';
             btn.disabled = true;
 
-            // Si escribió un servicio nuevo que no está en el catálogo, lo guardamos automáticamente en la tabla services
             if (serviceVal) {
                 const exists = allServices.some(s => s.name.toLowerCase() === serviceVal.toLowerCase());
                 if (!exists) {
