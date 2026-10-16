@@ -194,7 +194,7 @@
         </div>
 
         <p class="subtitle">
-            Ingresa los datos. Escribe el pueblo o código postal de cualquier ciudad en Alemania.
+            Ingresa los datos. Escribe el nombre del pueblo o código postal para seleccionarlo automáticamente.
         </p>
 
         <!-- Formulario de registro individual -->
@@ -212,7 +212,7 @@
             <div class="row-group">
                 <div class="form-group col-flex-1" style="margin-bottom: 0; position: relative;">
                     <label>Código Postal / Pueblo:</label>
-                    <input type="text" id="client-postal" placeholder="Ej. Ulm o 89073" required autocomplete="off">
+                    <input type="text" id="client-postal" placeholder="Ej. Unterhaching o 82041" required autocomplete="off">
                     <div id="postal-suggestions" class="suggestions-list"></div>
                 </div>
                 <div class="form-group col-flex-2" style="margin-bottom: 0;">
@@ -234,7 +234,7 @@
     </div>
 
     <script type="module">
-        import { supabase } from './js/supabaseClient.js';
+        import { supabase } from './js/supabaseClient.equation'; // Mantén tu importación original de supabaseClient.js
 
         const postalInput = document.getElementById('client-postal');
         const suggestionsBox = document.getElementById('postal-suggestions');
@@ -251,9 +251,15 @@
 
             searchTimeout = setTimeout(async () => {
                 try {
-                    // Búsqueda abierta en TODO Alemania (countrycodes=de) consultando ciudades, pueblos y códigos postales
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=15&countrycodes=de`);
-                    const data = await res.json();
+                    // Consulta optimizada para buscar explícitamente ciudades/pueblos en Alemania con el parámetro city=<query> y q=<query>
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&city=${encodeURIComponent(query)}&countrycodes=de&addressdetails=1&limit=10`);
+                    let data = await res.json();
+
+                    // Si la búsqueda estricta por ciudad no arroja suficientes resultados, hacemos una búsqueda general en paralelo
+                    if (!data || data.length === 0) {
+                        const resGeneral = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=de&addressdetails=1&limit=10`);
+                        data = await resGeneral.json();
+                    }
 
                     suggestionsBox.innerHTML = '';
                     if (data && data.length > 0) {
@@ -281,12 +287,12 @@
 
                         const queryLower = query.toLowerCase();
 
-                        // 1. PRIORIDAD ABSOLUTA: Los que COMIENZAN exactamente con el texto escrito (en pueblo o código postal)
+                        // 1. PRIORIDAD ABSOLUTA: Los pueblos o códigos postales que COMIENZAN exactamente con lo que escribiste
                         const startsWithMatches = uniqueResults.filter(r => 
                             r.city.toLowerCase().startsWith(queryLower) || r.postcode.toLowerCase().startsWith(queryLower)
                         );
 
-                        // 2. SECUNDARIOS: Los que CONTIENEN el texto en otra parte (ej. Ulm en el medio)
+                        // 2. SECUNDARIOS: Los que CONTIENEN el texto en otra parte
                         const containsMatches = uniqueResults.filter(r => {
                             const matches = r.city.toLowerCase().includes(queryLower) || r.postcode.toLowerCase().includes(queryLower);
                             const alreadyAdded = startsWithMatches.some(s => s.postcode === r.postcode && s.city.toLowerCase() === r.city.toLowerCase());
@@ -301,7 +307,7 @@
                             div.className = 'suggestion-item';
                             div.textContent = `${resObj.postcode} - ${resObj.city}`;
                             div.addEventListener('click', () => {
-                                postalInput.value = resObj.postcode;
+                                postalInput.value = resObj.postcode; // Rellena el input con el código postal seleccionado
                                 suggestionsBox.style.display = 'none';
                             });
                             suggestionsBox.appendChild(div);
@@ -348,7 +354,6 @@
             const phone = document.getElementById('client-phone').value.trim();
             const notes = document.getElementById('client-notes').value.trim();
 
-            // Búsqueda en todo el territorio alemán para la validación final al guardar
             const fullAddress = `${street}, ${postal}, Germany`;
             const btn = document.getElementById('save-btn');
             btn.textContent = 'Verificando precisión en el mapa...';
