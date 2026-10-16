@@ -12,7 +12,7 @@
         .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
         
-        .inline-row-three { display: flex; gap: 10px; flex-wrap: wrap; }
+        .inline-row-three { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
         .inline-col-three { flex: 1; min-width: 170px; }
         
         .suggestion-item-btn {
@@ -41,7 +41,7 @@
             position: relative;
             margin-bottom: 15px;
         }
-        .client-results-dropdown {
+        .client-results-dropdown, .service-results-dropdown {
             position: absolute;
             top: 100%;
             left: 0;
@@ -49,19 +49,19 @@
             background: white;
             border: 1px solid #cbd5e0;
             border-radius: 0 0 8px 8px;
-            max-height: 220px;
+            max-height: 200px;
             overflow-y: auto;
             z-index: 100;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             display: none;
         }
-        .client-result-item {
+        .client-result-item, .service-result-item {
             padding: 10px 12px;
             cursor: pointer;
             border-bottom: 1px solid #edf2f7;
             font-size: 0.9rem;
         }
-        .client-result-item:hover {
+        .client-result-item:hover, .service-result-item:hover {
             background: #ebf8ff;
             color: #2b6cb0;
         }
@@ -108,7 +108,7 @@
         </div>
 
         <p style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
-            Busca un cliente por nombre o calle, elige la fecha sugerida o selecciónala en el calendario, la hora y la duración.
+            Busca un cliente por nombre o calle, elige la fecha sugerida o selecciónala en el calendario, la hora, duración y el trabajo a realizar.
         </p>
 
         <form id="appointment-form">
@@ -130,7 +130,7 @@
             </div>
 
             <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: none;">
-                <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora y Duración:</label>
+                <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora, Duración y Servicio:</label>
                 
                 <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
                     <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Fechas sugeridas en la zona:</div>
@@ -150,6 +150,13 @@
                         <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Horas est. (Opc):</label>
                         <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
                     </div>
+                </div>
+
+                <!-- Nuevo campo inteligente para el trabajo / servicio solicitado -->
+                <div class="client-search-container" style="margin-top: 12px; margin-bottom: 0;">
+                    <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Trabajo a realizar / Solicitud del cliente:</label>
+                    <input type="text" id="service-search-input" placeholder="Ej. Corte de árbol, Poda, Mantenimiento..." autocomplete="off">
+                    <div id="service-results-dropdown" class="service-results-dropdown"></div>
                 </div>
             </div>
 
@@ -180,6 +187,7 @@
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
+        let allServices = [];
         let selectedDateOnly = '';
         let interactiveMap = null;
         let mapMarkers = [];
@@ -253,10 +261,16 @@
 
         async function initForm() {
             try {
-                const { data, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
-                if (error) throw error;
+                // Cargar clientes
+                const { data: clientData, error: clientError } = await supabase.from('clients').select('*').order('name', { ascending: true });
+                if (clientError) throw clientError;
+                allClients = clientData || [];
 
-                allClients = data || [];
+                // Cargar catálogo de servicios
+                const { data: serviceData, error: serviceError } = await supabase.from('services').select('*').order('name', { ascending: true });
+                if (!serviceError && serviceData) {
+                    allServices = serviceData;
+                }
 
                 const urlParams = new URLSearchParams(window.location.search);
                 const targetClientId = urlParams.get('client_id');
@@ -269,11 +283,11 @@
 
             } catch (err) {
                 console.error('Error al inicializar:', err);
-                alert('Hubo un error al cargar los clientes.');
+                alert('Hubo un error al cargar la información.');
             }
         }
 
-        // Buscador Inteligente con Prioridad
+        // Buscador Inteligente de Clientes con Prioridad
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
@@ -329,9 +343,58 @@
             }
         });
 
+        // Buscador Inteligente de Servicios / Trabajos
+        const serviceSearchInput = document.getElementById('service-search-input');
+        const serviceDropdown = document.getElementById('service-results-dropdown');
+
+        serviceSearchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (query.length === 0) {
+                serviceDropdown.style.display = 'none';
+                return;
+            }
+
+            const startsWithMatches = allServices.filter(s => (s.name || '').toLowerCase().startsWith(query));
+            const containsMatches = allServices.filter(s => {
+                const name = (s.name || '').toLowerCase();
+                return name.includes(query) && !startsWithMatches.includes(s);
+            });
+
+            const filtered = [...startsWithMatches, ...containsMatches];
+
+            serviceDropdown.innerHTML = '';
+            if (filtered.length > 0) {
+                filtered.forEach(srv => {
+                    const item = document.createElement('div');
+                    item.className = 'service-result-item';
+                    item.textContent = srv.name;
+                    item.addEventListener('click', () => {
+                        serviceSearchInput.value = srv.name;
+                        serviceDropdown.style.display = 'none';
+                    });
+                    serviceDropdown.appendChild(item);
+                });
+                serviceDropdown.style.display = 'block';
+            } else {
+                serviceDropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">Se guardará como un nuevo servicio</div>`;
+                serviceDropdown.style.display = 'block';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!serviceSearchInput.contains(e.target) && !serviceDropdown.contains(e.target)) {
+                serviceDropdown.style.display = 'none';
+            }
+        });
+
         function selectClient(client) {
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
+
+            // Pre-llenar el servicio si ya lo tenía guardado previamente
+            if (client.service_requested) {
+                serviceSearchInput.value = client.service_requested;
+            }
 
             const detailsCard = document.getElementById('client-details');
             const dateSection = document.getElementById('date-section');
@@ -362,7 +425,7 @@
             const nearbyClients = allClients.filter(c => {
                 if (!c.appointment_date || c.id === client.id || !c.latitude || !c.longitude) return false;
                 const distance = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(c.latitude), Number(c.longitude));
-                return distance <= 1.0;
+                return distance <= 5.0;
             });
 
             suggestionsList.innerHTML = '';
@@ -376,7 +439,7 @@
                         clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
 
                         const count = clientsOnThisDate.length;
-                        let badgeText = `${count} cita${count > 1 ? 's' : ''}`;
+                        let badgeText = `${count} cita${count > 1 ? 's' : ''} en la zona`;
 
                         let clientsDetailsHtml = '';
                         clientsOnThisDate.forEach(dc => {
@@ -419,11 +482,11 @@
                     });
                     suggestionBox.style.display = 'block';
                 } else {
-                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas futuras cercanas. Selecciona una fecha libre abajo.</p>`;
+                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas futuras cercanas en esta zona. Selecciona una fecha libre abajo.</p>`;
                     suggestionBox.style.display = 'block';
                 }
             } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas cercanas. Selecciona la fecha en el calendario.</p>`;
+                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas cercanas en un radio de 5km. Selecciona la fecha en el calendario.</p>`;
                 suggestionBox.style.display = 'block';
             }
         }
@@ -433,7 +496,6 @@
         document.getElementById('btn-open-map-selector').addEventListener('click', () => {
             mapModal.style.display = 'flex';
 
-            // Inicializar el mapa de Google Maps si aún no se ha creado
             if (!interactiveMap) {
                 const defaultLat = allClients.length > 0 && allClients[0].latitude ? Number(allClients[0].latitude) : 48.0688;
                 const defaultLng = allClients.length > 0 && allClients[0].longitude ? Number(allClients[0].longitude) : 11.6145;
@@ -446,11 +508,9 @@
                 google.maps.event.trigger(interactiveMap, 'resize');
             }
 
-            // Limpiar marcadores anteriores del modal
             mapMarkers.forEach(m => m.setMap(null));
             mapMarkers = [];
 
-            // Colocar los marcadores de todos los clientes en el mapa interactivo
             allClients.forEach(client => {
                 if (client.latitude && client.longitude) {
                     const marker = new google.maps.Marker({
@@ -459,7 +519,6 @@
                         title: client.name
                     });
 
-                    // Info window con los datos y botón para seleccionar
                     const infoWindow = new google.maps.InfoWindow({
                         content: `<div style="padding: 4px;"><strong>${client.name}</strong><br>${client.address || ''}<br><button onclick="window.selectClientFromMap('${client.id}')" style="margin-top:6px; background:#3182ce; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Seleccionar este cliente</button></div>`
                     });
@@ -473,7 +532,6 @@
             });
         });
 
-        // Función global accesible desde el InfoWindow del mapa para seleccionar el cliente
         window.selectClientFromMap = function(clientId) {
             const found = allClients.find(c => c.id === clientId);
             if (found) {
@@ -530,6 +588,7 @@
             updateFinalTimestamp();
             const apptVal = document.getElementById('selected-appointment-date').value;
             const hoursVal = document.getElementById('estimated-hours').value;
+            const serviceVal = document.getElementById('service-search-input').value.trim();
 
             if (!clientId || !apptVal) {
                 alert('Selecciona un cliente y una fecha/hora válida.');
@@ -560,9 +619,18 @@
             btn.textContent = 'Agendando...';
             btn.disabled = true;
 
+            // Si escribió un servicio nuevo que no está en el catálogo, lo guardamos automáticamente en la tabla services
+            if (serviceVal) {
+                const exists = allServices.some(s => s.name.toLowerCase() === serviceVal.toLowerCase());
+                if (!exists) {
+                    await supabase.from('services').insert([{ name: serviceVal }]);
+                }
+            }
+
             const updatePayload = {
                 appointment_date: apptVal,
-                estimated_hours: hoursVal ? parseFloat(hoursVal) : null
+                estimated_hours: hoursVal ? parseFloat(hoursVal) : null,
+                service_requested: serviceVal || null
             };
 
             const { error } = await supabase
