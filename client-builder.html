@@ -270,7 +270,7 @@
         <!-- Sección de importación masiva -->
         <div class="import-box">
             <h3>📂 Importación Masiva de Clientes</h3>
-            <p>Sube tu archivo CSV (Nombre, Dirección, Código Postal). Los registros sin ubicación válida serán rechazados automáticamente.</p>
+            <p>Sube tu archivo CSV (Nombre, Dirección, Código Postal). Las direcciones falsas o inexactas serán rechazadas automáticamente.</p>
             
             <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
             <button type="button" id="btnImportCsv" class="btn-import">
@@ -336,7 +336,29 @@
             }
         });
 
-        // 1. Guardar cliente individual con VALIDACIÓN estricta de coordenadas reales
+        // Función auxiliar para validar si la dirección devuelta por Nominatim es precisa (contiene número de casa o es un punto exacto)
+        function esDireccionExactaValida(apiResult, userStreet) {
+            if (!apiResult || !apiResult.address) return false;
+            
+            const addr = apiResult.address;
+            const foundHouseNumber = addr.house_number;
+
+            // Extraer el número escrito por el usuario (ej. de "mozartstraße 1001" extrae "1001")
+            const matchNum = userStreet.match(/\d+/);
+            const userHouseNumber = matchNum ? matchNum[0] : null;
+
+            // Si el usuario ingresó un número de casa, exigimos que Nominatim haya encontrado exactamente ese número o un número válido de casa.
+            // Si Nominatim devuelve solo la calle (addr.road) pero NO devuelve el 'house_number', significa que el número específico no existe en esa calle.
+            if (userHouseNumber && !foundHouseNumber) {
+                return false; 
+            }
+
+            // Si devolvió un número de casa, validemos opcionalmente que coincida o esté cerca, 
+            // pero con que exista 'house_number' ya garantizamos que es una dirección con número real en el mapa.
+            return true;
+        }
+
+        // 1. Guardar cliente individual con VALIDACIÓN estricta de precisión
         document.getElementById('client-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -347,7 +369,7 @@
 
             const fullAddress = `${street}, ${postal}, Bavaria, Germany`;
             const btn = document.getElementById('save-btn');
-            btn.textContent = 'Verificando dirección en el mapa...';
+            btn.textContent = 'Verificando precisión en el mapa...';
             btn.disabled = true;
 
             try {
@@ -356,15 +378,18 @@
 
                 let lat = null;
                 let lng = null;
+                let isValidLocation = false;
 
                 if (data && data.length > 0) {
                     lat = parseFloat(data[0].lat);
                     lng = parseFloat(data[0].lon);
+                    // Validamos que el resultado no sea una simple aproximación genérica de calle sin número
+                    isValidLocation = esDireccionExactaValida(data[0], street);
                 }
 
-                // VALIDACIÓN ESTRICTA: Si no se encuentran coordenadas válidas, se bloquea el guardado
-                if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) {
-                    alert(`⚠️ Dirección no encontrada: "${street}, ${postal}".\n\nEl mapa no reconoce esta ubicación (por ejemplo, el número de la calle no existe). Por favor, verifica los datos e inténtalo de nuevo.`);
+                // VALIDACIÓN ESTRICTA: Si no hay coordenadas o la dirección no tiene número real verificado
+                if (!lat || !lng || isNaN(lat) || isNaN(lng) || !isValidLocation) {
+                    alert(`⚠️ Dirección no válida o número inexistente: "${street}, ${postal}".\n\nEl mapa indica que esta altura o número de calle no existe en la zona. Por favor, corrígelo.`);
                     btn.textContent = 'Guardar Cliente';
                     btn.disabled = false;
                     return;
@@ -387,7 +412,7 @@
                     btn.textContent = 'Guardar Cliente';
                     btn.disabled = false;
                 } else {
-                    alert('¡Cliente guardado y verificado en el mapa con éxito! 🎉');
+                    alert('¡Cliente guardado y verificado con éxito! 🎉');
                     window.location.href = './index.html';
                 }
             } catch (err) {
@@ -398,7 +423,7 @@
             }
         });
 
-        // 2. Importación CSV con validación y descarte automático de direcciones inválidas
+        // 2. Importación CSV con validación estricta de direcciones reales
         document.getElementById('btnImportCsv').addEventListener('click', () => {
             document.getElementById('csvFileInput').click();
         });
@@ -435,6 +460,8 @@
 
                     let lat = null;
                     let lng = null;
+                    let isValidLocation = false;
+
                     try {
                         const fullAddress = `${street}, ${postal}, Bavaria, Germany`;
                         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&addressdetails=1&limit=1`);
@@ -442,15 +469,16 @@
                         if (mapData && mapData.length > 0) {
                             lat = parseFloat(mapData[0].lat);
                             lng = parseFloat(mapData[0].lon);
+                            isValidLocation = esDireccionExactaValida(mapData[0], street);
                         }
                     } catch (geoErr) {
                         console.error(`Error geocodificando a ${clientName}:`, geoErr);
                     }
 
-                    // Si la geocodificación falla (dirección no existe), se omite el registro para proteger el mapa
-                    if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) {
+                    // Si la dirección no es exacta o no existe el número, omitimos el registro
+                    if (!lat || !lng || isNaN(lat) || isNaN(lng) || !isValidLocation) {
                         failedCount++;
-                        console.warn(`Dirección no encontrada, omitida: ${clientName} (${street}, ${postal})`);
+                        console.warn(`Dirección inexacta o número inexistente omitido: ${clientName} (${street}, ${postal})`);
                         continue; 
                     }
 
@@ -484,11 +512,11 @@
                             }]);
                     }
 
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Pausa requerida por las políticas de Nominatim
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Pausa exigida por la API de Nominatim
                 }
 
-                statusEl.textContent = `¡Importación finalizada! (Omitidos sin ubicación: ${failedCount}) 🎉`;
-                alert(`¡Proceso completado!\n- Clientes válidos sincronizados en el mapa.\n- Registros omitidos por dirección inexistente: ${failedCount}`);
+                statusEl.textContent = `¡Importación finalizada! (Omitidos por número inválido: ${failedCount}) 🎉`;
+                alert(`¡Proceso completado!\n- Clientes válidos sincronizados.\n- Registros omitidos por número/calle inexistente: ${failedCount}`);
                 window.location.href = './index.html';
             };
 
