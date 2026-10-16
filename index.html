@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Zonas y Citas</title>
+    <title>ClientSync | Citas y Clientes</title>
     <link rel="stylesheet" href="./css/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -63,10 +63,10 @@
             border: 1px solid var(--border-subtle);
         }
 
-        /* Navegación Moderna Estilo App Móvil */
+        /* Navegación Moderna Estilo App Móvil (Ajustada a 4 elementos principales) */
         .nav-buttons {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 6px;
             background: var(--card-bg);
             padding: 6px;
@@ -139,7 +139,7 @@
         /* Adaptación perfecta para pantallas pequeñas */
         @media (max-width: 768px) {
             .nav-buttons {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(2, 1fr);
                 gap: 4px;
             }
             .nav-buttons a {
@@ -164,19 +164,18 @@
 
         <!-- Barra de navegación tipo app moderna -->
         <nav class="nav-buttons">
-            <a href="./zone-builder.html"><span>🗺️</span> Zonas</a>
             <a href="./client-builder.html"><span>🏢</span> Cliente</a>
             <a href="./appointment-builder.html"><span>📅</span> Agendar</a>
             <a href="./admin-assignments.html"><span>🛠️</span> Admin</a>
             <a href="./employee-schedule.html"><span>👷‍♂️</span> Equipo</a>
             <!-- Botón exclusivo de Administrador (Oculto por defecto) -->
-            <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; grid-column: span 3; background: #faf5ff; color: #7c3aed; border: 1px dashed #c084fc;"><span>📄</span> Generar Reporte PDF Admin</a>
+            <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; grid-column: span 2; background: #faf5ff; color: #7c3aed; border: 1px dashed #c084fc;"><span>📄</span> Generar Reporte PDF Admin</a>
         </nav>
 
         <!-- Mapa general (Oculto inicialmente) -->
         <section class="map-section" style="display: none;">
             <div class="map-header">
-                <h2>📍 Mapa General de Clientes y Zonas</h2>
+                <h2>📍 Mapa General de Clientes</h2>
             </div>
             <div id="map"></div>
         </section>
