@@ -185,13 +185,13 @@
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
+        import { initInteractiveMapModal } from './js/interactive-map-modal.js';
 
         let activeClient = null;
+        window.activeClient = null; // Puente para el módulo del mapa
         let allClients = [];
         let allServices = [];
         let selectedDateOnly = '';
-        let interactiveMap = null;
-        let mapMarkers = [];
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const freeDateInput = document.getElementById('free-date-input');
@@ -279,6 +279,18 @@
                         selectClient(found);
                     }
                 }
+
+                // Inicializar el módulo reutilizable del mapa interactivo
+                initInteractiveMapModal(
+                    'map-modal',
+                    'interactive-map',
+                    'btn-open-map-selector',
+                    'close-map-modal',
+                    () => allClients,
+                    (selectedClient) => {
+                        selectClient(selectedClient);
+                    }
+                );
 
             } catch (err) {
                 console.error('Error al inicializar:', err);
@@ -388,6 +400,7 @@
 
         function selectClient(client) {
             activeClient = client;
+            window.activeClient = client;
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
 
@@ -417,249 +430,4 @@
 
             document.getElementById('det-name').textContent = client.name;
             document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
-            document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
-            detailsCard.style.display = 'block';
-            dateSection.style.display = 'block';
-
-            const scheduledClients = allClients.filter(c => c.appointment_date && c.id !== client.id && c.latitude && c.longitude);
-            suggestionsList.innerHTML = '';
-
-            if (scheduledClients.length > 0) {
-                const activeDates = [...new Set(scheduledClients.map(c => c.appointment_date.split('T')[0]))].filter(d => d >= todayStrSystem);
-                activeDates.sort();
-
-                if (activeDates.length > 0) {
-                    activeDates.forEach(dateStr => {
-                        const clientsOnThisDate = scheduledClients.filter(c => c.appointment_date.startsWith(dateStr));
-                        clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
-
-                        const count = clientsOnThisDate.length;
-                        let badgeText = `${count} cita${count > 1 ? 's' : ''} este día`;
-
-                        let clientsDetailsHtml = '';
-                        clientsOnThisDate.forEach(dc => {
-                            const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                            
-                            const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(dc.latitude), Number(dc.longitude));
-                            const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
-
-                            clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
-                        });
-
-                        const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
-
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = `suggestion-item-btn`;
-                        btn.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px;">
-                                <strong style="font-size: 0.95rem; color: #2b6cb0;">📅 ${formattedDateDDMMYYYY}</strong>
-                                <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
-                            </div>
-                            <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 4px;">
-                                ${clientsDetailsHtml}
-                            </div>
-                        `;
-
-                        btn.addEventListener('click', () => {
-                            selectedDateOnly = dateStr;
-                            document.getElementById('free-date-input').value = dateStr;
-                            
-                            const suggestedTime = suggestNextTimeForDate(dateStr);
-                            document.getElementById('appointment-time').value = suggestedTime;
-
-                            updateFinalTimestamp();
-
-                            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
-                            btn.classList.add('selected-suggestion');
-
-                            saveBtn.disabled = false;
-                            saveBtn.style.opacity = '1';
-                        });
-
-                        suggestionsList.appendChild(btn);
-                    });
-                    suggestionBox.style.display = 'block';
-                } else {
-                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas agendadas en fechas futuras. Selecciona una fecha libre abajo.</p>`;
-                    suggestionBox.style.display = 'block';
-                }
-            } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas registradas en el sistema aún. Selecciona la fecha en el calendario.</p>`;
-                suggestionBox.style.display = 'block';
-            }
-        }
-
-        // Lógica para desplegar el mapa interactivo centrado en el cliente seleccionado con zoom de calle
-        const mapModal = document.getElementById('map-modal');
-        document.getElementById('btn-open-map-selector').addEventListener('click', () => {
-            mapModal.style.display = 'flex';
-
-            let targetLat = 48.0688;
-            let targetLng = 11.6145;
-            let targetZoom = 12;
-
-            if (activeClient && activeClient.latitude && activeClient.longitude) {
-                targetLat = Number(activeClient.latitude);
-                targetLng = Number(activeClient.longitude);
-                targetZoom = 16; // Zoom cercano ideal para ver la calle y la ubicación exacta del cliente
-            }
-
-            if (!interactiveMap) {
-                interactiveMap = new google.maps.Map(document.getElementById('interactive-map'), {
-                    center: { lat: targetLat, lng: targetLng },
-                    zoom: targetZoom,
-                });
-            } else {
-                google.maps.event.trigger(interactiveMap, 'resize');
-                interactiveMap.setCenter({ lat: targetLat, lng: targetLng });
-                interactiveMap.setZoom(targetZoom);
-            }
-
-            mapMarkers.forEach(m => m.setMap(null));
-            mapMarkers = [];
-
-            allClients.forEach(client => {
-                if (client.latitude && client.longitude) {
-                    const marker = new google.maps.Marker({
-                        position: { lat: Number(client.latitude), lng: Number(client.longitude) },
-                        map: interactiveMap,
-                        title: client.name
-                    });
-
-                    const infoWindow = new google.maps.InfoWindow({
-                        content: `<div style="padding: 4px;"><strong>${client.name}</strong><br>${client.address || ''}<br><button onclick="window.selectClientFromMap('${client.id}')" style="margin-top:6px; background:#3182ce; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Seleccionar este cliente</button></div>`
-                    });
-
-                    marker.addListener('click', () => {
-                        infoWindow.open(interactiveMap, marker);
-                    });
-
-                    if (activeClient && client.id === activeClient.id) {
-                        infoWindow.open(interactiveMap, marker);
-                    }
-
-                    mapMarkers.push(marker);
-                }
-            });
-        });
-
-        window.selectClientFromMap = function(clientId) {
-            const found = allClients.find(c => c.id === clientId);
-            if (found) {
-                selectClient(found);
-                mapModal.style.display = 'none';
-            }
-        };
-
-        document.getElementById('close-map-modal').addEventListener('click', () => {
-            mapModal.style.display = 'none';
-        });
-
-        document.getElementById('free-date-input').addEventListener('change', (e) => {
-            const chosenDate = e.target.value;
-            if (!chosenDate) return;
-
-            if (chosenDate < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                e.target.value = '';
-                return;
-            }
-
-            selectedDateOnly = chosenDate;
-            
-            const suggestedTime = suggestNextTimeForDate(chosenDate);
-            document.getElementById('appointment-time').value = suggestedTime;
-
-            updateFinalTimestamp();
-
-            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
-
-            const saveBtn = document.getElementById('save-btn');
-            saveBtn.disabled = false;
-            saveBtn.style.opacity = '1';
-        });
-
-        document.getElementById('appointment-time').addEventListener('change', () => {
-            if (selectedDateOnly) {
-                updateFinalTimestamp();
-            }
-        });
-
-        function updateFinalTimestamp() {
-            const timeVal = document.getElementById('appointment-time').value || '09:00';
-            if (selectedDateOnly) {
-                document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00.000Z`;
-            }
-        }
-
-        document.getElementById('appointment-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const clientId = document.getElementById('client-select').value;
-            updateFinalTimestamp();
-            const apptVal = document.getElementById('selected-appointment-date').value;
-            const hoursVal = document.getElementById('estimated-hours').value;
-            const serviceVal = document.getElementById('service-search-input').value.trim();
-
-            if (!clientId || !apptVal) {
-                alert('Selecciona un cliente y una fecha/hora válida.');
-                return;
-            }
-
-            const chosenDatePart = apptVal.split('T')[0];
-            const chosenTimePart = apptVal.split('T')[1].substring(0, 5);
-
-            if (chosenDatePart < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                return;
-            }
-
-            if (chosenDatePart === todayStrSystem) {
-                const now = new Date();
-                const currentHours = String(now.getHours()).padStart(2, '0');
-                const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-                const currentTimeStr = `${currentHours}:${currentMinutes}`;
-
-                if (chosenTimePart < currentTimeStr) {
-                    alert('No puedes programar una cita a una hora que ya ha transcurrido el día de hoy.');
-                    return;
-                }
-            }
-
-            const btn = document.getElementById('save-btn');
-            btn.textContent = 'Agendando...';
-            btn.disabled = true;
-
-            if (serviceVal) {
-                const exists = allServices.some(s => s.name.toLowerCase() === serviceVal.toLowerCase());
-                if (!exists) {
-                    await supabase.from('services').insert([{ name: serviceVal }]);
-                }
-            }
-
-            const updatePayload = {
-                appointment_date: apptVal,
-                estimated_hours: hoursVal ? parseFloat(hoursVal) : null,
-                service_requested: serviceVal || null
-            };
-
-            const { error } = await supabase
-                .from('clients')
-                .update(updatePayload)
-                .eq('id', clientId);
-
-            if (error) {
-                alert('Error al agendar: ' + error.message);
-                btn.textContent = 'Confirmar y Agendar Cita';
-                btn.disabled = false;
-            } else {
-                alert('¡Cita agendada con éxito!');
-                window.location.href = './index.html';
-            }
-        });
-
-        initForm();
-    </script>
-</body>
-</html>
+            document.getElementById('det
