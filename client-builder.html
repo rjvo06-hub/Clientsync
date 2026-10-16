@@ -194,7 +194,7 @@
         </div>
 
         <p class="subtitle">
-            Ingresa los datos. Escribe el nombre del pueblo o código postal para seleccionarlo automáticamente.
+            Escribe el nombre del pueblo (ej. Unterhaching) o código postal para consultarlo en la base de datos.
         </p>
 
         <!-- Formulario de registro individual -->
@@ -240,6 +240,7 @@
         const suggestionsBox = document.getElementById('postal-suggestions');
         let searchTimeout = null;
 
+        // Búsqueda inteligente directo en la tabla de Supabase (german_postal_codes)
         postalInput.addEventListener('input', (e) => {
             const query = e.target.value.trim();
             clearTimeout(searchTimeout);
@@ -251,51 +252,28 @@
 
             searchTimeout = setTimeout(async () => {
                 try {
-                    // Consulta optimizada a toda Alemania consultando explícitamente nombres de localidades reales
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&city=${encodeURIComponent(query)}&countrycodes=de&addressdetails=1&limit=15`);
-                    let data = await res.json();
+                    // Consultamos directamente la tabla en la nube con Supabase
+                    const { data, error } = await supabase
+                        .from('german_postal_codes')
+                        .select('postal_code, city_name')
+                        .or(`city_name.ilike.%${query}%,postal_code.ilike.${query}%`)
+                        .limit(15);
 
-                    // Si la búsqueda estricta de ciudad no devuelve resultados suficientes, realizamos una búsqueda abierta general en Alemania
-                    if (!data || data.length === 0) {
-                        const resGeneral = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ", Germany")}&countrycodes=de&addressdetails=1&limit=15`);
-                        data = await resGeneral.json();
-                    }
+                    if (error) throw error;
 
                     suggestionsBox.innerHTML = '';
                     if (data && data.length > 0) {
-                        const parsedResults = [];
-                        
-                        data.forEach(item => {
-                            const addr = item.address || {};
-                            const postcode = addr.postcode || '';
-                            const city = addr.city || addr.town || addr.village || addr.municipality || addr.suburb || addr.hamlet || item.display_name.split(',')[0];
-                            
-                            if (postcode && city) {
-                                parsedResults.push({ postcode, city: city.trim() });
-                            }
-                        });
-
-                        // Eliminar duplicados exactos combinando código postal y ciudad
-                        const uniqueMap = new Map();
-                        parsedResults.forEach(r => {
-                            const key = `${r.postcode}-${r.city.toLowerCase()}`;
-                            if (!uniqueMap.has(key)) {
-                                uniqueMap.set(key, r);
-                            }
-                        });
-                        const uniqueResults = Array.from(uniqueMap.values());
-
                         const queryLower = query.toLowerCase();
 
-                        // 1. PRIORIDAD ABSOLUTA: Resultados que COMIENZAN exactamente con lo que escribiste (pueblo o código postal)
-                        const startsWithMatches = uniqueResults.filter(r => 
-                            r.city.toLowerCase().startsWith(queryLower) || r.postcode.toLowerCase().startsWith(queryLower)
+                        // 1. Prioridad absoluta: los que COMIENZAN exactamente con lo que escribes
+                        const startsWithMatches = data.filter(r => 
+                            r.city_name.toLowerCase().startsWith(queryLower) || r.postal_code.startsWith(queryLower)
                         );
 
-                        // 2. SECUNDARIOS: Resultados que CONTIENEN el texto
-                        const containsMatches = uniqueResults.filter(r => {
-                            const matches = r.city.toLowerCase().includes(queryLower) || r.postcode.toLowerCase().includes(queryLower);
-                            const alreadyAdded = startsWithMatches.some(s => s.postcode === r.postcode && s.city.toLowerCase() === r.city.toLowerCase());
+                        // 2. Secundarios: los que contienen el texto en otra parte
+                        const containsMatches = data.filter(r => {
+                            const matches = r.city_name.toLowerCase().includes(queryLower) || r.postal_code.includes(queryLower);
+                            const alreadyAdded = startsWithMatches.some(s => s.postal_code === r.postal_code && s.city_name === r.city_name);
                             return matches && !alreadyAdded;
                         });
 
@@ -304,9 +282,9 @@
                         finalResults.forEach(resObj => {
                             const div = document.createElement('div');
                             div.className = 'suggestion-item';
-                            div.textContent = `${resObj.postcode} - ${resObj.city}`;
+                            div.textContent = `${resObj.postal_code} - ${resObj.city_name}`;
                             div.addEventListener('click', () => {
-                                postalInput.value = resObj.postcode; // Rellena el input con el código postal real y verificado
+                                postalInput.value = resObj.postal_code; // Rellena el input con el código postal seleccionado
                                 suggestionsBox.style.display = 'none';
                             });
                             suggestionsBox.appendChild(div);
@@ -317,10 +295,10 @@
                         suggestionsBox.style.display = 'none';
                     }
                 } catch (err) {
-                    console.error("Error consultando localidad:", err);
+                    console.error("Error consultando códigos postales en Supabase:", err);
                     suggestionsBox.style.display = 'none';
                 }
-            }, 300);
+            }, 250);
         });
 
         document.addEventListener('click', (e) => {
@@ -343,7 +321,7 @@
             return true;
         }
 
-        // Guardar cliente individual con validación estricta y notas
+        // Guardar cliente individual con validación estricta en el mapa
         document.getElementById('client-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
