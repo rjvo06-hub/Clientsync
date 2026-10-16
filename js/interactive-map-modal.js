@@ -50,7 +50,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, btnOpenId, btnC
                 // Verificar si el cliente tiene cita asignada para cambiar el color del pin
                 const hasAppointment = Boolean(client.appointment_date && client.appointment_date.trim() !== '');
                 const markerIcon = hasAppointment 
-                    ? "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"  // 🔵 Azul si tiene cita
+                    ? "http://maps.google.com/mapfiles/ms/icons/green-dot.png"  // 🔵 Azul si tiene cita
                     : "http://maps.google.com/mapfiles/ms/icons/red-dot.png";   // 🔴 Rojo si no tiene cita
 
                 const marker = new google.maps.Marker({
