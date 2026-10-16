@@ -194,7 +194,7 @@
         </div>
 
         <p class="subtitle">
-            Ingresa los datos. Escribe el pueblo o código postal para consultarlo automáticamente.
+            Ingresa los datos. Escribe el pueblo o código postal de cualquier ciudad en Alemania.
         </p>
 
         <!-- Formulario de registro individual -->
@@ -212,7 +212,7 @@
             <div class="row-group">
                 <div class="form-group col-flex-1" style="margin-bottom: 0; position: relative;">
                     <label>Código Postal / Pueblo:</label>
-                    <input type="text" id="client-postal" placeholder="Ej. Unterhaching o 82041" required autocomplete="off">
+                    <input type="text" id="client-postal" placeholder="Ej. Ulm o 89073" required autocomplete="off">
                     <div id="postal-suggestions" class="suggestions-list"></div>
                 </div>
                 <div class="form-group col-flex-2" style="margin-bottom: 0;">
@@ -238,62 +238,84 @@
 
         const postalInput = document.getElementById('client-postal');
         const suggestionsBox = document.getElementById('postal-suggestions');
-
-        // Base de datos local optimizada con las principales localidades y códigos postales de la zona
-        const localLocations = [
-            { postcode: "82041", city: "Unterhaching" },
-            { postcode: "85521", city: "Ottobrunn" },
-            { postcode: "82024", city: "Taufkirchen" },
-            { postcode: "85540", city: "Haar" },
-            { postcode: "82031", city: "Grünwald" },
-            { postcode: "82049", city: "Pullach im Isartal" },
-            { postcode: "85579", city: "Neubiberg" },
-            { postcode: "85586", city: "Poing" },
-            { postcode: "85622", city: "Feldkirchen" },
-            { postcode: "85560", city: "Ebersberg" },
-            { postcode: "81549", city: "München" },
-            { postcode: "81737", city: "München" },
-            { postcode: "81673", city: "München" },
-            { postcode: "81543", city: "München" }
-        ];
+        let searchTimeout = null;
 
         postalInput.addEventListener('input', (e) => {
-            const query = e.target.value.trim().toLowerCase();
+            const query = e.target.value.trim();
+            clearTimeout(searchTimeout);
 
-            if (query.length === 0) {
+            if (query.length < 2) {
                 suggestionsBox.style.display = 'none';
                 return;
             }
 
-            // 1. Filtrar primero en la base de datos local con prioridad (empiezan con... luego contienen...)
-            const startsWithMatches = localLocations.filter(loc => 
-                loc.city.toLowerCase().startsWith(query) || loc.postcode.startsWith(query)
-            );
+            searchTimeout = setTimeout(async () => {
+                try {
+                    // Búsqueda abierta en TODO Alemania (countrycodes=de) consultando ciudades, pueblos y códigos postales
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=15&countrycodes=de`);
+                    const data = await res.json();
 
-            const containsMatches = localLocations.filter(loc => {
-                const matches = loc.city.toLowerCase().includes(query) || loc.postcode.includes(query);
-                const alreadyAdded = startsWithMatches.some(s => s.postcode === loc.postcode && s.city === loc.city);
-                return matches && !alreadyAdded;
-            });
+                    suggestionsBox.innerHTML = '';
+                    if (data && data.length > 0) {
+                        const parsedResults = [];
+                        
+                        data.forEach(item => {
+                            const addr = item.address || {};
+                            const postcode = addr.postcode || '';
+                            const city = addr.city || addr.town || addr.village || addr.municipality || addr.suburb || addr.hamlet || item.display_name.split(',')[0];
+                            
+                            if (postcode && city) {
+                                parsedResults.push({ postcode, city: city.trim() });
+                            }
+                        });
 
-            const results = [...startsWithMatches, ...containsMatches];
+                        // Eliminar duplicados exactos combinando código postal y ciudad
+                        const uniqueMap = new Map();
+                        parsedResults.forEach(r => {
+                            const key = `${r.postcode}-${r.city.toLowerCase()}`;
+                            if (!uniqueMap.has(key)) {
+                                uniqueMap.set(key, r);
+                            }
+                        });
+                        const uniqueResults = Array.from(uniqueMap.values());
 
-            suggestionsBox.innerHTML = '';
-            if (results.length > 0) {
-                results.forEach(resObj => {
-                    const div = document.createElement('div');
-                    div.className = 'suggestion-item';
-                    div.textContent = `${resObj.postcode} - ${resObj.city}`;
-                    div.addEventListener('click', () => {
-                        postalInput.value = resObj.postcode;
+                        const queryLower = query.toLowerCase();
+
+                        // 1. PRIORIDAD ABSOLUTA: Los que COMIENZAN exactamente con el texto escrito (en pueblo o código postal)
+                        const startsWithMatches = uniqueResults.filter(r => 
+                            r.city.toLowerCase().startsWith(queryLower) || r.postcode.toLowerCase().startsWith(queryLower)
+                        );
+
+                        // 2. SECUNDARIOS: Los que CONTIENEN el texto en otra parte (ej. Ulm en el medio)
+                        const containsMatches = uniqueResults.filter(r => {
+                            const matches = r.city.toLowerCase().includes(queryLower) || r.postcode.toLowerCase().includes(queryLower);
+                            const alreadyAdded = startsWithMatches.some(s => s.postcode === r.postcode && s.city.toLowerCase() === r.city.toLowerCase());
+                            return matches && !alreadyAdded;
+                        });
+
+                        // Unimos asegurando que los que empiezan con el texto salgan estrictamente primero
+                        const finalResults = [...startsWithMatches, ...containsMatches];
+
+                        finalResults.forEach(resObj => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            div.textContent = `${resObj.postcode} - ${resObj.city}`;
+                            div.addEventListener('click', () => {
+                                postalInput.value = resObj.postcode;
+                                suggestionsBox.style.display = 'none';
+                            });
+                            suggestionsBox.appendChild(div);
+                        });
+
+                        suggestionsBox.style.display = suggestionsBox.children.length > 0 ? 'block' : 'none';
+                    } else {
                         suggestionsBox.style.display = 'none';
-                    });
-                    suggestionsBox.appendChild(div);
-                });
-                suggestionsBox.style.display = 'block';
-            } else {
-                suggestionsBox.style.display = 'none';
-            }
+                    }
+                } catch (err) {
+                    console.error("Error consultando localidad:", err);
+                    suggestionsBox.style.display = 'none';
+                }
+            }, 300);
         });
 
         document.addEventListener('click', (e) => {
@@ -326,13 +348,14 @@
             const phone = document.getElementById('client-phone').value.trim();
             const notes = document.getElementById('client-notes').value.trim();
 
-            const fullAddress = `${street}, ${postal}, Bavaria, Germany`;
+            // Búsqueda en todo el territorio alemán para la validación final al guardar
+            const fullAddress = `${street}, ${postal}, Germany`;
             const btn = document.getElementById('save-btn');
             btn.textContent = 'Verificando precisión en el mapa...';
             btn.disabled = true;
 
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&addressdetails=1&limit=1`);
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&addressdetails=1&limit=1&countrycodes=de`);
                 const data = await response.json();
 
                 let lat = null;
