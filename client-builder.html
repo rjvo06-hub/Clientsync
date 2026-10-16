@@ -106,7 +106,7 @@
         .col-flex-2 { flex: 2; min-width: 180px; }
         .col-flex-1 { flex: 1; min-width: 120px; }
 
-        input {
+        input, textarea {
             font-family: inherit;
             font-size: 0.95rem;
             box-sizing: border-box;
@@ -119,11 +119,16 @@
             transition: all 0.2s ease;
         }
 
-        input:focus {
+        input:focus, textarea:focus {
             outline: none;
             border-color: var(--primary);
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
         }
 
         .suggestions-list {
@@ -178,52 +183,6 @@
             background: #94a3b8;
             cursor: not-allowed;
         }
-
-        .import-box {
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px dashed var(--border-subtle);
-            text-align: center;
-        }
-
-        .import-box h3 {
-            font-size: 1rem;
-            color: var(--text-main);
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
-
-        .import-box p {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            margin-bottom: 14px;
-            line-height: 1.4;
-        }
-
-        .btn-import {
-            font-family: inherit;
-            background: #eff6ff;
-            color: var(--primary);
-            border: 1px solid #bfdbfe;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.9rem;
-            padding: 10px 16px;
-            border-radius: var(--radius-md);
-            width: 100%;
-            transition: all 0.2s ease;
-        }
-
-        .btn-import:hover {
-            background: #dbeafe;
-        }
-
-        #importStatus {
-            margin-top: 12px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
     </style>
 </head>
 <body>
@@ -231,7 +190,7 @@
     <div class="container">
         <div class="header-container">
             <h1>🏢 Registrar Nuevo Cliente</h1>
-            <a href="./index.html" class="btn-back">← Mapa</a>
+            <a href="./index.html" class="btn-back">← Inicio</a>
         </div>
 
         <p class="subtitle">
@@ -262,22 +221,16 @@
                 </div>
             </div>
 
+            <!-- Campo de notas / información especial -->
+            <div class="form-group" style="margin-top: 16px;">
+                <label>Notas o Detalles Especiales:</label>
+                <textarea id="client-notes" placeholder="Ej. Timbre descompuesto, tocar puerta trasera, horario preferente..."></textarea>
+            </div>
+
             <button type="submit" id="save-btn" class="btn-primary" style="margin-top: 10px;">
                 Guardar Cliente
             </button>
         </form>
-
-        <!-- Sección de importación masiva -->
-        <div class="import-box">
-            <h3>📂 Importación Masiva de Clientes</h3>
-            <p>Sube tu archivo CSV (Nombre, Dirección, Código Postal). Las direcciones falsas o inexactas serán rechazadas automáticamente.</p>
-            
-            <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
-            <button type="button" id="btnImportCsv" class="btn-import">
-                Seleccionar CSV y Sincronizar
-            </button>
-            <div id="importStatus"></div>
-        </div>
     </div>
 
     <script type="module">
@@ -336,29 +289,21 @@
             }
         });
 
-        // Función auxiliar para validar si la dirección devuelta por Nominatim es precisa (contiene número de casa o es un punto exacto)
         function esDireccionExactaValida(apiResult, userStreet) {
             if (!apiResult || !apiResult.address) return false;
             
             const addr = apiResult.address;
             const foundHouseNumber = addr.house_number;
-
-            // Extraer el número escrito por el usuario (ej. de "mozartstraße 1001" extrae "1001")
             const matchNum = userStreet.match(/\d+/);
             const userHouseNumber = matchNum ? matchNum[0] : null;
 
-            // Si el usuario ingresó un número de casa, exigimos que Nominatim haya encontrado exactamente ese número o un número válido de casa.
-            // Si Nominatim devuelve solo la calle (addr.road) pero NO devuelve el 'house_number', significa que el número específico no existe en esa calle.
             if (userHouseNumber && !foundHouseNumber) {
                 return false; 
             }
-
-            // Si devolvió un número de casa, validemos opcionalmente que coincida o esté cerca, 
-            // pero con que exista 'house_number' ya garantizamos que es una dirección con número real en el mapa.
             return true;
         }
 
-        // 1. Guardar cliente individual con VALIDACIÓN estricta de precisión
+        // Guardar cliente individual con validación estricta y notas
         document.getElementById('client-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -366,6 +311,7 @@
             const street = document.getElementById('client-street').value.trim();
             const postal = document.getElementById('client-postal').value.trim();
             const phone = document.getElementById('client-phone').value.trim();
+            const notes = document.getElementById('client-notes').value.trim();
 
             const fullAddress = `${street}, ${postal}, Bavaria, Germany`;
             const btn = document.getElementById('save-btn');
@@ -383,11 +329,9 @@
                 if (data && data.length > 0) {
                     lat = parseFloat(data[0].lat);
                     lng = parseFloat(data[0].lon);
-                    // Validamos que el resultado no sea una simple aproximación genérica de calle sin número
                     isValidLocation = esDireccionExactaValida(data[0], street);
                 }
 
-                // VALIDACIÓN ESTRICTA: Si no hay coordenadas o la dirección no tiene número real verificado
                 if (!lat || !lng || isNaN(lat) || isNaN(lng) || !isValidLocation) {
                     alert(`⚠️ Dirección no válida o número inexistente: "${street}, ${postal}".\n\nEl mapa indica que esta altura o número de calle no existe en la zona. Por favor, corrígelo.`);
                     btn.textContent = 'Guardar Cliente';
@@ -403,6 +347,7 @@
                         postal_code: postal,
                         latitude: lat,
                         longitude: lng,
+                        notes: notes,
                         assigned_employee: 'General'
                     }
                 ]);
@@ -421,106 +366,6 @@
                 btn.textContent = 'Guardar Cliente';
                 btn.disabled = false;
             }
-        });
-
-        // 2. Importación CSV con validación estricta de direcciones reales
-        document.getElementById('btnImportCsv').addEventListener('click', () => {
-            document.getElementById('csvFileInput').click();
-        });
-
-        document.getElementById('csvFileInput').addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const statusEl = document.getElementById('importStatus');
-            statusEl.textContent = "Leyendo archivo CSV...";
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const text = e.target.result;
-                const lines = text.split(/\r\n|\n/);
-                
-                let total = lines.filter(l => l.trim() !== '').length;
-                let processed = 0;
-                let failedCount = 0;
-
-                for (let line of lines) {
-                    line = line.trim();
-                    if (!line) continue;
-
-                    const parts = line.split(',');
-                    if (parts.length < 3) continue;
-
-                    const clientName = parts[0].trim();
-                    const street = parts[1].trim();
-                    const postal = parts[2].trim();
-
-                    processed++;
-                    statusEl.textContent = `Procesando (${processed}/${total}): ${clientName}`;
-
-                    let lat = null;
-                    let lng = null;
-                    let isValidLocation = false;
-
-                    try {
-                        const fullAddress = `${street}, ${postal}, Bavaria, Germany`;
-                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&addressdetails=1&limit=1`);
-                        const mapData = await res.json();
-                        if (mapData && mapData.length > 0) {
-                            lat = parseFloat(mapData[0].lat);
-                            lng = parseFloat(mapData[0].lon);
-                            isValidLocation = esDireccionExactaValida(mapData[0], street);
-                        }
-                    } catch (geoErr) {
-                        console.error(`Error geocodificando a ${clientName}:`, geoErr);
-                    }
-
-                    // Si la dirección no es exacta o no existe el número, omitimos el registro
-                    if (!lat || !lng || isNaN(lat) || isNaN(lng) || !isValidLocation) {
-                        failedCount++;
-                        console.warn(`Dirección inexacta o número inexistente omitido: ${clientName} (${street}, ${postal})`);
-                        continue; 
-                    }
-
-                    const { data: existingClient } = await supabase
-                        .from('clients')
-                        .select('*')
-                        .eq('name', clientName)
-                        .maybeSingle();
-
-                    if (existingClient) {
-                        await supabase
-                            .from('clients')
-                            .update({
-                                latitude: lat,
-                                longitude: lng,
-                                address: street,
-                                postal_code: postal
-                            })
-                            .eq('id', existingClient.id);
-                    } else {
-                        await supabase
-                            .from('clients')
-                            .insert([{
-                                name: clientName,
-                                phone: '',
-                                address: street,
-                                postal_code: postal,
-                                latitude: lat,
-                                longitude: lng,
-                                assigned_employee: 'General'
-                            }]);
-                    }
-
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Pausa exigida por la API de Nominatim
-                }
-
-                statusEl.textContent = `¡Importación finalizada! (Omitidos por número inválido: ${failedCount}) 🎉`;
-                alert(`¡Proceso completado!\n- Clientes válidos sincronizados.\n- Registros omitidos por número/calle inexistente: ${failedCount}`);
-                window.location.href = './index.html';
-            };
-
-            reader.readAsText(file);
         });
     </script>
 </body>
