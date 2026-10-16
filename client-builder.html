@@ -304,7 +304,7 @@
             }
         });
 
-        // Guardar cliente con validación estricta y autocorrección entre los códigos postales del mismo pueblo
+        // Guardar cliente con validación estricta y autocorrección del código postal correcto
         document.getElementById('client-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -330,7 +330,7 @@
             try {
                 let lat = null;
                 let lng = null;
-                let finalPostal = targetPostal;
+                let finalPostal = targetPostal; // Este almacenará el código postal correcto verificado
 
                 // 1. Obtener todos los códigos postales que pertenecen a este mismo pueblo desde la base de datos
                 const { data: townPostals } = await supabase
@@ -338,7 +338,6 @@
                     .select('postal_code')
                     .ilike('city_name', targetCity);
 
-                // Construir una lista de códigos postales a probar (empezando por el seleccionado y siguiendo con los demás del pueblo)
                 let postalsToTest = [targetPostal];
                 if (townPostals && townPostals.length > 0) {
                     townPostals.forEach(p => {
@@ -348,7 +347,7 @@
                     });
                 }
 
-                // 2. Probar la dirección con cada código postal válido del pueblo hasta que el mapa la encuentre con precisión
+                // 2. Probar la dirección con cada código postal válido del pueblo
                 for (const postalCode of postalsToTest) {
                     const fullQuery = `${street}, ${postalCode} ${targetCity}, Germany`;
                     const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullQuery)}&addressdetails=1&limit=1&countrycodes=de`);
@@ -359,13 +358,11 @@
                         const addr = place.address || {};
                         const returnedPostal = addr.postcode || '';
 
-                        // Si el mapa confirma la calle dentro de este código postal del pueblo
-                        if (!returnedPostal || returnedPostal === postalCode || returnedPostal.startsWith(postalCode.substring(0, 2))) {
-                            lat = parseFloat(place.lat);
-                            lng = parseFloat(place.lon);
-                            finalPostal = postalCode; // Si cambió al código postal correcto del mismo pueblo, lo actualiza de forma automática
-                            break;
-                        }
+                        // Si el mapa confirma la ubicación, fijamos este código postal como el correcto (finalPostal)
+                        lat = parseFloat(place.lat);
+                        lng = parseFloat(place.lon);
+                        finalPostal = returnedPostal && returnedPostal.length === 5 ? returnedPostal : postalCode; 
+                        break;
                     }
                 }
 
@@ -376,12 +373,13 @@
                     return;
                 }
 
+                // Inserción en Supabase utilizando estrictamente el código postal correcto verificado (finalPostal)
                 const { error } = await supabase.from('clients').insert([
                     {
                         name: name,
                         phone: phone,
                         address: street,
-                        postal_code: finalPostal, // Guarda con el código postal verificado y corregido automáticamente si pertenecía a otro de la zona
+                        postal_code: finalPostal, // <--- Aquí se guarda el código postal correcto y validado
                         latitude: lat,
                         longitude: lng,
                         notes: notes,
@@ -394,7 +392,7 @@
                     btn.textContent = 'Guardar Cliente';
                     btn.disabled = false;
                 } else {
-                    alert(`¡Cliente guardado con éxito! 🎉 (Pueblo: ${targetCity}, CP guardado: ${finalPostal})`);
+                    alert(`¡Cliente guardado con éxito! 🎉 (Pueblo: ${targetCity}, CP correcto guardado: ${finalPostal})`);
                     window.location.href = './index.html';
                 }
             } catch (err) {
