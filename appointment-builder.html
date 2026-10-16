@@ -152,7 +152,7 @@
                     </div>
                 </div>
 
-                <!-- Nuevo campo inteligente para el trabajo / servicio solicitado -->
+                <!-- Campo inteligente para el trabajo / servicio solicitado -->
                 <div class="client-search-container" style="margin-top: 12px; margin-bottom: 0;">
                     <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Trabajo a realizar / Solicitud del cliente:</label>
                     <input type="text" id="service-search-input" placeholder="Ej. Corte de árbol, Poda, Mantenimiento..." autocomplete="off">
@@ -421,7 +421,6 @@
             detailsCard.style.display = 'block';
             dateSection.style.display = 'block';
 
-            // Mostrar TODAS las citas programadas en fechas futuras (sin restricción de 5km, calculando distancia)
             const scheduledClients = allClients.filter(c => c.appointment_date && c.id !== client.id && c.latitude && c.longitude);
             suggestionsList.innerHTML = '';
 
@@ -441,7 +440,6 @@
                         clientsOnThisDate.forEach(dc => {
                             const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
                             
-                            // Calcular distancia entre el cliente seleccionado y el cliente ya agendado en esa fecha
                             const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(dc.latitude), Number(dc.longitude));
                             const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
 
@@ -492,21 +490,30 @@
             }
         }
 
-        // Lógica para desplegar el mapa interactivo real de Google Maps en el modal
+        // Lógica para desplegar el mapa interactivo centrado en el cliente seleccionado con zoom de calle
         const mapModal = document.getElementById('map-modal');
         document.getElementById('btn-open-map-selector').addEventListener('click', () => {
             mapModal.style.display = 'flex';
 
-            if (!interactiveMap) {
-                const defaultLat = allClients.length > 0 && allClients[0].latitude ? Number(allClients[0].latitude) : 48.0688;
-                const defaultLng = allClients.length > 0 && allClients[0].longitude ? Number(allClients[0].longitude) : 11.6145;
+            let targetLat = 48.0688;
+            let targetLng = 11.6145;
+            let targetZoom = 12;
 
+            if (activeClient && activeClient.latitude && activeClient.longitude) {
+                targetLat = Number(activeClient.latitude);
+                targetLng = Number(activeClient.longitude);
+                targetZoom = 16; // Zoom cercano ideal para ver la calle y la ubicación exacta del cliente
+            }
+
+            if (!interactiveMap) {
                 interactiveMap = new google.maps.Map(document.getElementById('interactive-map'), {
-                    center: { lat: defaultLat, lng: defaultLng },
-                    zoom: 12,
+                    center: { lat: targetLat, lng: targetLng },
+                    zoom: targetZoom,
                 });
             } else {
                 google.maps.event.trigger(interactiveMap, 'resize');
+                interactiveMap.setCenter({ lat: targetLat, lng: targetLng });
+                interactiveMap.setZoom(targetZoom);
             }
 
             mapMarkers.forEach(m => m.setMap(null));
@@ -527,6 +534,10 @@
                     marker.addListener('click', () => {
                         infoWindow.open(interactiveMap, marker);
                     });
+
+                    if (activeClient && client.id === activeClient.id) {
+                        infoWindow.open(interactiveMap, marker);
+                    }
 
                     mapMarkers.push(marker);
                 }
