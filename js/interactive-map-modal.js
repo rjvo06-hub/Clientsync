@@ -1,4 +1,4 @@
-// Módulo reutilizable para el modal del mapa interactivo con ventana única de detalle
+// Módulo reutilizable para el modal del mapa interactivo con pines de colores (Azul con cita / Rojo sin cita)
 export function initInteractiveMapModal(modalId, mapContainerId, btnOpenId, btnCloseId, allClientsGetter, onClientSelectedCallback) {
     const modal = document.getElementById(modalId);
     const btnOpen = document.getElementById(btnOpenId);
@@ -14,7 +14,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, btnOpenId, btnC
         modal.style.display = 'flex';
 
         const clients = allClientsGetter();
-        const activeClient = window.activeClient || null; // O la referencia al cliente actual seleccionado
+        const activeClient = window.activeClient || null;
 
         let targetLat = 48.0688;
         let targetLng = 11.6145;
@@ -47,16 +47,26 @@ export function initInteractiveMapModal(modalId, mapContainerId, btnOpenId, btnC
 
         clients.forEach(client => {
             if (client.latitude && client.longitude) {
+                // Verificar si el cliente tiene cita asignada para cambiar el color del pin
+                const hasAppointment = Boolean(client.appointment_date && client.appointment_date.trim() !== '');
+                const markerIcon = hasAppointment 
+                    ? "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"  // 🔵 Azul si tiene cita
+                    : "http://maps.google.com/mapfiles/ms/icons/red-dot.png";   // 🔴 Rojo si no tiene cita
+
                 const marker = new google.maps.Marker({
                     position: { lat: Number(client.latitude), lng: Number(client.longitude) },
                     map: interactiveMap,
-                    title: client.name
+                    title: client.name,
+                    icon: { url: markerIcon }
                 });
 
                 const contentString = `
                     <div style="padding: 4px;">
                         <strong>${client.name}</strong><br>
                         ${client.address || ''}<br>
+                        <span style="font-size: 0.8rem; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'}; font-weight: bold;">
+                            ${hasAppointment ? '🔵 Con cita asignada' : '🔴 Sin cita'}
+                        </span><br>
                         <button type="button" id="map-select-btn-${client.id}" style="margin-top:6px; background:#3182ce; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">
                             Seleccionar este cliente
                         </button>
@@ -64,14 +74,12 @@ export function initInteractiveMapModal(modalId, mapContainerId, btnOpenId, btnC
                 `;
 
                 marker.addListener('click', () => {
-                    // Cierra la ventana anterior automáticamente para evitar sobrecarga
                     if (activeInfoWindow) {
                         activeInfoWindow.close();
                     }
                     activeInfoWindow.setContent(contentString);
                     activeInfoWindow.open(interactiveMap, marker);
 
-                    // Escuchar clic en el botón dentro del InfoWindow
                     setTimeout(() => {
                         const selectBtn = document.getElementById(`map-select-btn-${client.id}`);
                         if (selectBtn) {
@@ -85,7 +93,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, btnOpenId, btnC
                     }, 100);
                 });
 
-                // Si es el cliente activo, abrir su detalle al abrir el mapa
                 if (activeClient && client.id === activeClient.id) {
                     activeInfoWindow.setContent(contentString);
                     activeInfoWindow.open(interactiveMap, marker);
