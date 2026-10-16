@@ -35,6 +35,36 @@
             border: 2px solid #2b6cb0 !important;
             box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
         }
+
+        /* Estilos para el buscador inteligente de clientes */
+        .client-search-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .client-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 0 0 8px 8px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .client-result-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 0.9rem;
+        }
+        .client-result-item:hover {
+            background: #ebf8ff;
+            color: #2b6cb0;
+        }
     </style>
 </head>
 <body>
@@ -46,18 +76,23 @@
         </div>
 
         <p style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
-            Selecciona el cliente, elige la fecha sugerida o selecciona cualquier fecha en el calendario, la hora y la duración.
+            Busca un cliente por nombre o dirección, elige la fecha sugerida o selecciónala en el calendario, la hora y la duración.
         </p>
 
         <form id="appointment-form">
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3748; font-size: 0.9rem;">1. Seleccionar Cliente:</label>
-                <select id="client-select" required>
-                    <option value="">-- Elige un cliente --</option>
-                </select>
+            <!-- Buscador inteligente de clientes -->
+            <div class="client-search-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <label style="font-weight: bold; color: #2d3748; font-size: 0.9rem;">1. Buscar Cliente (por nombre o calle):</label>
+                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 4px 8px; font-size: 0.75rem; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer;">🗺️ Buscar en el Mapa</button>
+                </div>
+                <input type="text" id="client-search-input" placeholder="Escribe parte del nombre o la calle..." autocomplete="off" required>
+                <input type="hidden" id="client-select" required>
+                <div id="client-results-dropdown" class="client-results-dropdown"></div>
             </div>
 
             <div id="client-details" class="info-card">
+                <strong>Cliente Seleccionado:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
                 <strong>Dirección:</strong> <span id="det-address">-</span><br>
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span>
             </div>
@@ -94,6 +129,18 @@
         </form>
     </div>
 
+    <!-- Modal simple para seleccionar cliente desde el mapa si se desea -->
+    <div id="map-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; width: 90%; max-width: 500px; padding: 20px; border-radius: 10px; max-height: 80vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 1rem;">Selecciona un cliente</h3>
+                <button type="button" id="close-map-modal" style="width: auto; padding: 4px 8px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">✕</button>
+            </div>
+            <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">Haz clic en cualquier cliente de la lista para seleccionarlo:</p>
+            <div id="modal-client-list"></div>
+        </div>
+    </div>
+
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -101,7 +148,6 @@
         let selectedDateOnly = '';
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
-        // Configurar la fecha mínima permitida en el calendario como hoy
         const freeDateInput = document.getElementById('free-date-input');
         if (freeDateInput) {
             freeDateInput.setAttribute('min', todayStrSystem);
@@ -174,21 +220,14 @@
                 if (error) throw error;
 
                 allClients = data || [];
-                const select = document.getElementById('client-select');
-                select.innerHTML = '<option value="">-- Elige un cliente --</option>';
-
-                allClients.forEach(client => {
-                    const opt = document.createElement('option');
-                    opt.value = client.id;
-                    opt.textContent = `${client.name} (${client.address || 'Sin dirección'})`;
-                    select.appendChild(opt);
-                });
 
                 const urlParams = new URLSearchParams(window.location.search);
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
-                    select.value = targetClientId;
-                    select.dispatchEvent(new Event('change'));
+                    const found = allClients.find(c => c.id === targetClientId);
+                    if (found) {
+                        selectClient(found);
+                    }
                 }
 
             } catch (err) {
@@ -197,8 +236,53 @@
             }
         }
 
-        document.getElementById('client-select').addEventListener('change', (e) => {
-            const clientId = e.target.value;
+        // Lógica del Buscador Inteligente
+        const searchInput = document.getElementById('client-search-input');
+        const dropdown = document.getElementById('client-results-dropdown');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (query.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            const filtered = allClients.filter(c => {
+                const nameMatch = c.name && c.name.toLowerCase().includes(query);
+                const addressMatch = c.address && c.address.toLowerCase().includes(query);
+                const postalMatch = c.postal_code && c.postal_code.toLowerCase().includes(query);
+                return nameMatch || addressMatch || postalMatch;
+            });
+
+            dropdown.innerHTML = '';
+            if (filtered.length > 0) {
+                filtered.forEach(client => {
+                    const item = document.createElement('div');
+                    item.className = 'client-result-item';
+                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
+                    item.addEventListener('click', () => {
+                        selectClient(client);
+                        dropdown.style.display = 'none';
+                    });
+                    dropdown.appendChild(item);
+                });
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontraron clientes</div>`;
+                dropdown.style.display = 'block';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        function selectClient(client) {
+            searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
+            document.getElementById('client-select').value = client.id;
+
             const detailsCard = document.getElementById('client-details');
             const dateSection = document.getElementById('date-section');
             const suggestionBox = document.getElementById('route-suggestions');
@@ -214,18 +298,12 @@
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.6';
 
-            if (!clientId) {
-                detailsCard.style.display = 'none';
-                dateSection.style.display = 'none';
-                return;
-            }
-
-            const client = allClients.find(c => c.id === clientId);
-            if (!client || !client.latitude || !client.longitude) {
+            if (!client.latitude || !client.longitude) {
                 alert('Este cliente no tiene coordenadas geográficas registradas.');
                 return;
             }
 
+            document.getElementById('det-name').textContent = client.name;
             document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
             detailsCard.style.display = 'block';
@@ -298,9 +376,30 @@
                 suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas cercanas. Selecciona la fecha en el calendario.</p>`;
                 suggestionBox.style.display = 'block';
             }
+        }
+
+        // Modal para buscar cliente mediante lista auxiliar
+        const modal = document.getElementById('map-modal');
+        document.getElementById('btn-open-map-selector').addEventListener('click', () => {
+            const listContainer = document.getElementById('modal-client-list');
+            listContainer.innerHTML = '';
+            allClients.forEach(c => {
+                const row = document.createElement('div');
+                row.style.cssText = "padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 0.85rem;";
+                row.innerHTML = `<strong>${c.name}</strong> - <span style="color:#666;">${c.address || 'Sin dirección'}</span>`;
+                row.addEventListener('click', () => {
+                    selectClient(c);
+                    modal.style.display = 'none';
+                });
+                listContainer.appendChild(row);
+            });
+            modal.style.display = 'flex';
         });
 
-        // Evento al cambiar la fecha manualmente en el calendario
+        document.getElementById('close-map-modal').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
@@ -318,7 +417,6 @@
 
             updateFinalTimestamp();
 
-            // Desmarcar sugerencias si el usuario elige otra fecha manualmente
             document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
 
             const saveBtn = document.getElementById('save-btn');
