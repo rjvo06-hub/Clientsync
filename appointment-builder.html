@@ -129,7 +129,7 @@
         </form>
     </div>
 
-    <!-- Modal simple para seleccionar cliente desde el mapa si se desea -->
+    <!-- Modal para seleccionar cliente desde lista/mapa auxiliar -->
     <div id="map-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
         <div style="background: white; width: 90%; max-width: 500px; padding: 20px; border-radius: 10px; max-height: 80vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -236,7 +236,7 @@
             }
         }
 
-        // Lógica del Buscador Inteligente
+        // Buscador Inteligente con Prioridad (Empiezan con... luego Contienen...)
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
@@ -247,12 +247,28 @@
                 return;
             }
 
-            const filtered = allClients.filter(c => {
-                const nameMatch = c.name && c.name.toLowerCase().includes(query);
-                const addressMatch = c.address && c.address.toLowerCase().includes(query);
-                const postalMatch = c.postal_code && c.postal_code.toLowerCase().includes(query);
-                return nameMatch || addressMatch || postalMatch;
+            // 1. Filtrar los que COMIENZAN exactamente con la consulta (en nombre, dirección o CP)
+            const startsWithMatches = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const address = (c.address || '').toLowerCase();
+                const postal = (c.postal_code || '').toLowerCase();
+                return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
             });
+
+            // 2. Filtrar los que CONTIENEN la consulta en cualquier parte (excluyendo los que ya están en startsWith)
+            const containsMatches = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const address = (c.address || '').toLowerCase();
+                const postal = (c.postal_code || '').toLowerCase();
+                
+                const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
+                const alreadyAdded = startsWithMatches.includes(c);
+
+                return hasMatch && !alreadyAdded;
+            });
+
+            // Unir resultados dando absoluta prioridad a los que empiezan con el texto
+            const filtered = [...startsWithMatches, ...containsMatches];
 
             dropdown.innerHTML = '';
             if (filtered.length > 0) {
