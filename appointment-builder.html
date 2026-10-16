@@ -65,6 +65,38 @@
             background: #ebf8ff;
             color: #2b6cb0;
         }
+
+        /* Estilos del modal del mapa */
+        #map-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .map-modal-content {
+            background: white;
+            width: 95%;
+            max-width: 700px;
+            height: 80vh;
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        #interactive-map {
+            width: 100%;
+            flex-grow: 1;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -76,7 +108,7 @@
         </div>
 
         <p style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
-            Busca un cliente por nombre o dirección, elige la fecha sugerida o selecciónala en el calendario, la hora y la duración.
+            Busca un cliente por nombre o calle, elige la fecha sugerida o selecciónala en el calendario, la hora y la duración.
         </p>
 
         <form id="appointment-form">
@@ -129,23 +161,28 @@
         </form>
     </div>
 
-    <!-- Modal para seleccionar cliente desde lista/mapa auxiliar -->
-    <div id="map-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; width: 90%; max-width: 500px; padding: 20px; border-radius: 10px; max-height: 80vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="margin: 0; font-size: 1rem;">Selecciona un cliente</h3>
-                <button type="button" id="close-map-modal" style="width: auto; padding: 4px 8px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">✕</button>
+    <!-- Modal con el Mapa Interactivo Real -->
+    <div id="map-modal">
+        <div class="map-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1rem; color: #2d3748;">🗺️ Selecciona un cliente en el mapa</h3>
+                <button type="button" id="close-map-modal" style="width: auto; padding: 6px 12px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
             </div>
-            <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">Haz clic en cualquier cliente de la lista para seleccionarlo:</p>
-            <div id="modal-client-list"></div>
+            <p style="font-size: 0.8rem; color: #666; margin: 6px 0 0 0;">Haz clic en cualquier pin del mapa para seleccionar al cliente.</p>
+            <div id="interactive-map"></div>
         </div>
     </div>
+
+    <!-- Script de Google Maps -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
         let selectedDateOnly = '';
+        let interactiveMap = null;
+        let mapMarkers = [];
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const freeDateInput = document.getElementById('free-date-input');
@@ -236,7 +273,7 @@
             }
         }
 
-        // Buscador Inteligente con Prioridad (Empiezan con... luego Contienen...)
+        // Buscador Inteligente con Prioridad
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
@@ -247,7 +284,6 @@
                 return;
             }
 
-            // 1. Filtrar los que COMIENZAN exactamente con la consulta (en nombre, dirección o CP)
             const startsWithMatches = allClients.filter(c => {
                 const name = (c.name || '').toLowerCase();
                 const address = (c.address || '').toLowerCase();
@@ -255,7 +291,6 @@
                 return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
             });
 
-            // 2. Filtrar los que CONTIENEN la consulta en cualquier parte (excluyendo los que ya están en startsWith)
             const containsMatches = allClients.filter(c => {
                 const name = (c.name || '').toLowerCase();
                 const address = (c.address || '').toLowerCase();
@@ -267,7 +302,6 @@
                 return hasMatch && !alreadyAdded;
             });
 
-            // Unir resultados dando absoluta prioridad a los que empiezan con el texto
             const filtered = [...startsWithMatches, ...containsMatches];
 
             dropdown.innerHTML = '';
@@ -394,26 +428,62 @@
             }
         }
 
-        // Modal para buscar cliente mediante lista auxiliar
-        const modal = document.getElementById('map-modal');
+        // Lógica para desplegar el mapa interactivo real de Google Maps en el modal
+        const mapModal = document.getElementById('map-modal');
         document.getElementById('btn-open-map-selector').addEventListener('click', () => {
-            const listContainer = document.getElementById('modal-client-list');
-            listContainer.innerHTML = '';
-            allClients.forEach(c => {
-                const row = document.createElement('div');
-                row.style.cssText = "padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 0.85rem;";
-                row.innerHTML = `<strong>${c.name}</strong> - <span style="color:#666;">${c.address || 'Sin dirección'}</span>`;
-                row.addEventListener('click', () => {
-                    selectClient(c);
-                    modal.style.display = 'none';
+            mapModal.style.display = 'flex';
+
+            // Inicializar el mapa de Google Maps si aún no se ha creado
+            if (!interactiveMap) {
+                const defaultLat = allClients.length > 0 && allClients[0].latitude ? Number(allClients[0].latitude) : 48.0688;
+                const defaultLng = allClients.length > 0 && allClients[0].longitude ? Number(allClients[0].longitude) : 11.6145;
+
+                interactiveMap = new google.maps.Map(document.getElementById('interactive-map'), {
+                    center: { lat: defaultLat, lng: defaultLng },
+                    zoom: 12,
                 });
-                listContainer.appendChild(row);
+            } else {
+                google.maps.event.trigger(interactiveMap, 'resize');
+            }
+
+            // Limpiar marcadores anteriores del modal
+            mapMarkers.forEach(m => m.setMap(null));
+            mapMarkers = [];
+
+            // Colocar los marcadores de todos los clientes en el mapa interactivo
+            allClients.forEach(client => {
+                if (client.latitude && client.longitude) {
+                    const marker = new google.maps.Marker({
+                        position: { lat: Number(client.latitude), lng: Number(client.longitude) },
+                        map: interactiveMap,
+                        title: client.name
+                    });
+
+                    // Info window con los datos y botón para seleccionar
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `<div style="padding: 4px;"><strong>${client.name}</strong><br>${client.address || ''}<br><button onclick="window.selectClientFromMap('${client.id}')" style="margin-top:6px; background:#3182ce; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Seleccionar este cliente</button></div>`
+                    });
+
+                    marker.addListener('click', () => {
+                        infoWindow.open(interactiveMap, marker);
+                    });
+
+                    mapMarkers.push(marker);
+                }
             });
-            modal.style.display = 'flex';
         });
 
+        // Función global accesible desde el InfoWindow del mapa para seleccionar el cliente
+        window.selectClientFromMap = function(clientId) {
+            const found = allClients.find(c => c.id === clientId);
+            if (found) {
+                selectClient(found);
+                mapModal.style.display = 'none';
+            }
+        };
+
         document.getElementById('close-map-modal').addEventListener('click', () => {
-            modal.style.display = 'none';
+            mapModal.style.display = 'none';
         });
 
         document.getElementById('free-date-input').addEventListener('change', (e) => {
