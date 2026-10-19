@@ -2,8 +2,7 @@ import { supabase } from './supabaseClient.js';
 
 let map;
 let markers = [];
-let markerMap = {}; // Mapa para asociar el ID del cliente con su marcador exacto
-let infoWindow = null; // Instancia única para el globito flotante
+let markerMap = {}; 
 
 function initMapWhenReady() {
     if (typeof google === 'object' && typeof google.maps === 'object') {
@@ -34,7 +33,9 @@ async function startMap() {
         });
 
         window.map = map;
-        infoWindow = new google.maps.InfoWindow();
+
+        // Crear el contenedor de la tarjeta flotante personalizada sobre el mapa si no existe
+        createCustomMapCardContainer();
 
         // 1. Cargar todos los clientes inicialmente
         await loadAndRenderClients(map);
@@ -46,7 +47,7 @@ async function startMap() {
             await zoomToZoneOrPostal(targetPostal);
         });
 
-        // 3. Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir el globito correcto
+        // 3. Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir la tarjeta
         window.addEventListener('centerOnClient', (e) => {
             const client = e.detail;
             if (map && client.latitude && client.longitude) {
@@ -56,11 +57,7 @@ async function startMap() {
                 map.setCenter({ lat, lng });
                 map.setZoom(17);
 
-                // Abrir el globito en el marcador correspondiente de ese cliente
-                const marker = markerMap[client.id];
-                if (marker) {
-                    showClientDetailsInfoWindow(client, marker);
-                }
+                showCustomMapCard(client);
             }
         });
 
@@ -69,8 +66,39 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito (InfoWindow) con diseño contrastado y profesional
-function showClientDetailsInfoWindow(client, markerInstance) {
+// Inyectar el contenedor flotante personalizado dentro de la sección del mapa
+function createCustomMapCardContainer() {
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer || document.getElementById('custom-map-card')) return;
+
+    // Asegurar que el contenedor del mapa tenga posicionamiento relativo
+    mapContainer.style.position = 'relative';
+
+    const card = document.createElement('div');
+    card.id = 'custom-map-card';
+    card.style.cssText = `
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 300px;
+        background: #0f172a;
+        color: #f8fafc;
+        border-radius: 14px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        z-index: 1000;
+        padding: 16px;
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        box-sizing: border-box;
+        display: none;
+        border: 1px solid #334155;
+    `;
+    mapContainer.appendChild(card);
+}
+
+function showCustomMapCard(client) {
+    const card = document.getElementById('custom-map-card');
+    if (!card) return;
+
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
     if (client.appointment_date) {
@@ -79,62 +107,55 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
     }
 
-    const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0; max-width: 280px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-            <!-- Encabezado con contraste -->
-            <div style="background: #f1f5f9; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
-                <h3 style="margin: 0; font-size: 0.95rem; color: ${hasAppointment ? '#1d4ed8' : '#dc2626'}; font-weight: 700;">
-                    ${hasAppointment ? '🔵' : '🔴'} ${client.name}
-                </h3>
-            </div>
-            <!-- Cuerpo de la tarjeta -->
-            <div style="padding: 12px;">
-                <p style="margin: 0 0 6px 0; font-size: 0.82rem; color: #334155;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
-                <p style="margin: 0 0 6px 0; font-size: 0.82rem; color: #334155;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
-                <p style="margin: 0 0 12px 0; font-size: 0.82rem; color: #2563eb;"><strong>📅 Cita:</strong> ${currentAppointmentInfo}</p>
-                
-                <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 9px; width: 100%; border-radius: 8px; font-size: 0.82rem; font-weight: bold; cursor: pointer; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                    📅 Gestionar Cita
-                </button>
-                <button type="button" id="infowindow-delete-${client.id}" style="background: #ef4444; color: white; border: none; padding: 7px; width: 100%; border-radius: 8px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
-                    🗑️ Eliminar Cliente
-                </button>
-            </div>
+    card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 10px;">
+            <h3 style="margin: 0; font-size: 0.95rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
+                ${hasAppointment ? '🔵' : '🔴'} ${client.name}
+            </h3>
+            <button type="button" id="close-custom-card" style="background: #1e293b; color: #94a3b8; border: none; font-size: 0.9rem; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
         </div>
+        <p style="margin: 0 0 6px 0; font-size: 0.8rem; color: #cbd5e1;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
+        <p style="margin: 0 0 6px 0; font-size: 0.8rem; color: #cbd5e1;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
+        <p style="margin: 0 0 12px 0; font-size: 0.8rem; color: #93c5fd;"><strong>📅 Cita:</strong> ${currentAppointmentInfo}</p>
+        
+        <button type="button" id="card-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 8px; width: 100%; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; margin-bottom: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            📅 Gestionar Cita
+        </button>
+        <button type="button" id="card-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 6px; width: 100%; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">
+            🗑️ Eliminar Cliente
+        </button>
     `;
 
-    infoWindow.setContent(contentHtml);
-    infoWindow.open(map, markerInstance);
+    card.style.display = 'block';
 
-    // Asignar eventos a los botones dentro del globito cuando se rendericen en el DOM
-    google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-        const gotoBtn = document.getElementById(`infowindow-goto-${client.id}`);
-        if (gotoBtn) {
-            gotoBtn.addEventListener('click', () => {
-                window.location.href = `./appointment-builder.html?client_id=${client.id}`;
-            });
-        }
+    // Evento para cerrar la tarjeta
+    document.getElementById('close-custom-card').addEventListener('click', () => {
+        card.style.display = 'none';
+    });
 
-        const deleteBtn = document.getElementById(`infowindow-delete-${client.id}`);
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', async () => {
-                if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
-                    deleteBtn.textContent = 'Eliminando...';
-                    const { error: delErr } = await supabase
-                        .from('clients')
-                        .delete()
-                        .eq('id', client.id);
+    // Evento para gestionar cita
+    document.getElementById(`card-goto-${client.id}`).addEventListener('click', () => {
+        window.location.href = `./appointment-builder.html?client_id=${client.id}`;
+    });
 
-                    if (delErr) {
-                        alert('Error al eliminar: ' + delErr.message);
-                        deleteBtn.textContent = '🗑️ Eliminar Cliente';
-                    } else {
-                        alert('¡Cliente eliminado correctamente!');
-                        infoWindow.close();
-                        await loadAndRenderClients(map, null);
-                    }
-                }
-            });
+    // Evento para eliminar cliente
+    document.getElementById(`card-delete-${client.id}`).addEventListener('click', async () => {
+        if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
+            const deleteBtn = document.getElementById(`card-delete-${client.id}`);
+            deleteBtn.textContent = 'Eliminando...';
+            const { error: delErr } = await supabase
+                .from('clients')
+                .delete()
+                .eq('id', client.id);
+
+            if (delErr) {
+                alert('Error al eliminar: ' + delErr.message);
+                deleteBtn.textContent = '🗑️ Eliminar Cliente';
+            } else {
+                alert('¡Cliente eliminado correctamente!');
+                card.style.display = 'none';
+                await loadAndRenderClients(map, null);
+            }
         }
     });
 }
@@ -144,7 +165,6 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
         const { data: clients, error } = await supabase.from('clients').select('*');
         if (error || !clients) return;
 
-        // Limpiar marcadores previos y registro
         markers.forEach(m => m.setMap(null));
         markers = [];
         markerMap = {};
@@ -173,11 +193,10 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
                         icon: { url: markerIcon }
                     });
 
-                    // Guardar referencia en el diccionario de marcadores
                     markerMap[client.id] = marker;
 
                     marker.addListener('click', () => {
-                        showClientDetailsInfoWindow(client, marker);
+                        showCustomMapCard(client);
                     });
 
                     markers.push(marker);
