@@ -70,46 +70,60 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante ultra compacto, minimalista y con opción de reprogramación
+// Función para mostrar el globito flotante con nombre centrado, dirección izquierda y opción de programar nueva cita siempre disponible
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
-    let appointmentBlock = `<span style="color: #94a3b8;">No programada</span>`;
-    let actionButtonText = "📅 Programar Cita";
+    let appointmentSection = '';
 
     if (hasAppointment) {
         const d = new Date(client.appointment_date);
         const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
         const formattedDate = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
         
-        appointmentBlock = `
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
-                <span style="color: #93c5fd; font-weight: 500;">${formattedDate}</span>
-                <button type="button" id="infowindow-goto-${client.id}" style="background: #2563eb; color: white; border: none; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
-                    Reprogramar
-                </button>
+        appointmentSection = `
+            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
+                <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada:</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                    <strong style="color: #93c5fd;">${formattedDate}</strong>
+                    <button type="button" id="infowindow-reschedule-${client.id}" style="background: #2563eb; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
+                        Reprogramar
+                    </button>
+                </div>
             </div>
         `;
-        actionButtonText = "📅 Gestionar Cita";
+    } else {
+        appointmentSection = `
+            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
+                <span style="color: #94a3b8; display: block; margin-bottom: 3px;">Cita programada: <strong style="color: #f87171;">No programada</strong></span>
+            </div>
+        `;
     }
 
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 195px; background: #0f172a; color: #f8fafc; border-radius: 6px;">
-            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 5px;">
-                <h3 style="margin: 0; font-size: 0.8rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 195px; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left;">
+            
+            <!-- Nombre centrado -->
+            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 5px; text-align: center;">
+                <h3 style="margin: 0; font-size: 0.82rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
-            <p style="margin: 0 0 3px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;"><strong>📍</strong> ${client.address || 'Sin dirección'}</p>
-            <p style="margin: 0 0 3px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;"><strong>📞</strong> ${client.phone || 'N/A'}</p>
-            <div style="margin: 0 0 6px 0; font-size: 0.65rem; line-height: 1.2;">
-                <strong>📅 Cita:</strong> ${appointmentBlock}
-            </div>
-            
-            ${!hasAppointment ? `
-                <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; font-size: 0.68rem; font-weight: bold; cursor: pointer;">
-                    ${actionButtonText}
+
+            <!-- Dirección justificada a la izquierda -->
+            <p style="margin: 0 0 6px 0; font-size: 0.68rem; color: #cbd5e1; line-height: 1.3; text-align: left;">
+                <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
+            </p>
+
+            <!-- Sección de Cita Actual -->
+            ${appointmentSection}
+
+            <!-- Botón permanente para Programar nueva cita -->
+            <div style="margin-top: 6px;">
+                <button type="button" id="infowindow-new-${client.id}" style="background: #0d9488; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; font-size: 0.68rem; font-weight: bold; cursor: pointer;">
+                    📅 Programar nueva cita
                 </button>
-            ` : ''}
+            </div>
+
         </div>
     `;
 
@@ -153,9 +167,18 @@ function showClientDetailsInfoWindow(client, markerInstance) {
             document.head.appendChild(styleTag);
         }
 
-        const gotoBtn = document.getElementById(`infowindow-goto-${client.id}`);
-        if (gotoBtn) {
-            gotoBtn.addEventListener('click', () => {
+        // Evento para reprogramar la cita existente
+        const rescheduleBtn = document.getElementById(`infowindow-reschedule-${client.id}`);
+        if (rescheduleBtn) {
+            rescheduleBtn.addEventListener('click', () => {
+                window.location.href = `./appointment-builder.html?client_id=${client.id}`;
+            });
+        }
+
+        // Evento para programar una nueva cita
+        const newAppointmentBtn = document.getElementById(`infowindow-new-${client.id}`);
+        if (newAppointmentBtn) {
+            newAppointmentBtn.addEventListener('click', () => {
                 window.location.href = `./appointment-builder.html?client_id=${client.id}`;
             });
         }
