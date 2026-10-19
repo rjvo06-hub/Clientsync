@@ -15,7 +15,6 @@ function initMapWhenReady() {
 
 async function startMap() {
     console.log("🗺️ Inicializando mapa de Google Maps...");
-    // Coordenadas exactas del centro de Ottobrunn
     const ottobrunnCenter = { lat: 48.0664, lng: 11.6611 };
 
     const mapElement = document.getElementById('map');
@@ -227,8 +226,13 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
 
                     markerMap[client.id] = marker;
 
-                    marker.addListener('click', () => {
+                    marker.addListener('click', (e) => {
+                        // Marcar que el clic provino de un marcador para evitar que se cierre de golpe
+                        window._isClickingMarker = true;
                         showClientDetailsInfoWindow(client, marker);
+                        setTimeout(() => {
+                            window._isClickingMarker = false;
+                        }, 200);
                     });
 
                     markers.push(marker);
@@ -243,6 +247,21 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
         console.error('❌ Excepción al renderizar clientes:', err);
     }
 }
+
+// Escuchar clics globales en el mapa o documento para cerrar la ventana si se hace clic fuera
+document.addEventListener('click', (e) => {
+    if (infoWindow && !window._isClickingMarker) {
+        // Verificar si el clic ocurrió fuera del contenedor del InfoWindow y fuera de los marcadores
+        const target = e.target;
+        const isInsideMap = target.closest('#map');
+        const isInsideInfoWindow = target.closest('.gm-style-iw-c');
+        const isMarker = target.closest('img[src*="mapfiles"]');
+
+        if (isInsideMap && !isInsideInfoWindow && !isMarker) {
+            infoWindow.close();
+        }
+    }
+});
 
 async function zoomToZoneOrPostal(postalCode) {
     if (!map) return;
