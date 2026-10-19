@@ -15,16 +15,16 @@ function initMapWhenReady() {
 
 async function startMap() {
     console.log("🗺️ Inicializando mapa de Google Maps...");
-    // Coordenadas centrales de Múnich para la vista inicial óptima
-    const munichCenter = { lat: 48.1351, lng: 11.5820 };
+    // Coordenadas centrales de Ottobrunn para la vista inicial
+    const ottobrunnCenter = { lat: 48.0686, lng: 11.6289 };
 
     const mapElement = document.getElementById('map');
     if (!mapElement) return;
 
     try {
         map = new google.maps.Map(mapElement, {
-            zoom: 12, // Zoom enfocado perfectamente en Múnich
-            center: munichCenter,
+            zoom: 13, // Zoom enfocado en Ottobrunn
+            center: ottobrunnCenter,
             styles: [
                 {
                     featureType: "poi",
@@ -39,7 +39,7 @@ async function startMap() {
             maxWidth: 220
         });
 
-        // 1. Cargar todos los clientes inicialmente (sin fitBounds global para conservar el enfoque en Múnich)
+        // 1. Cargar todos los clientes inicialmente (conservando el enfoque inicial en Ottobrunn)
         await loadAndRenderClients(map);
 
         // 2. Escuchar el evento cuando el usuario selecciona un sector en el modal de index.html
