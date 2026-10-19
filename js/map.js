@@ -15,15 +15,16 @@ function initMapWhenReady() {
 
 async function startMap() {
     console.log("🗺️ Inicializando mapa de Google Maps...");
-    const defaultCenter = { lat: 48.0686, lng: 11.6289 };
+    // Coordenadas centrales de Múnich para la vista inicial óptima
+    const munichCenter = { lat: 48.1351, lng: 11.5820 };
 
     const mapElement = document.getElementById('map');
     if (!mapElement) return;
 
     try {
         map = new google.maps.Map(mapElement, {
-            zoom: 11,
-            center: defaultCenter,
+            zoom: 12, // Zoom enfocado perfectamente en Múnich
+            center: munichCenter,
             styles: [
                 {
                     featureType: "poi",
@@ -38,7 +39,7 @@ async function startMap() {
             maxWidth: 220
         });
 
-        // 1. Cargar todos los clientes inicialmente
+        // 1. Cargar todos los clientes inicialmente (sin fitBounds global para conservar el enfoque en Múnich)
         await loadAndRenderClients(map);
 
         // 2. Escuchar el evento cuando el usuario selecciona un sector en el modal de index.html
@@ -70,7 +71,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante totalmente pegado al borde superior
+// Función para mostrar el globito flotante ultra compacto y minimalista
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let appointmentSection = '';
@@ -142,7 +143,7 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         const iwContainer = document.querySelector('.gm-style-iw-c');
         if (iwContainer) {
             iwContainer.style.background = '#0f172a';
-            iwContainer.style.padding = '2px 6px 6px 6px'; // Cero padding superior para que quede pegado
+            iwContainer.style.padding = '2px 6px 6px 6px';
             iwContainer.style.borderRadius = '8px';
             iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
         }
@@ -235,7 +236,8 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
             }
         });
 
-        if (!postalFilter && matchedAny && !bounds.isEmpty()) {
+        // Solo aplicamos fitBounds si el usuario filtra por un código postal/sector específico
+        if (postalFilter && matchedAny && !bounds.isEmpty()) {
             mapInstance.fitBounds(bounds);
         }
     } catch (err) {
