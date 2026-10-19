@@ -1,299 +1,268 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Mapa de Clientes</title>
-    <link rel="stylesheet" href="./css/main.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-body: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-secondary: #64748b;
-            --border-subtle: #e2e8f0;
-            --radius-xl: 16px;
-            --radius-md: 10px;
-        }
+import { supabase } from './supabaseClient.js';
 
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            margin: 0;
-            padding: 12px;
-            -webkit-font-smoothing: antialiased;
-        }
+let map;
+let markers = [];
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            box-sizing: border-box;
-        }
+function initMapWhenReady() {
+    if (typeof google === 'object' && typeof google.maps === 'object') {
+        startMap();
+    } else {
+        setTimeout(initMapWhenReady, 100);
+    }
+}
 
-        /* Header Minimalista con Botón de Regresar */
-        .app-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 4px 2px;
-        }
+async function startMap() {
+    console.log("🗺️ Inicializando mapa de Google Maps...");
+    const defaultCenter = { lat: 48.0686, lng: 11.6289 };
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    const mapElement = document.getElementById('map');
+    if (!mapElement) return;
 
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #ffffff;
-            border: 1px solid var(--border-subtle);
-            color: var(--text-main);
-            padding: 6px 12px;
-            border-radius: var(--radius-md);
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: background 0.2s;
-        }
+    try {
+        map = new google.maps.Map(mapElement, {
+            zoom: 11,
+            center: defaultCenter,
+            styles: [
+                {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "off" }]
+                }
+            ]
+        });
 
-        .btn-back:hover {
-            background: #f1f5f9;
-        }
+        // Exponer la instancia globalmente para controles externos (buscador inteligente)
+        window.map = map;
 
-        .app-header h1 {
-            font-size: 1.15rem;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.3px;
-            color: #0f172a;
-        }
+        // Crear el contenedor flotante pequeño y elegante en el DOM
+        createMobileBottomSheetContainer();
 
-        .badge-brand {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            background: #f1f5f9;
-            padding: 3px 8px;
-            border-radius: 20px;
-            border: 1px solid var(--border-subtle);
-        }
+        // 1. Cargar todos los clientes inicialmente
+        await loadAndRenderClients(map);
 
-        /* Buscador Inteligente Flotante sobre el Mapa */
-        .client-search-container {
-            position: relative;
-            margin-bottom: 4px;
-        }
+        // 2. Escuchar el evento cuando el usuario selecciona un sector en el modal de index.html
+        document.addEventListener('sectorSelected', async (e) => {
+            const targetPostal = e.detail.postalCode;
+            console.log("🎯 Sector recibido para zoom por zona:", targetPostal);
+            await zoomToZoneOrPostal(targetPostal);
+        });
 
-        .client-search-input {
-            width: 100%;
-            padding: 10px 14px;
-            font-size: 0.9rem;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            background: white;
-            box-sizing: border-box;
-            outline: none;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            transition: border-color 0.2s;
-        }
+        // 3. Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir la tarjeta correcta
+        window.addEventListener('centerOnClient', (e) => {
+            const client = e.detail;
+            if (map && client.latitude && client.longitude) {
+                const lat = Number(client.latitude);
+                const lng = Number(client.longitude);
+                
+                map.setCenter({ lat, lng });
+                map.setZoom(17); // Zoom de acercamiento perfecto
 
-        .client-search-input:focus {
-            border-color: #2563eb;
-        }
-
-        .client-results-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid var(--border-subtle);
-            border-radius: 0 0 var(--radius-md) var(--radius-md);
-            max-height: 220px;
-            overflow-y: auto;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            display: none;
-        }
-
-        .client-result-item {
-            padding: 10px 14px;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.85rem;
-        }
-
-        .client-result-item:hover {
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-
-        /* Sección del Mapa */
-        .map-section {
-            background: var(--card-bg);
-            padding: 12px;
-            border-radius: var(--radius-xl);
-            border: 1px solid var(--border-subtle);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
-        }
-
-        .map-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            padding: 0 4px;
-        }
-
-        .map-header h2 {
-            margin: 0;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        #map {
-            width: 100%;
-            height: 75vh;
-            min-height: 450px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-subtle);
-            overflow: hidden;
-        }
-
-        @media (max-width: 768px) {
-            #map {
-                height: 68vh;
-                min-height: 380px;
+                // Abrir directamente la tarjeta flotante compacta con los datos de ESTE cliente exacto
+                showClientDetailsBottomSheet(client);
             }
-        }
-    </style>
-</head>
-<body>
+        });
 
-    <div class="container">
-        <!-- Header minimalista con opción para volver -->
-        <header class="app-header">
-            <div class="header-left">
-                <a href="./index.html" class="btn-back">← Volver</a>
-                <h1>ClientSync</h1>
-            </div>
-            <span class="badge-brand">WerkSolutions</span>
-        </header>
+    } catch (e) {
+        console.error("❌ Error crítico al instanciar el mapa:", e);
+    }
+}
 
-        <!-- Buscador Inteligente de Clientes integrado -->
-        <div class="client-search-container">
-            <input type="text" id="client-search-input" class="client-search-input" placeholder="🔍 Buscar cliente por nombre, dirección o CP..." autocomplete="off">
-            <div id="client-results-dropdown" class="client-results-dropdown"></div>
+// Inyectar el contenedor flotante pequeño en el DOM (no cubre toda la pantalla)
+function createMobileBottomSheetContainer() {
+    if (document.getElementById('client-bottom-sheet')) return;
+
+    const sheet = document.createElement('div');
+    sheet.id = 'client-bottom-sheet';
+    sheet.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 420px;
+        max-height: 75vh;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        z-index: 10000;
+        transition: all 0.3s ease-in-out;
+        box-sizing: border-box;
+        padding: 16px;
+        overflow-y: auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        display: none;
+    `;
+    document.body.appendChild(sheet);
+}
+
+function openMobileBottomSheet(htmlContent) {
+    const sheet = document.getElementById('client-bottom-sheet');
+    if (sheet) {
+        sheet.innerHTML = htmlContent;
+        sheet.style.display = 'block';
+    }
+}
+
+function closeMobileBottomSheet() {
+    const sheet = document.getElementById('client-bottom-sheet');
+    if (sheet) {
+        sheet.style.display = 'none';
+    }
+}
+
+// Función centralizada para mostrar la tarjeta flotante compacta de un cliente
+function showClientDetailsBottomSheet(client) {
+    const hasAppointment = Boolean(client.appointment_date);
+    let currentAppointmentInfo = 'No programada';
+    if (client.appointment_date) {
+        const d = new Date(client.appointment_date);
+        const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
+        currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
+    }
+
+    const sheetContent = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
+            <h2 style="margin: 0; font-size: 1.05rem; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'};">
+                ${hasAppointment ? '🔵' : '🔴'} ${client.name}
+            </h2>
+            <button type="button" id="close-sheet-btn" style="background: #e2e8f0; border: none; font-size: 1rem; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-weight: bold;">✕</button>
         </div>
 
-        <!-- Sección del Mapa -->
-        <section class="map-section">
-            <div class="map-header">
-                <h2>📍 Mapa General de Clientes</h2>
-            </div>
-            <div id="map"></div>
-        </section>
-    </div>
+        <p style="margin: 0 0 6px 0; font-size: 0.85rem; color: #4a5568;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
+        <p style="margin: 0 0 6px 0; font-size: 0.85rem; color: #4a5568;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
+        <p style="margin: 0 0 14px 0; font-size: 0.85rem; color: #2b6cb0;"><strong>📅 Cita actual:</strong> ${currentAppointmentInfo}</p>
+        
+        <button type="button" id="btn-goto-appointment-${client.id}" style="background: #319795; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            📅 Programar / Gestionar Cita
+        </button>
 
-    <!-- Script de Google Maps -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
+        <div style="padding-top: 8px; border-top: 2px dashed #e2e8f0; text-align: center;">
+            <button type="button" id="sheet-delete-client-${client.id}" style="background: #e53e3e; color: white; border: none; padding: 8px; width: 100%; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">
+                🗑️ Eliminar este Cliente Incorrecto
+            </button>
+        </div>
+    `;
 
-    <!-- Scripts de la app y lógica del buscador inteligente enlazada al mapa -->
-    <script type="module">
-        import { supabase } from './js/supabaseClient.js';
+    openMobileBottomSheet(sheetContent);
 
-        let allClients = [];
+    // Evento cerrar panel flotante
+    document.getElementById('close-sheet-btn').addEventListener('click', closeMobileBottomSheet);
 
-        async function initMapSearch() {
-            try {
-                const { data: clientData, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
-                if (error) throw error;
-                allClients = clientData || [];
-            } catch (err) {
-                console.error('Error al cargar clientes para el mapa:', err);
+    // Evento para redirigir a appointment-builder.html pasando el ID del cliente
+    document.getElementById(`btn-goto-appointment-${client.id}`).addEventListener('click', () => {
+        window.location.href = `./appointment-builder.html?client_id=${client.id}`;
+    });
+
+    // Botón eliminar cliente
+    const deleteBtn = document.getElementById(`sheet-delete-client-${client.id}`);
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
+                deleteBtn.textContent = 'Eliminando...';
+                const { error: delErr } = await supabase
+                    .from('clients')
+                    .delete()
+                    .eq('id', client.id);
+
+                if (delErr) {
+                    alert('Error al eliminar: ' + delErr.message);
+                    deleteBtn.textContent = '🗑️ Eliminar este Cliente Incorrecto';
+                } else {
+                    alert('¡Cliente eliminado correctamente!');
+                    closeMobileBottomSheet();
+                    await loadAndRenderClients(map, null);
+                }
+            }
+        });
+    }
+}
+
+async function loadAndRenderClients(mapInstance, postalFilter = null) {
+    try {
+        const { data: clients, error } = await supabase.from('clients').select('*');
+        if (error || !clients) return;
+
+        // Limpiar marcadores previos
+        markers.forEach(m => m.setMap(null));
+        markers = [];
+
+        const bounds = new google.maps.LatLngBounds();
+        let matchedAny = false;
+
+        clients.forEach(client => {
+            if (client.latitude && client.longitude) {
+                const matchesPostal = !postalFilter || (client.postal_code && client.postal_code.trim() === postalFilter);
+
+                if (matchesPostal) {
+                    const clientLatLng = { lat: Number(client.latitude), lng: Number(client.longitude) };
+                    bounds.extend(clientLatLng);
+                    matchedAny = true;
+
+                    const hasAppointment = Boolean(client.appointment_date);
+                    const markerIcon = hasAppointment 
+                        ? "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" 
+                        : "http://maps.google.com/mapfiles/ms/icons/red-dot.png";
+
+                    const marker = new google.maps.Marker({
+                        position: clientLatLng,
+                        map: mapInstance,
+                        title: client.name,
+                        icon: { url: markerIcon }
+                    });
+
+                    marker.addListener('click', () => {
+                        showClientDetailsBottomSheet(client);
+                    });
+
+                    markers.push(marker);
+                }
+            }
+        });
+
+        if (!postalFilter && matchedAny && !bounds.isEmpty()) {
+            mapInstance.fitBounds(bounds);
+        }
+    } catch (err) {
+        console.error('❌ Excepción al renderizar clientes:', err);
+    }
+}
+
+async function zoomToZoneOrPostal(postalCode) {
+    if (!map) return;
+
+    try {
+        const { data: zoneData, error: zoneError } = await supabase
+            .from('zones')
+            .select('*')
+            .eq('postal_code', postalCode)
+            .maybeSingle();
+
+        let zoomed = false;
+
+        if (!zoneError && zoneData && zoneData.polygon_coords && Array.isArray(zoneData.polygon_coords) && zoneData.polygon_coords.length >= 3) {
+            const zoneBounds = new google.maps.LatLngBounds();
+            zoneData.polygon_coords.forEach(pt => {
+                zoneBounds.extend({ lat: Number(pt.lat), lng: Number(pt.lng) });
+            });
+
+            if (!zoneBounds.isEmpty()) {
+                map.fitBounds(zoneBounds);
+                zoomed = true;
             }
         }
 
-        const searchInput = document.getElementById('client-search-input');
-        const dropdown = document.getElementById('client-results-dropdown');
+        await loadAndRenderClients(map, postalCode);
 
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            if (query.length === 0) {
-                dropdown.style.display = 'none';
-                return;
-            }
+        if (!zoomed) {
+            console.log("📍 Zoom ajustado mediante los puntos de los clientes del sector.");
+        }
 
-            const startsWithMatches = allClients.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const address = (c.address || '').toLowerCase();
-                const postal = (c.postal_code || '').toLowerCase();
-                return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
-            });
+    } catch (err) {
+        console.error("Error al aplicar zoom por zona:", err);
+        await loadAndRenderClients(map, postalCode);
+    }
+}
 
-            const containsMatches = allClients.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const address = (c.address || '').toLowerCase();
-                const postal = (c.postal_code || '').toLowerCase();
-                
-                const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
-                const alreadyAdded = startsWithMatches.includes(c);
-
-                return hasMatch && !alreadyAdded;
-            });
-
-            const filtered = [...startsWithMatches, ...containsMatches];
-
-            dropdown.innerHTML = '';
-            if (filtered.length > 0) {
-                filtered.forEach(client => {
-                    const item = document.createElement('div');
-                    item.className = 'client-result-item';
-                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#64748b;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
-                    
-                    item.addEventListener('click', () => {
-                        searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
-                        dropdown.style.display = 'none';
-
-                        if (client.latitude && client.longitude) {
-                            // Dispara el evento que intercepta map.js para centrar, dar zoom y abrir el BottomSheet
-                            const event = new CustomEvent('centerOnClient', { detail: client });
-                            window.dispatchEvent(event);
-                        } else {
-                            alert('Este cliente no tiene coordenadas geográficas registradas.');
-                        }
-                    });
-
-                    dropdown.appendChild(item);
-                });
-                dropdown.style.display = 'block';
-            } else {
-                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontraron clientes</div>`;
-                dropdown.style.display = 'block';
-            }
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
-
-        initMapSearch();
-    </script>
-
-    <script type="module" src="./js/app.js"></script>
-    <script type="module" src="./js/map.js"></script>
-</body>
-</html>
+document.addEventListener('DOMContentLoaded', () => {
+    initMapWhenReady();
+});
