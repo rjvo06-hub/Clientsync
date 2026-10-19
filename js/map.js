@@ -35,7 +35,7 @@ async function startMap() {
 
         window.map = map;
         infoWindow = new google.maps.InfoWindow({
-            maxWidth: 200
+            maxWidth: 220
         });
 
         // 1. Cargar todos los clientes inicialmente
@@ -70,33 +70,46 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante ultra compacto y minimalista
+// Función para mostrar el globito flotante ultra compacto, minimalista y con opción de reprogramación
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
-    let currentAppointmentInfo = 'No programada';
-    if (client.appointment_date) {
+    let appointmentBlock = `<span style="color: #94a3b8;">No programada</span>`;
+    let actionButtonText = "📅 Programar Cita";
+
+    if (hasAppointment) {
         const d = new Date(client.appointment_date);
         const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
-        currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}${hoursInfo}`;
+        const formattedDate = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
+        
+        appointmentBlock = `
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                <span style="color: #93c5fd; font-weight: 500;">${formattedDate}</span>
+                <button type="button" id="infowindow-goto-${client.id}" style="background: #2563eb; color: white; border: none; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
+                    Reprogramar
+                </button>
+            </div>
+        `;
+        actionButtonText = "📅 Gestionar Cita";
     }
 
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0; width: 180px; background: #0f172a; color: #f8fafc; border-radius: 6px;">
-            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px;">
-                <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 195px; background: #0f172a; color: #f8fafc; border-radius: 6px;">
+            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 5px;">
+                <h3 style="margin: 0; font-size: 0.8rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
-            <p style="margin: 0 0 2px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;"><strong>📍</strong> ${client.address || 'Sin dirección'}</p>
-            <p style="margin: 0 0 2px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;"><strong>📞</strong> ${client.phone || 'N/A'}</p>
-            <p style="margin: 0 0 6px 0; font-size: 0.65rem; color: #93c5fd; line-height: 1.2;"><strong>📅</strong> ${currentAppointmentInfo}</p>
+            <p style="margin: 0 0 3px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;"><strong>📍</strong> ${client.address || 'Sin dirección'}</p>
+            <p style="margin: 0 0 3px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;"><strong>📞</strong> ${client.phone || 'N/A'}</p>
+            <div style="margin: 0 0 6px 0; font-size: 0.65rem; line-height: 1.2;">
+                <strong>📅 Cita:</strong> ${appointmentBlock}
+            </div>
             
-            <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 4px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer; margin-bottom: 3px;">
-                📅 Gestionar Cita
-            </button>
-            <button type="button" id="infowindow-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 3px; width: 100%; border-radius: 4px; font-size: 0.6rem; font-weight: bold; cursor: pointer;">
-                🗑️ Eliminar Cliente
-            </button>
+            ${!hasAppointment ? `
+                <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; font-size: 0.68rem; font-weight: bold; cursor: pointer;">
+                    ${actionButtonText}
+                </button>
+            ` : ''}
         </div>
     `;
 
@@ -104,7 +117,6 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     infoWindow.open(map, markerInstance);
 
     google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-        // Estilizar contenedor principal e inyectar CSS para pintar la flecha de negro
         const iwContainer = document.querySelector('.gm-style-iw-c');
         if (iwContainer) {
             iwContainer.style.background = '#0f172a';
@@ -125,7 +137,6 @@ function showClientDetailsInfoWindow(client, markerInstance) {
             closeBtn.style.display = 'none';
         }
 
-        // Inyectar CSS global para asegurar que la flecha y los elementos de Google Maps adopten el color oscuro
         let styleTag = document.getElementById('custom-infowindow-dark-style');
         if (!styleTag) {
             styleTag = document.createElement('style');
@@ -146,28 +157,6 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         if (gotoBtn) {
             gotoBtn.addEventListener('click', () => {
                 window.location.href = `./appointment-builder.html?client_id=${client.id}`;
-            });
-        }
-
-        const deleteBtn = document.getElementById(`infowindow-delete-${client.id}`);
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', async () => {
-                if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
-                    deleteBtn.textContent = 'Eliminando...';
-                    const { error: delErr } = await supabase
-                        .from('clients')
-                        .delete()
-                        .eq('id', client.id);
-
-                    if (delErr) {
-                        alert('Error al eliminar: ' + delErr.message);
-                        deleteBtn.textContent = '🗑️ Eliminar Cliente';
-                    } else {
-                        alert('¡Cliente eliminado correctamente!');
-                        infoWindow.close();
-                        await loadAndRenderClients(map, null);
-                    }
-                }
             });
         }
     });
