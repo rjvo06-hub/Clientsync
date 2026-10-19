@@ -34,9 +34,9 @@ async function startMap() {
         });
 
         window.map = map;
-        // Creamos la InfoWindow configurando un maxWidth para que se adapte limpiamente
+        // Reducimos el ancho máximo para que sea una burbuja pequeña y minimalista
         infoWindow = new google.maps.InfoWindow({
-            maxWidth: 320
+            maxWidth: 240
         });
 
         // 1. Cargar todos los clientes inicialmente
@@ -71,31 +71,31 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante con diseño limpio y sin el cuadro blanco ni la X
+// Función para mostrar el globito flotante con diseño minimalista, compacto y moderno
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
     if (client.appointment_date) {
         const d = new Date(client.appointment_date);
         const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
-        currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
+        currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}${hoursInfo}`;
     }
 
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 250px; background: #0f172a; color: #f8fafc; border-radius: 8px;">
-            <div style="border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 8px;">
-                <h3 style="margin: 0; font-size: 0.95rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 210px; background: #0f172a; color: #f8fafc; border-radius: 8px;">
+            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 6px;">
+                <h3 style="margin: 0; font-size: 0.85rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
-            <p style="margin: 0 0 5px 0; font-size: 0.8rem; color: #cbd5e1;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}</p>
-            <p style="margin: 0 0 5px 0; font-size: 0.8rem; color: #cbd5e1;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
-            <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #93c5fd;"><strong>📅 Cita:</strong> ${currentAppointmentInfo}</p>
+            <p style="margin: 0 0 3px 0; font-size: 0.72rem; color: #cbd5e1;"><strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}</p>
+            <p style="margin: 0 0 3px 0; font-size: 0.72rem; color: #cbd5e1;"><strong>📞</strong> ${client.phone || 'N/A'}</p>
+            <p style="margin: 0 0 8px 0; font-size: 0.72rem; color: #93c5fd;"><strong>📅</strong> ${currentAppointmentInfo}</p>
             
-            <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+            <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 6px; width: 100%; border-radius: 6px; font-size: 0.72rem; font-weight: bold; cursor: pointer; margin-bottom: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
                 📅 Gestionar Cita
             </button>
-            <button type="button" id="infowindow-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 6px; width: 100%; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">
+            <button type="button" id="infowindow-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 4px; width: 100%; border-radius: 6px; font-size: 0.68rem; font-weight: bold; cursor: pointer;">
                 🗑️ Eliminar Cliente
             </button>
         </div>
@@ -105,17 +105,15 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     infoWindow.open(map, markerInstance);
 
     google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-        // Inyectar CSS dinámico para ocultar la "X" y los bordes blancos por defecto de Google Maps InfoWindow
         const gmStyleWander = document.querySelector('.gm-style-iw');
         if (gmStyleWander) {
             const parentElement = gmStyleWander.closest('.gm-style-iw-c');
             if (parentElement) {
                 parentElement.style.background = '#0f172a';
-                parentElement.style.padding = '12px';
-                parentElement.style.borderRadius = '12px';
-                parentElement.style.boxShadow = '0 10px 25px rgba(0,0,0,0.4)';
+                parentElement.style.padding = '8px';
+                parentElement.style.borderRadius = '10px';
+                parentElement.style.boxShadow = '0 8px 20px rgba(0,0,0,0.35)';
             }
-            // Ocultar el botón de cierre nativo (la X)
             const closeBtn = gmStyleWander.querySelector('.gm-ui-hover-effect');
             if (closeBtn) {
                 closeBtn.style.display = 'none';
