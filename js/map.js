@@ -70,7 +70,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante con nombre centrado, dirección izquierda y opción de programar nueva cita siempre disponible
+// Función para mostrar el globito flotante sin espacio superior y con acceso directo a llamada
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let appointmentSection = '';
@@ -99,20 +99,29 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         `;
     }
 
+    // Botón de llamada si el cliente tiene teléfono registrado
+    let phoneActionHtml = '';
+    if (client.phone && client.phone.trim() !== '' && client.phone !== 'N/A') {
+        phoneActionHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.phone}" style="text-decoration: none; font-size: 0.75rem; margin-left: 4px;">📞</a>`;
+    }
+
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 195px; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left;">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 195px; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left;">
             
-            <!-- Nombre centrado -->
+            <!-- Nombre centrado y pegado arriba -->
             <div style="border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 5px; text-align: center;">
                 <h3 style="margin: 0; font-size: 0.82rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
 
-            <!-- Dirección justificada a la izquierda -->
-            <p style="margin: 0 0 6px 0; font-size: 0.68rem; color: #cbd5e1; line-height: 1.3; text-align: left;">
-                <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
-            </p>
+            <!-- Dirección justificada a la izquierda con el ícono de llamada al final -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                <p style="margin: 0; font-size: 0.68rem; color: #cbd5e1; line-height: 1.3; text-align: left; flex: 1;">
+                    <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
+                </p>
+                ${phoneActionHtml}
+            </div>
 
             <!-- Sección de Cita Actual -->
             ${appointmentSection}
@@ -134,7 +143,7 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         const iwContainer = document.querySelector('.gm-style-iw-c');
         if (iwContainer) {
             iwContainer.style.background = '#0f172a';
-            iwContainer.style.padding = '6px';
+            iwContainer.style.padding = '4px 6px'; // Padding superior reducido al mínimo
             iwContainer.style.borderRadius = '8px';
             iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
         }
