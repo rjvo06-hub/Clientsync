@@ -69,7 +69,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito (InfoWindow) encima del pin del cliente
+// Función para mostrar el globito (InfoWindow) con diseño contrastado y profesional
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
@@ -80,22 +80,26 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     }
 
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 4px; max-width: 260px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px;">
-                <h3 style="margin: 0; font-size: 0.95rem; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'};">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0; max-width: 280px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <!-- Encabezado con contraste -->
+            <div style="background: #f1f5f9; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+                <h3 style="margin: 0; font-size: 0.95rem; color: ${hasAppointment ? '#1d4ed8' : '#dc2626'}; font-weight: 700;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
-            <p style="margin: 0 0 4px 0; font-size: 0.8rem; color: #4a5568;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
-            <p style="margin: 0 0 4px 0; font-size: 0.8rem; color: #4a5568;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
-            <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #2b6cb0;"><strong>📅 Cita:</strong> ${currentAppointmentInfo}</p>
-            
-            <button type="button" id="infowindow-goto-${client.id}" style="background: #319795; color: white; border: none; padding: 8px; width: 100%; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                📅 Gestionar Cita
-            </button>
-            <button type="button" id="infowindow-delete-${client.id}" style="background: #e53e3e; color: white; border: none; padding: 6px; width: 100%; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">
-                🗑️ Eliminar Cliente
-            </button>
+            <!-- Cuerpo de la tarjeta -->
+            <div style="padding: 12px;">
+                <p style="margin: 0 0 6px 0; font-size: 0.82rem; color: #334155;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
+                <p style="margin: 0 0 6px 0; font-size: 0.82rem; color: #334155;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
+                <p style="margin: 0 0 12px 0; font-size: 0.82rem; color: #2563eb;"><strong>📅 Cita:</strong> ${currentAppointmentInfo}</p>
+                
+                <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 9px; width: 100%; border-radius: 8px; font-size: 0.82rem; font-weight: bold; cursor: pointer; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                    📅 Gestionar Cita
+                </button>
+                <button type="button" id="infowindow-delete-${client.id}" style="background: #ef4444; color: white; border: none; padding: 7px; width: 100%; border-radius: 8px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
+                    🗑️ Eliminar Cliente
+                </button>
+            </div>
         </div>
     `;
 
