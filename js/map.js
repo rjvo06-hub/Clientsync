@@ -70,7 +70,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante sin espacio superior y con acceso directo a llamada
+// Función para mostrar el globito flotante totalmente pegado al borde superior
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let appointmentSection = '';
@@ -99,7 +99,6 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         `;
     }
 
-    // Botón de llamada si el cliente tiene teléfono registrado
     let phoneActionHtml = '';
     if (client.phone && client.phone.trim() !== '' && client.phone !== 'N/A') {
         phoneActionHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.phone}" style="text-decoration: none; font-size: 0.75rem; margin-left: 4px;">📞</a>`;
@@ -115,7 +114,7 @@ function showClientDetailsInfoWindow(client, markerInstance) {
                 </h3>
             </div>
 
-            <!-- Dirección justificada a la izquierda con el ícono de llamada al final -->
+            <!-- Dirección y teléfono -->
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
                 <p style="margin: 0; font-size: 0.68rem; color: #cbd5e1; line-height: 1.3; text-align: left; flex: 1;">
                     <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
@@ -123,7 +122,7 @@ function showClientDetailsInfoWindow(client, markerInstance) {
                 ${phoneActionHtml}
             </div>
 
-            <!-- Sección de Cita Actual -->
+            <!-- Sección de Cita -->
             ${appointmentSection}
 
             <!-- Botón permanente para Programar nueva cita -->
@@ -143,7 +142,7 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         const iwContainer = document.querySelector('.gm-style-iw-c');
         if (iwContainer) {
             iwContainer.style.background = '#0f172a';
-            iwContainer.style.padding = '4px 6px'; // Padding superior reducido al mínimo
+            iwContainer.style.padding = '2px 6px 6px 6px'; // Cero padding superior para que quede pegado
             iwContainer.style.borderRadius = '8px';
             iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
         }
@@ -176,7 +175,6 @@ function showClientDetailsInfoWindow(client, markerInstance) {
             document.head.appendChild(styleTag);
         }
 
-        // Evento para reprogramar la cita existente
         const rescheduleBtn = document.getElementById(`infowindow-reschedule-${client.id}`);
         if (rescheduleBtn) {
             rescheduleBtn.addEventListener('click', () => {
@@ -184,7 +182,6 @@ function showClientDetailsInfoWindow(client, markerInstance) {
             });
         }
 
-        // Evento para programar una nueva cita
         const newAppointmentBtn = document.getElementById(`infowindow-new-${client.id}`);
         if (newAppointmentBtn) {
             newAppointmentBtn.addEventListener('click', () => {
