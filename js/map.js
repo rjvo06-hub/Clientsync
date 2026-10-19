@@ -15,15 +15,15 @@ function initMapWhenReady() {
 
 async function startMap() {
     console.log("🗺️ Inicializando mapa de Google Maps...");
-    // Coordenadas centrales de Ottobrunn para la vista inicial
-    const ottobrunnCenter = { lat: 48.0686, lng: 11.6289 };
+    // Coordenadas exactas del centro de Ottobrunn
+    const ottobrunnCenter = { lat: 48.0664, lng: 11.6611 };
 
     const mapElement = document.getElementById('map');
     if (!mapElement) return;
 
     try {
         map = new google.maps.Map(mapElement, {
-            zoom: 13, // Zoom enfocado en Ottobrunn
+            zoom: 14, // Zoom ideal para abarcar Ottobrunn y ver todos los clientes cercanos
             center: ottobrunnCenter,
             styles: [
                 {
@@ -39,7 +39,7 @@ async function startMap() {
             maxWidth: 220
         });
 
-        // 1. Cargar todos los clientes inicialmente (conservando el enfoque inicial en Ottobrunn)
+        // 1. Cargar todos los clientes inicialmente manteniendo el centro en Ottobrunn
         await loadAndRenderClients(map);
 
         // 2. Escuchar el evento cuando el usuario selecciona un sector en el modal de index.html
@@ -236,7 +236,7 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
             }
         });
 
-        // Solo aplicamos fitBounds si el usuario filtra por un código postal/sector específico
+        // Solo aplicamos fitBounds si el usuario filtra por un código postal específico
         if (postalFilter && matchedAny && !bounds.isEmpty()) {
             mapInstance.fitBounds(bounds);
         }
