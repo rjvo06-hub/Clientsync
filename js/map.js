@@ -24,8 +24,7 @@ async function startMap() {
         map = new google.maps.Map(mapElement, {
             zoom: 14,
             center: ottobrunnCenter,
-            // 'greedy' permite mover el mapa con un solo dedo en teléfonos móviles sin restricciones
-            gestureHandling: 'greedy',
+            gestureHandling: 'greedy', // Permite mover el mapa con un solo dedo en dispositivos móviles
             styles: [
                 {
                     featureType: "poi",
@@ -37,7 +36,7 @@ async function startMap() {
 
         window.map = map;
         infoWindow = new google.maps.InfoWindow({
-            maxWidth: 200 // Ancho adaptado y compacto para móviles
+            maxWidth: 195
         });
 
         // 1. Cargar todos los clientes inicialmente
@@ -72,7 +71,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante optimizado y responsivo para móviles
+// Función para mostrar el globito flotante compacto, sin espacio superior y responsivo
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let appointmentSection = '';
@@ -101,23 +100,25 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         `;
     }
 
+    // Validación flexible para capturar el teléfono sin importar el nombre exacto de la columna en Supabase
+    const clientPhone = client.phone || client.telefono || client.phone_number || client.celular || '';
     let phoneActionHtml = '';
-    if (client.phone && client.phone.trim() !== '' && client.phone !== 'N/A') {
-        phoneActionHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.phone}" style="text-decoration: none; font-size: 0.75rem; margin-left: 4px;">📞</a>`;
+    if (clientPhone && String(clientPhone).trim() !== '' && String(clientPhone) !== 'N/A') {
+        phoneActionHtml = `<a href="tel:${clientPhone}" title="Llamar a ${clientPhone}" style="text-decoration: none; font-size: 0.8rem; margin-left: 6px; display: inline-flex; align-items: center;">📞</a>`;
     }
 
     const contentHtml = `
         <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 175px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
             
-            <!-- Nombre centrado y pegado arriba -->
+            <!-- Nombre centrado y pegado arriba sin espacio inútil -->
             <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
                 <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
 
-            <!-- Dirección y teléfono -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+            <!-- Dirección justificada a la izquierda con el ícono de teléfono al final -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
                     <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
                 </p>
@@ -249,7 +250,6 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
     }
 }
 
-// Cierre automático al hacer clic fuera del marcador en dispositivos móviles o escritorio
 document.addEventListener('click', (e) => {
     if (infoWindow && !window._isClickingMarker) {
         const target = e.target;
