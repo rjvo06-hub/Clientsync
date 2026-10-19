@@ -51,7 +51,6 @@
             gap: 10px;
         }
 
-        /* Botón discreto para regresar al inicio */
         .btn-back {
             display: inline-flex;
             align-items: center;
@@ -89,7 +88,57 @@
             border: 1px solid var(--border-subtle);
         }
 
-        /* Sección del Mapa Ocupando el Protagonismo */
+        /* Buscador Inteligente Flotante sobre el Mapa */
+        .client-search-container {
+            position: relative;
+            margin-bottom: 4px;
+        }
+
+        .client-search-input {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            background: white;
+            box-sizing: border-box;
+            outline: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            transition: border-color 0.2s;
+        }
+
+        .client-search-input:focus {
+            border-color: #2563eb;
+        }
+
+        .client-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--border-subtle);
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: none;
+        }
+
+        .client-result-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.85rem;
+        }
+
+        .client-result-item:hover {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        /* Sección del Mapa */
         .map-section {
             background: var(--card-bg);
             padding: 12px;
@@ -115,8 +164,8 @@
 
         #map {
             width: 100%;
-            height: 80vh;
-            min-height: 480px;
+            height: 75vh;
+            min-height: 450px;
             border-radius: var(--radius-md);
             border: 1px solid var(--border-subtle);
             overflow: hidden;
@@ -124,8 +173,8 @@
 
         @media (max-width: 768px) {
             #map {
-                height: 75vh;
-                min-height: 400px;
+                height: 68vh;
+                min-height: 380px;
             }
         }
     </style>
@@ -142,7 +191,13 @@
             <span class="badge-brand">WerkSolutions</span>
         </header>
 
-        <!-- Sección del Mapa Limpia sin barra de navegación inferior -->
+        <!-- Buscador Inteligente de Clientes integrado -->
+        <div class="client-search-container">
+            <input type="text" id="client-search-input" class="client-search-input" placeholder="🔍 Buscar cliente por nombre, dirección o CP..." autocomplete="off">
+            <div id="client-results-dropdown" class="client-results-dropdown"></div>
+        </div>
+
+        <!-- Sección del Mapa -->
         <section class="map-section">
             <div class="map-header">
                 <h2>📍 Mapa General de Clientes</h2>
@@ -154,7 +209,91 @@
     <!-- Script de Google Maps -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
-    <!-- Scripts de la app y del mapa -->
+    <!-- Scripts de la app y lógica del buscador inteligente enlazada al mapa -->
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        let allClients = [];
+
+        async function initMapSearch() {
+            try {
+                const { data: clientData, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
+                if (error) throw error;
+                allClients = clientData || [];
+            } catch (err) {
+                console.error('Error al cargar clientes para el mapa:', err);
+            }
+        }
+
+        const searchInput = document.getElementById('client-search-input');
+        const dropdown = document.getElementById('client-results-dropdown');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (query.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            const startsWithMatches = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const address = (c.address || '').toLowerCase();
+                const postal = (c.postal_code || '').toLowerCase();
+                return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
+            });
+
+            const containsMatches = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const address = (c.address || '').toLowerCase();
+                const postal = (c.postal_code || '').toLowerCase();
+                
+                const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
+                const alreadyAdded = startsWithMatches.includes(c);
+
+                return hasMatch && !alreadyAdded;
+            });
+
+            const filtered = [...startsWithMatches, ...containsMatches];
+
+            dropdown.innerHTML = '';
+            if (filtered.length > 0) {
+                filtered.forEach(client => {
+                    const item = document.createElement('div');
+                    item.className = 'client-result-item';
+                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#64748b;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
+                    
+                    item.addEventListener('click', () => {
+                        searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
+                        dropdown.style.display = 'none';
+
+                        // Disparar evento personalizado o centrar el mapa si el script de map.js lo soporta
+                        if (window.focusClientOnMap && typeof window.focusClientOnMap === 'function') {
+                            window.focusClientOnMap(client);
+                        } else if (window.map && client.latitude && client.longitude) {
+                            const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
+                            window.map.setCenter(pos);
+                            window.map.setZoom(16);
+                        }
+                    });
+
+                    dropdown.appendChild(item);
+                });
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontraron clientes</div>`;
+                dropdown.style.display = 'block';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        initMapSearch();
+    </script>
+
     <script type="module" src="./js/app.js"></script>
     <script type="module" src="./js/map.js"></script>
 </body>
