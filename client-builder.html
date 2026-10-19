@@ -51,10 +51,10 @@
         <form id="client-form">
             <input type="hidden" id="client-id">
 
-            <!-- Buscador (Solo visible en modo Modificar) -->
+            <!-- Buscador con la misma estructura inteligente de priorización -->
             <div id="search-section" class="client-search-container">
-                <label>Buscar Cliente Existente (por nombre o calle):</label>
-                <input type="text" id="client-search-input" placeholder="Escribe para buscar un cliente..." autocomplete="off">
+                <label>Buscar Cliente Existente (por nombre, dirección o CP):</label>
+                <input type="text" id="client-search-input" placeholder="Escribe parte del nombre, dirección o CP..." autocomplete="off">
                 <div id="client-results-dropdown" class="client-results-dropdown"></div>
             </div>
 
@@ -143,7 +143,6 @@
                 if (error) throw error;
                 allClients = data || [];
 
-                // Verificar si se abrió con un ID específico desde el mapa
                 const urlParams = new URLSearchParams(window.location.search);
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
@@ -158,7 +157,7 @@
             }
         }
 
-        // Buscador Inteligente
+        // Buscador Inteligente con la misma estructura de priorización (startsWith primero, luego contains)
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
@@ -169,12 +168,25 @@
                 return;
             }
 
-            const filtered = allClients.filter(c => {
+            const startsWithMatches = allClients.filter(c => {
                 const name = (c.name || '').toLowerCase();
                 const address = (c.address || '').toLowerCase();
                 const postal = (c.postal_code || '').toLowerCase();
-                return name.includes(query) || address.includes(query) || postal.includes(query);
+                return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
             });
+
+            const containsMatches = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const address = (c.address || '').toLowerCase();
+                const postal = (c.postal_code || '').toLowerCase();
+                
+                const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
+                const alreadyAdded = startsWithMatches.includes(c);
+
+                return hasMatch && !alreadyAdded;
+            });
+
+            const filtered = [...startsWithMatches, ...containsMatches];
 
             dropdown.innerHTML = '';
             if (filtered.length > 0) {
@@ -185,7 +197,7 @@
                     item.addEventListener('click', () => {
                         fillClientData(client);
                         dropdown.style.display = 'none';
-                        searchInput.value = client.name;
+                        searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
                     });
                     dropdown.appendChild(item);
                 });
@@ -193,6 +205,12 @@
             } else {
                 dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontró ningún cliente</div>`;
                 dropdown.style.display = 'block';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
             }
         });
 
