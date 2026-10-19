@@ -266,13 +266,12 @@
                         searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
                         dropdown.style.display = 'none';
 
-                        // Disparar evento personalizado o centrar el mapa si el script de map.js lo soporta
-                        if (window.focusClientOnMap && typeof window.focusClientOnMap === 'function') {
-                            window.focusClientOnMap(client);
-                        } else if (window.map && client.latitude && client.longitude) {
-                            const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
-                            window.map.setCenter(pos);
-                            window.map.setZoom(16);
+                        if (client.latitude && client.longitude) {
+                            // Dispara el evento que intercepta map.js para centrar, dar zoom y abrir el BottomSheet
+                            const event = new CustomEvent('centerOnClient', { detail: client });
+                            window.dispatchEvent(event);
+                        } else {
+                            alert('Este cliente no tiene coordenadas geográficas registradas.');
                         }
                     });
 
