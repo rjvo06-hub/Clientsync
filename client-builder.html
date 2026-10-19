@@ -2,233 +2,97 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Nuevo Cliente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClientSync | Gestión y Creación de Clientes</title>
     <link rel="stylesheet" href="./css/main.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-body: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-secondary: #64748b;
-            --border-subtle: #e2e8f0;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --success: #10b981;
-            --success-hover: #059669;
-            --danger: #ef4444;
-            --radius-xl: 16px;
-            --radius-md: 10px;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
+        .container { max-width: 650px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
+        select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; margin-bottom: 12px; }
+        label { font-weight: bold; color: #2d3748; font-size: 0.9rem; display: block; margin-bottom: 5px; }
+        
+        .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+        .mode-btn { flex: 1; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 8px; border: 1px solid #cbd5e0; background: #edf2f7; color: #4a5568; text-align: center; }
+        .mode-btn.active { background: #3182ce; color: white; border-color: #3182ce; }
 
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            margin: 0;
-            padding: 16px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: var(--radius-xl);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
-            border: 1px solid var(--border-subtle);
-            box-sizing: border-box;
-        }
-
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-main);
-            letter-spacing: -0.3px;
-        }
-
-        .btn-back {
-            padding: 6px 12px;
-            background: #f1f5f9;
-            color: var(--text-secondary);
-            text-decoration: none;
-            border-radius: var(--radius-md);
-            font-size: 0.8rem;
-            font-weight: 600;
-            border: 1px solid var(--border-subtle);
-            transition: all 0.2s ease;
-        }
-
-        .btn-back:hover {
-            background: #e2e8f0;
-            color: var(--text-main);
-        }
-
-        p.subtitle {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin-bottom: 20px;
-            line-height: 1.4;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-            position: relative;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: var(--text-main);
-            font-size: 0.85rem;
-        }
-
-        .row-group {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-        }
-
-        .col-flex-2 { flex: 2; min-width: 180px; }
-        .col-flex-1 { flex: 1; min-width: 120px; }
-
-        input, textarea {
-            font-family: inherit;
-            font-size: 0.95rem;
-            box-sizing: border-box;
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            background: #f8fafc;
-            color: var(--text-main);
-            transition: all 0.2s ease;
-        }
-
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .suggestions-list {
+        .client-search-container { position: relative; margin-bottom: 15px; }
+        .client-results-dropdown {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
-            background: #ffffff;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 0 0 8px 8px;
             max-height: 200px;
             overflow-y: auto;
-            z-index: 50;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             display: none;
-            margin-top: 4px;
         }
-
-        .suggestion-item {
-            padding: 10px 12px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
-            color: var(--text-main);
-        }
-
-        .suggestion-item:hover {
-            background: #f8fafc;
-            color: var(--primary);
-        }
-
-        button.btn-primary {
-            font-family: inherit;
-            background: var(--success);
-            color: white;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.95rem;
-            padding: 12px;
-            border-radius: var(--radius-md);
-            width: 100%;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        button.btn-primary:hover {
-            background: var(--success-hover);
-        }
-
-        button.btn-primary:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-        }
+        .client-result-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #edf2f7; font-size: 0.9rem; }
+        .client-result-item:hover { background: #ebf8ff; color: #2b6cb0; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="header-container">
-            <h1>🏢 Registrar Nuevo Cliente</h1>
-            <a href="./index.html" class="btn-back">← Inicio</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h1 id="view-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">👤 Gestión de Clientes</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Volver al Mapa</a>
         </div>
 
-        <p class="subtitle">
-            Escribe el nombre del pueblo (ej. Unterhaching) o código postal para seleccionarlo de forma segura.
-        </p>
+        <!-- Selector de Modo: Modificar vs Crear -->
+        <div class="mode-selector">
+            <div id="btn-mode-edit" class="mode-btn active" onclick="setMode('edit')">🔍 Consultar / Modificar</div>
+            <div id="btn-mode-create" class="mode-btn" onclick="setMode('create')">➕ Crear Nuevo Cliente</div>
+        </div>
 
-        <!-- Formulario de registro individual -->
         <form id="client-form">
-            <div class="form-group">
-                <label>Nombre del Cliente / Empresa:</label>
-                <input type="text" id="client-name" placeholder="Ej. WerkSolutions GmbH" required>
+            <input type="hidden" id="client-id">
+
+            <!-- Buscador (Solo visible en modo Modificar) -->
+            <div id="search-section" class="client-search-container">
+                <label>Buscar Cliente Existente (por nombre o calle):</label>
+                <input type="text" id="client-search-input" placeholder="Escribe para buscar un cliente..." autocomplete="off">
+                <div id="client-results-dropdown" class="client-results-dropdown"></div>
             </div>
 
-            <div class="form-group">
-                <label>Dirección (Calle y Número):</label>
-                <input type="text" id="client-street" placeholder="Ej. Haidgraben 103" required>
+            <!-- Campos del Cliente -->
+            <div>
+                <label>Nombre del Cliente:</label>
+                <input type="text" id="client-name" placeholder="Nombre completo" required>
             </div>
 
-            <div class="row-group">
-                <div class="form-group col-flex-1" style="margin-bottom: 0; position: relative;">
-                    <label>Código Postal / Pueblo:</label>
-                    <input type="text" id="client-postal" placeholder="Ej. 82041 - Unterhaching" required autocomplete="off">
-                    <div id="postal-suggestions" class="suggestions-list"></div>
+            <div>
+                <label>Dirección:</label>
+                <input type="text" id="client-address" placeholder="Ej. Mozartstraße 101" required>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Código Postal (CP):</label>
+                    <input type="text" id="client-postal" placeholder="Ej. 85521">
                 </div>
-                <div class="form-group col-flex-2" style="margin-bottom: 0;">
-                    <label>Teléfono de Contacto:</label>
-                    <input type="tel" id="client-phone" placeholder="Ej. +49 89 1234567">
+                <div style="flex: 1;">
+                    <label>Teléfono:</label>
+                    <input type="text" id="client-phone" placeholder="Ej. +49 89 ...">
                 </div>
             </div>
 
-            <!-- Campo de notas / información especial -->
-            <div class="form-group" style="margin-top: 16px;">
-                <label>Notas o Detalles Especiales:</label>
-                <textarea id="client-notes" placeholder="Ej. Timbre descompuesto, tocar puerta trasera, horario preferente..."></textarea>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Latitud:</label>
+                    <input type="text" id="client-lat" placeholder="Ej. 48.0664">
+                </div>
+                <div style="flex: 1;">
+                    <label>Longitud:</label>
+                    <input type="text" id="client-lng" placeholder="Ej. 11.6611">
+                </div>
             </div>
 
-            <button type="submit" id="save-btn" class="btn-primary" style="margin-top: 10px;">
-                Guardar Cliente
+            <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 15px; width: 100%;">
+                💾 Guardar Cambios
             </button>
         </form>
     </div>
@@ -236,172 +100,153 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
-        const postalInput = document.getElementById('client-postal');
-        const suggestionsBox = document.getElementById('postal-suggestions');
-        let searchTimeout = null;
+        let allClients = [];
+        let currentMode = 'edit'; // 'edit' o 'create'
 
-        // Búsqueda inteligente directo en la tabla de Supabase (german_postal_codes)
-        postalInput.addEventListener('input', (e) => {
-            const query = e.target.value.trim();
-            clearTimeout(searchTimeout);
+        window.setMode = function(mode) {
+            currentMode = mode;
+            const searchSection = document.getElementById('search-section');
+            const viewTitle = document.getElementById('view-title');
+            const saveBtn = document.getElementById('save-client-btn');
+            const searchInput = document.getElementById('client-search-input');
 
-            if (query.length < 2) {
-                suggestionsBox.style.display = 'none';
+            document.getElementById('btn-mode-edit').classList.toggle('active', mode === 'edit');
+            document.getElementById('btn-mode-create').classList.toggle('active', mode === 'create');
+
+            clearForm();
+
+            if (mode === 'edit') {
+                searchSection.style.display = 'block';
+                viewTitle.textContent = '🔍 Consultar y Modificar Cliente';
+                saveBtn.textContent = '💾 Actualizar Cliente';
+            } else {
+                searchSection.style.display = 'none';
+                viewTitle.textContent = '➕ Registrar Nuevo Cliente';
+                saveBtn.textContent = '✨ Crear Cliente';
+                searchInput.value = '';
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('client-id').value = '';
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-address').value = '';
+            document.getElementById('client-postal').value = '';
+            document.getElementById('client-phone').value = '';
+            document.getElementById('client-lat').value = '';
+            document.getElementById('client-lng').value = '';
+        }
+
+        async function init() {
+            try {
+                const { data, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
+                if (error) throw error;
+                allClients = data || [];
+
+                // Verificar si se abrió con un ID específico desde el mapa
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetClientId = urlParams.get('client_id');
+                if (targetClientId) {
+                    const found = allClients.find(c => c.id === targetClientId);
+                    if (found) {
+                        setMode('edit');
+                        fillClientData(found);
+                    }
+                }
+            } catch (err) {
+                console.error('Error al cargar clientes:', err);
+            }
+        }
+
+        // Buscador Inteligente
+        const searchInput = document.getElementById('client-search-input');
+        const dropdown = document.getElementById('client-results-dropdown');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (query.length === 0) {
+                dropdown.style.display = 'none';
                 return;
             }
 
-            searchTimeout = setTimeout(async () => {
-                try {
-                    const { data, error } = await supabase
-                        .from('german_postal_codes')
-                        .select('postal_code, city_name')
-                        .or(`city_name.ilike.%${query}%,postal_code.ilike.${query}%`)
-                        .limit(15);
+            const filtered = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const address = (c.address || '').toLowerCase();
+                const postal = (c.postal_code || '').toLowerCase();
+                return name.includes(query) || address.includes(query) || postal.includes(query);
+            });
 
-                    if (error) throw error;
-
-                    suggestionsBox.innerHTML = '';
-                    if (data && data.length > 0) {
-                        const queryLower = query.toLowerCase();
-
-                        const startsWithMatches = data.filter(r => 
-                            r.city_name.toLowerCase().startsWith(queryLower) || r.postal_code.startsWith(queryLower)
-                        );
-
-                        const containsMatches = data.filter(r => {
-                            const matches = r.city_name.toLowerCase().includes(queryLower) || r.postal_code.includes(queryLower);
-                            const alreadyAdded = startsWithMatches.some(s => s.postal_code === r.postal_code && s.city_name === r.city_name);
-                            return matches && !alreadyAdded;
-                        });
-
-                        const finalResults = [...startsWithMatches, ...containsMatches];
-
-                        finalResults.forEach(resObj => {
-                            const div = document.createElement('div');
-                            div.className = 'suggestion-item';
-                            div.textContent = `${resObj.postal_code} - ${resObj.city_name}`;
-                            div.addEventListener('click', () => {
-                                postalInput.value = `${resObj.postal_code} - ${resObj.city_name}`;
-                                suggestionsBox.style.display = 'none';
-                            });
-                            suggestionsBox.appendChild(div);
-                        });
-
-                        suggestionsBox.style.display = suggestionsBox.children.length > 0 ? 'block' : 'none';
-                    } else {
-                        suggestionsBox.style.display = 'none';
-                    }
-                } catch (err) {
-                    console.error("Error consultando códigos postales en Supabase:", err);
-                    suggestionsBox.style.display = 'none';
-                }
-            }, 250);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!postalInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-                suggestionsBox.style.display = 'none';
+            dropdown.innerHTML = '';
+            if (filtered.length > 0) {
+                filtered.forEach(client => {
+                    const item = document.createElement('div');
+                    item.className = 'client-result-item';
+                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
+                    item.addEventListener('click', () => {
+                        fillClientData(client);
+                        dropdown.style.display = 'none';
+                        searchInput.value = client.name;
+                    });
+                    dropdown.appendChild(item);
+                });
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontró ningún cliente</div>`;
+                dropdown.style.display = 'block';
             }
         });
 
-        // Guardar cliente con validación estricta y autocorrección del código postal correcto
+        function fillClientData(client) {
+            document.getElementById('client-id').value = client.id;
+            document.getElementById('client-name').value = client.name || '';
+            document.getElementById('client-address').value = client.address || '';
+            document.getElementById('client-postal').value = client.postal_code || '';
+            document.getElementById('client-phone').value = client.phone || client.telefono || '';
+            document.getElementById('client-lat').value = client.latitude || '';
+            document.getElementById('client-lng').value = client.longitude || '';
+        }
+
+        // Guardar (Crear o Actualizar)
         document.getElementById('client-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const name = document.getElementById('client-name').value.trim();
-            const street = document.getElementById('client-street').value.trim();
-            const postalInputVal = document.getElementById('client-postal').value.trim();
-            const phone = document.getElementById('client-phone').value.trim();
-            const notes = document.getElementById('client-notes').value.trim();
+            const clientId = document.getElementById('client-id').value;
+            const payload = {
+                name: document.getElementById('client-name').value.trim(),
+                address: document.getElementById('client-address').value.trim(),
+                postal_code: document.getElementById('client-postal').value.trim(),
+                phone: document.getElementById('client-phone').value.trim(),
+                latitude: document.getElementById('client-lat').value ? parseFloat(document.getElementById('client-lat').value) : null,
+                longitude: document.getElementById('client-lng').value ? parseFloat(document.getElementById('client-lng').value) : null
+            };
 
-            const postalMatch = postalInputVal.match(/\d{5}/);
-            const targetPostal = postalMatch ? postalMatch[0] : '';
-            const targetCity = postalInputVal.replace(/[\d\s-]/g, '').trim();
+            const saveBtn = document.getElementById('save-client-btn');
+            saveBtn.textContent = 'Guardando...';
+            saveBtn.disabled = true;
 
-            if (!targetPostal || !targetCity) {
-                alert('⚠️ Por favor, selecciona un código postal y pueblo válido de la lista desplegable.');
-                return;
+            let errorResult = null;
+
+            if (currentMode === 'edit' && clientId) {
+                // Actualizar cliente existente
+                const { error } = await supabase.from('clients').update(payload).eq('id', clientId);
+                errorResult = error;
+            } else {
+                // Crear nuevo cliente
+                const { error } = await supabase.from('clients').insert([payload]);
+                errorResult = error;
             }
 
-            const btn = document.getElementById('save-btn');
-            btn.textContent = 'Verificando y validando código postal...';
-            btn.disabled = true;
-
-            try {
-                let lat = null;
-                let lng = null;
-                let finalPostal = targetPostal; // Este almacenará el código postal correcto verificado
-
-                // 1. Obtener todos los códigos postales que pertenecen a este mismo pueblo desde la base de datos
-                const { data: townPostals } = await supabase
-                    .from('german_postal_codes')
-                    .select('postal_code')
-                    .ilike('city_name', targetCity);
-
-                let postalsToTest = [targetPostal];
-                if (townPostals && townPostals.length > 0) {
-                    townPostals.forEach(p => {
-                        if (!postalsToTest.includes(p.postal_code)) {
-                            postalsToTest.push(p.postal_code);
-                        }
-                    });
-                }
-
-                // 2. Probar la dirección con cada código postal válido del pueblo
-                for (const postalCode of postalsToTest) {
-                    const fullQuery = `${street}, ${postalCode} ${targetCity}, Germany`;
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullQuery)}&addressdetails=1&limit=1&countrycodes=de`);
-                    const data = await response.json();
-
-                    if (data && data.length > 0) {
-                        const place = data[0];
-                        const addr = place.address || {};
-                        const returnedPostal = addr.postcode || '';
-
-                        // Si el mapa confirma la ubicación, fijamos este código postal como el correcto (finalPostal)
-                        lat = parseFloat(place.lat);
-                        lng = parseFloat(place.lon);
-                        finalPostal = returnedPostal && returnedPostal.length === 5 ? returnedPostal : postalCode; 
-                        break;
-                    }
-                }
-
-                if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-                    alert(`⚠️ No se pudo ubicar la dirección "${street}" en ${targetCity} con los códigos postales disponibles.\n\nPor favor, verifica el nombre de la calle y el número.`);
-                    btn.textContent = 'Guardar Cliente';
-                    btn.disabled = false;
-                    return;
-                }
-
-                // Inserción en Supabase utilizando estrictamente el código postal correcto verificado (finalPostal)
-                const { error } = await supabase.from('clients').insert([
-                    {
-                        name: name,
-                        phone: phone,
-                        address: street,
-                        postal_code: finalPostal, // <--- Aquí se guarda el código postal correcto y validado
-                        latitude: lat,
-                        longitude: lng,
-                        notes: notes,
-                        assigned_employee: 'General'
-                    }
-                ]);
-
-                if (error) {
-                    alert('Error al guardar en Supabase: ' + error.message);
-                    btn.textContent = 'Guardar Cliente';
-                    btn.disabled = false;
-                } else {
-                    alert(`¡Cliente guardado con éxito! 🎉 (Pueblo: ${targetCity}, CP correcto guardado: ${finalPostal})`);
-                    window.location.href = './index.html';
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error al conectar con el servicio de mapas.');
-                btn.textContent = 'Guardar Cliente';
-                btn.disabled = false;
+            if (errorResult) {
+                alert('Error al guardar: ' + errorResult.message);
+                saveBtn.textContent = currentMode === 'edit' ? '💾 Actualizar Cliente' : '✨ Crear Cliente';
+                saveBtn.disabled = false;
+            } else {
+                alert(currentMode === 'edit' ? '¡Cliente actualizado correctamente!' : '¡Cliente creado correctamente!');
+                window.location.href = './index.html';
             }
         });
+
+        init();
     </script>
 </body>
 </html>
