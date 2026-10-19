@@ -34,7 +34,7 @@ async function startMap() {
         // Exponer la instancia globalmente para controles externos (buscador inteligente)
         window.map = map;
 
-        // Crear el contenedor inferior flotante para móviles (Bottom Sheet) si no existe
+        // Crear el contenedor flotante pequeño y elegante en el DOM
         createMobileBottomSheetContainer();
 
         // 1. Cargar todos los clientes inicialmente
@@ -47,7 +47,7 @@ async function startMap() {
             await zoomToZoneOrPostal(targetPostal);
         });
 
-        // 3. NUEVO: Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir la tarjeta
+        // 3. Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir la tarjeta correcta
         window.addEventListener('centerOnClient', (e) => {
             const client = e.detail;
             if (map && client.latitude && client.longitude) {
@@ -57,7 +57,7 @@ async function startMap() {
                 map.setCenter({ lat, lng });
                 map.setZoom(17); // Zoom de acercamiento perfecto
 
-                // Simular el despliegue del BottomSheet con la información del cliente seleccionado
+                // Abrir directamente la tarjeta flotante compacta con los datos de ESTE cliente exacto
                 showClientDetailsBottomSheet(client);
             }
         });
@@ -67,7 +67,7 @@ async function startMap() {
     }
 }
 
-// Inyectar el contenedor flotante inferior en el DOM para la vista móvil
+// Inyectar el contenedor flotante pequeño en el DOM (no cubre toda la pantalla)
 function createMobileBottomSheetContainer() {
     if (document.getElementById('client-bottom-sheet')) return;
 
@@ -75,20 +75,22 @@ function createMobileBottomSheetContainer() {
     sheet.id = 'client-bottom-sheet';
     sheet.style.cssText = `
         position: fixed;
-        bottom: -100%;
-        left: 0;
-        width: 100%;
-        max-height: 85vh;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 420px;
+        max-height: 75vh;
         background: white;
-        border-top-left-radius: 20px;
-        border-top-right-radius: 20px;
-        box-shadow: 0 -5px 25px rgba(0,0,0,0.2);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         z-index: 10000;
-        transition: bottom 0.3s ease-in-out;
+        transition: all 0.3s ease-in-out;
         box-sizing: border-box;
-        padding: 20px;
+        padding: 16px;
         overflow-y: auto;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        display: none;
     `;
     document.body.appendChild(sheet);
 }
@@ -97,18 +99,18 @@ function openMobileBottomSheet(htmlContent) {
     const sheet = document.getElementById('client-bottom-sheet');
     if (sheet) {
         sheet.innerHTML = htmlContent;
-        sheet.style.bottom = '0';
+        sheet.style.display = 'block';
     }
 }
 
 function closeMobileBottomSheet() {
     const sheet = document.getElementById('client-bottom-sheet');
     if (sheet) {
-        sheet.style.bottom = '-100%';
+        sheet.style.display = 'none';
     }
 }
 
-// Función centralizada para mostrar la tarjeta flotante de un cliente
+// Función centralizada para mostrar la tarjeta flotante compacta de un cliente
 function showClientDetailsBottomSheet(client) {
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
@@ -119,23 +121,23 @@ function showClientDetailsBottomSheet(client) {
     }
 
     const sheetContent = `
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px;">
-            <h2 style="margin: 0; font-size: 1.2rem; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'};">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
+            <h2 style="margin: 0; font-size: 1.05rem; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'};">
                 ${hasAppointment ? '🔵' : '🔴'} ${client.name}
             </h2>
-            <button type="button" id="close-sheet-btn" style="background: #e2e8f0; border: none; font-size: 1.2rem; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold;">✕</button>
+            <button type="button" id="close-sheet-btn" style="background: #e2e8f0; border: none; font-size: 1rem; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-weight: bold;">✕</button>
         </div>
 
-        <p style="margin: 0 0 8px 0; font-size: 0.95rem; color: #4a5568;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
-        <p style="margin: 0 0 8px 0; font-size: 0.95rem; color: #4a5568;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
-        <p style="margin: 0 0 20px 0; font-size: 0.95rem; color: #2b6cb0;"><strong>📅 Cita actual:</strong> ${currentAppointmentInfo}</p>
+        <p style="margin: 0 0 6px 0; font-size: 0.85rem; color: #4a5568;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
+        <p style="margin: 0 0 6px 0; font-size: 0.85rem; color: #4a5568;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
+        <p style="margin: 0 0 14px 0; font-size: 0.85rem; color: #2b6cb0;"><strong>📅 Cita actual:</strong> ${currentAppointmentInfo}</p>
         
-        <button type="button" id="btn-goto-appointment-${client.id}" style="background: #319795; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <button type="button" id="btn-goto-appointment-${client.id}" style="background: #319795; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             📅 Programar / Gestionar Cita
         </button>
 
-        <div style="padding-top: 10px; border-top: 2px dashed #e2e8f0; text-align: center;">
-            <button type="button" id="sheet-delete-client-${client.id}" style="background: #e53e3e; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer;">
+        <div style="padding-top: 8px; border-top: 2px dashed #e2e8f0; text-align: center;">
+            <button type="button" id="sheet-delete-client-${client.id}" style="background: #e53e3e; color: white; border: none; padding: 8px; width: 100%; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer;">
                 🗑️ Eliminar este Cliente Incorrecto
             </button>
         </div>
@@ -143,7 +145,7 @@ function showClientDetailsBottomSheet(client) {
 
     openMobileBottomSheet(sheetContent);
 
-    // Evento cerrar panel inferior
+    // Evento cerrar panel flotante
     document.getElementById('close-sheet-btn').addEventListener('click', closeMobileBottomSheet);
 
     // Evento para redirigir a appointment-builder.html pasando el ID del cliente
