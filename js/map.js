@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient.js';
 let map;
 let markers = [];
 let markerMap = {}; 
+let infoWindow = null;
 
 function initMapWhenReady() {
     if (typeof google === 'object' && typeof google.maps === 'object') {
@@ -33,9 +34,7 @@ async function startMap() {
         });
 
         window.map = map;
-
-        // Crear el contenedor de la tarjeta flotante personalizada sobre el mapa si no existe
-        createCustomMapCardContainer();
+        infoWindow = new google.maps.InfoWindow();
 
         // 1. Cargar todos los clientes inicialmente
         await loadAndRenderClients(map);
@@ -47,7 +46,7 @@ async function startMap() {
             await zoomToZoneOrPostal(targetPostal);
         });
 
-        // 3. Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir la tarjeta
+        // 3. Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir el globito correcto
         window.addEventListener('centerOnClient', (e) => {
             const client = e.detail;
             if (map && client.latitude && client.longitude) {
@@ -57,7 +56,10 @@ async function startMap() {
                 map.setCenter({ lat, lng });
                 map.setZoom(17);
 
-                showCustomMapCard(client);
+                const marker = markerMap[client.id];
+                if (marker) {
+                    showClientDetailsInfoWindow(client, marker);
+                }
             }
         });
 
@@ -66,39 +68,8 @@ async function startMap() {
     }
 }
 
-// Inyectar el contenedor flotante personalizado dentro de la sección del mapa
-function createCustomMapCardContainer() {
-    const mapContainer = document.getElementById('map');
-    if (!mapContainer || document.getElementById('custom-map-card')) return;
-
-    // Asegurar que el contenedor del mapa tenga posicionamiento relativo
-    mapContainer.style.position = 'relative';
-
-    const card = document.createElement('div');
-    card.id = 'custom-map-card';
-    card.style.cssText = `
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 300px;
-        background: #0f172a;
-        color: #f8fafc;
-        border-radius: 14px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        z-index: 1000;
-        padding: 16px;
-        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-        box-sizing: border-box;
-        display: none;
-        border: 1px solid #334155;
-    `;
-    mapContainer.appendChild(card);
-}
-
-function showCustomMapCard(client) {
-    const card = document.getElementById('custom-map-card');
-    if (!card) return;
-
+// Función para mostrar el globito flotante con diseño oscuro y elegante
+function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
     if (client.appointment_date) {
@@ -107,55 +78,57 @@ function showCustomMapCard(client) {
         currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
     }
 
-    card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 10px;">
-            <h3 style="margin: 0; font-size: 0.95rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
-                ${hasAppointment ? '🔵' : '🔴'} ${client.name}
-            </h3>
-            <button type="button" id="close-custom-card" style="background: #1e293b; color: #94a3b8; border: none; font-size: 0.9rem; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+    const contentHtml = `
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 4px; max-width: 240px; background: #0f172a; color: #f8fafc; border-radius: 10px;">
+            <div style="border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 8px;">
+                <h3 style="margin: 0; font-size: 0.9rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
+                    ${hasAppointment ? '🔵' : '🔴'} ${client.name}
+                </h3>
+            </div>
+            <p style="margin: 0 0 4px 0; font-size: 0.78rem; color: #cbd5e1;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}</p>
+            <p style="margin: 0 0 4px 0; font-size: 0.78rem; color: #cbd5e1;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
+            <p style="margin: 0 0 10px 0; font-size: 0.78rem; color: #93c5fd;"><strong>📅 Cita:</strong> ${currentAppointmentInfo}</p>
+            
+            <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 7px; width: 100%; border-radius: 6px; font-size: 0.78rem; font-weight: bold; cursor: pointer; margin-bottom: 4px;">
+                📅 Gestionar Cita
+            </button>
+            <button type="button" id="infowindow-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 5px; width: 100%; border-radius: 6px; font-size: 0.72rem; font-weight: bold; cursor: pointer;">
+                🗑️ Eliminar Cliente
+            </button>
         </div>
-        <p style="margin: 0 0 6px 0; font-size: 0.8rem; color: #cbd5e1;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
-        <p style="margin: 0 0 6px 0; font-size: 0.8rem; color: #cbd5e1;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
-        <p style="margin: 0 0 12px 0; font-size: 0.8rem; color: #93c5fd;"><strong>📅 Cita:</strong> ${currentAppointmentInfo}</p>
-        
-        <button type="button" id="card-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 8px; width: 100%; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; margin-bottom: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-            📅 Gestionar Cita
-        </button>
-        <button type="button" id="card-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 6px; width: 100%; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">
-            🗑️ Eliminar Cliente
-        </button>
     `;
 
-    card.style.display = 'block';
+    infoWindow.setContent(contentHtml);
+    infoWindow.open(map, markerInstance);
 
-    // Evento para cerrar la tarjeta
-    document.getElementById('close-custom-card').addEventListener('click', () => {
-        card.style.display = 'none';
-    });
+    google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+        const gotoBtn = document.getElementById(`infowindow-goto-${client.id}`);
+        if (gotoBtn) {
+            gotoBtn.addEventListener('click', () => {
+                window.location.href = `./appointment-builder.html?client_id=${client.id}`;
+            });
+        }
 
-    // Evento para gestionar cita
-    document.getElementById(`card-goto-${client.id}`).addEventListener('click', () => {
-        window.location.href = `./appointment-builder.html?client_id=${client.id}`;
-    });
+        const deleteBtn = document.getElementById(`infowindow-delete-${client.id}`);
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+                if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
+                    deleteBtn.textContent = 'Eliminando...';
+                    const { error: delErr } = await supabase
+                        .from('clients')
+                        .delete()
+                        .eq('id', client.id);
 
-    // Evento para eliminar cliente
-    document.getElementById(`card-delete-${client.id}`).addEventListener('click', async () => {
-        if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
-            const deleteBtn = document.getElementById(`card-delete-${client.id}`);
-            deleteBtn.textContent = 'Eliminando...';
-            const { error: delErr } = await supabase
-                .from('clients')
-                .delete()
-                .eq('id', client.id);
-
-            if (delErr) {
-                alert('Error al eliminar: ' + delErr.message);
-                deleteBtn.textContent = '🗑️ Eliminar Cliente';
-            } else {
-                alert('¡Cliente eliminado correctamente!');
-                card.style.display = 'none';
-                await loadAndRenderClients(map, null);
-            }
+                    if (delErr) {
+                        alert('Error al eliminar: ' + delErr.message);
+                        deleteBtn.textContent = '🗑️ Eliminar Cliente';
+                    } else {
+                        alert('¡Cliente eliminado correctamente!');
+                        infoWindow.close();
+                        await loadAndRenderClients(map, null);
+                    }
+                }
+            });
         }
     });
 }
@@ -186,17 +159,18 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
                         ? "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" 
                         : "http://maps.google.com/mapfiles/ms/icons/red-dot.png";
 
+                    // Añadimos el nombre del cliente en el title para que aparezca al pasar el mouse por encima del pin
                     const marker = new google.maps.Marker({
                         position: clientLatLng,
                         map: mapInstance,
-                        title: client.name,
+                        title: `${client.name} (${client.address || 'Sin dirección'})`,
                         icon: { url: markerIcon }
                     });
 
                     markerMap[client.id] = marker;
 
                     marker.addListener('click', () => {
-                        showCustomMapCard(client);
+                        showClientDetailsInfoWindow(client, marker);
                     });
 
                     markers.push(marker);
