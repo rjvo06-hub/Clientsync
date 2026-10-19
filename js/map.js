@@ -24,6 +24,8 @@ async function startMap() {
         map = new google.maps.Map(mapElement, {
             zoom: 14,
             center: ottobrunnCenter,
+            // 'greedy' permite mover el mapa con un solo dedo en teléfonos móviles sin restricciones
+            gestureHandling: 'greedy',
             styles: [
                 {
                     featureType: "poi",
@@ -35,7 +37,7 @@ async function startMap() {
 
         window.map = map;
         infoWindow = new google.maps.InfoWindow({
-            maxWidth: 220
+            maxWidth: 200 // Ancho adaptado y compacto para móviles
         });
 
         // 1. Cargar todos los clientes inicialmente
@@ -70,7 +72,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante ultra compacto y minimalista
+// Función para mostrar el globito flotante optimizado y responsivo para móviles
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let appointmentSection = '';
@@ -83,9 +85,9 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         appointmentSection = `
             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
                 <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada:</span>
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
-                    <strong style="color: #93c5fd;">${formattedDate}</strong>
-                    <button type="button" id="infowindow-reschedule-${client.id}" style="background: #2563eb; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px;">
+                    <strong style="color: #93c5fd; font-size: 0.62rem;">${formattedDate}</strong>
+                    <button type="button" id="infowindow-reschedule-${client.id}" style="background: #2563eb; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.58rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
                         Reprogramar
                     </button>
                 </div>
@@ -94,7 +96,7 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     } else {
         appointmentSection = `
             <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
-                <span style="color: #94a3b8; display: block; margin-bottom: 3px;">Cita programada: <strong style="color: #f87171;">No programada</strong></span>
+                <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada: <strong style="color: #f87171;">No programada</strong></span>
             </div>
         `;
     }
@@ -105,18 +107,18 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     }
 
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 195px; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left;">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 175px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
             
             <!-- Nombre centrado y pegado arriba -->
-            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 5px; text-align: center;">
-                <h3 style="margin: 0; font-size: 0.82rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
+                <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
 
             <!-- Dirección y teléfono -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-                <p style="margin: 0; font-size: 0.68rem; color: #cbd5e1; line-height: 1.3; text-align: left; flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+                <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
                     <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
                 </p>
                 ${phoneActionHtml}
@@ -126,8 +128,8 @@ function showClientDetailsInfoWindow(client, markerInstance) {
             ${appointmentSection}
 
             <!-- Botón permanente para Programar nueva cita -->
-            <div style="margin-top: 6px;">
-                <button type="button" id="infowindow-new-${client.id}" style="background: #0d9488; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; font-size: 0.68rem; font-weight: bold; cursor: pointer;">
+            <div style="margin-top: 5px;">
+                <button type="button" id="infowindow-new-${client.id}" style="background: #0d9488; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
                     📅 Programar nueva cita
                 </button>
             </div>
@@ -142,7 +144,7 @@ function showClientDetailsInfoWindow(client, markerInstance) {
         const iwContainer = document.querySelector('.gm-style-iw-c');
         if (iwContainer) {
             iwContainer.style.background = '#0f172a';
-            iwContainer.style.padding = '2px 6px 6px 6px';
+            iwContainer.style.padding = '2px 4px 4px 4px';
             iwContainer.style.borderRadius = '8px';
             iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
         }
@@ -226,8 +228,7 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
 
                     markerMap[client.id] = marker;
 
-                    marker.addListener('click', (e) => {
-                        // Marcar que el clic provino de un marcador para evitar que se cierre de golpe
+                    marker.addListener('click', () => {
                         window._isClickingMarker = true;
                         showClientDetailsInfoWindow(client, marker);
                         setTimeout(() => {
@@ -248,10 +249,9 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
     }
 }
 
-// Escuchar clics globales en el mapa o documento para cerrar la ventana si se hace clic fuera
+// Cierre automático al hacer clic fuera del marcador en dispositivos móviles o escritorio
 document.addEventListener('click', (e) => {
     if (infoWindow && !window._isClickingMarker) {
-        // Verificar si el clic ocurrió fuera del contenedor del InfoWindow y fuera de los marcadores
         const target = e.target;
         const isInsideMap = target.closest('#map');
         const isInsideInfoWindow = target.closest('.gm-style-iw-c');
