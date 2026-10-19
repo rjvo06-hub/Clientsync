@@ -34,9 +34,8 @@ async function startMap() {
         });
 
         window.map = map;
-        // Reducimos el ancho máximo para que sea una burbuja pequeña y minimalista
         infoWindow = new google.maps.InfoWindow({
-            maxWidth: 240
+            maxWidth: 220
         });
 
         // 1. Cargar todos los clientes inicialmente
@@ -71,7 +70,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante con diseño minimalista, compacto y moderno
+// Función para mostrar el globito flotante minimalista sin espacios blancos laterales
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
@@ -82,20 +81,20 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     }
 
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 210px; background: #0f172a; color: #f8fafc; border-radius: 8px;">
-            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 6px;">
-                <h3 style="margin: 0; font-size: 0.85rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 195px; background: #0f172a; color: #f8fafc; border-radius: 6px;">
+            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 5px;">
+                <h3 style="margin: 0; font-size: 0.8rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
-            <p style="margin: 0 0 3px 0; font-size: 0.72rem; color: #cbd5e1;"><strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}</p>
-            <p style="margin: 0 0 3px 0; font-size: 0.72rem; color: #cbd5e1;"><strong>📞</strong> ${client.phone || 'N/A'}</p>
-            <p style="margin: 0 0 8px 0; font-size: 0.72rem; color: #93c5fd;"><strong>📅</strong> ${currentAppointmentInfo}</p>
+            <p style="margin: 0 0 2px 0; font-size: 0.68rem; color: #cbd5e1;"><strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}</p>
+            <p style="margin: 0 0 2px 0; font-size: 0.68rem; color: #cbd5e1;"><strong>📞</strong> ${client.phone || 'N/A'}</p>
+            <p style="margin: 0 0 6px 0; font-size: 0.68rem; color: #93c5fd;"><strong>📅</strong> ${currentAppointmentInfo}</p>
             
-            <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 6px; width: 100%; border-radius: 6px; font-size: 0.72rem; font-weight: bold; cursor: pointer; margin-bottom: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+            <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; font-size: 0.68rem; font-weight: bold; cursor: pointer; margin-bottom: 3px;">
                 📅 Gestionar Cita
             </button>
-            <button type="button" id="infowindow-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 4px; width: 100%; border-radius: 6px; font-size: 0.68rem; font-weight: bold; cursor: pointer;">
+            <button type="button" id="infowindow-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 4px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
                 🗑️ Eliminar Cliente
             </button>
         </div>
@@ -105,19 +104,25 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     infoWindow.open(map, markerInstance);
 
     google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-        const gmStyleWander = document.querySelector('.gm-style-iw');
-        if (gmStyleWander) {
-            const parentElement = gmStyleWander.closest('.gm-style-iw-c');
-            if (parentElement) {
-                parentElement.style.background = '#0f172a';
-                parentElement.style.padding = '8px';
-                parentElement.style.borderRadius = '10px';
-                parentElement.style.boxShadow = '0 8px 20px rgba(0,0,0,0.35)';
-            }
-            const closeBtn = gmStyleWander.querySelector('.gm-ui-hover-effect');
-            if (closeBtn) {
-                closeBtn.style.display = 'none';
-            }
+        // Eliminar por completo el padding y fondo blanco por defecto que impone Google Maps en el contenedor flotante
+        const iwContainer = document.querySelector('.gm-style-iw-c');
+        if (iwContainer) {
+            iwContainer.style.background = '#0f172a';
+            iwContainer.style.padding = '8px';
+            iwContainer.style.borderRadius = '10px';
+            iwContainer.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4)';
+        }
+
+        const iwOuter = document.querySelector('.gm-style-iw-d');
+        if (iwOuter) {
+            iwOuter.style.overflow = 'hidden';
+            iwOuter.style.padding = '0';
+            iwOuter.style.maxHeight = 'none';
+        }
+
+        const closeBtn = document.querySelector('.gm-ui-hover-effect');
+        if (closeBtn) {
+            closeBtn.style.display = 'none';
         }
 
         const gotoBtn = document.getElementById(`infowindow-goto-${client.id}`);
