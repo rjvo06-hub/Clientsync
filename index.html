@@ -63,7 +63,7 @@
             border: 1px solid var(--border-subtle);
         }
 
-        /* Navegación Moderna Estilo App Móvil (Ajustada a 4 elementos principales) */
+        /* Navegación Moderna Estilo App Móvil */
         .nav-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -98,7 +98,6 @@
             color: #2563eb;
         }
 
-        /* Estilo destacado específico para cada opción con sutil toque de color */
         .nav-buttons a span {
             font-size: 1.1rem;
         }
@@ -168,12 +167,16 @@
             <a href="./appointment-builder.html"><span>📅</span> Agendar</a>
             <a href="./admin-assignments.html"><span>🛠️</span> Admin</a>
             <a href="./employee-schedule.html"><span>👷‍♂️</span> Equipo</a>
+            
+            <!-- NUEVO BOTÓN: Visualizar mapa -->
+            <a href="#map-section" id="btnShowMap" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;"><span>🗺️</span> Ver Mapa</a>
+
             <!-- Botón exclusivo de Administrador (Oculto por defecto) -->
-            <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; grid-column: span 2; background: #faf5ff; color: #7c3aed; border: 1px dashed #c084fc;"><span>📄</span> Generar Reporte PDF Admin</a>
+            <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; background: #faf5ff; color: #7c3aed; border: 1px dashed #c084fc;"><span>📄</span> Generar Reporte PDF Admin</a>
         </nav>
 
         <!-- Mapa general (Oculto inicialmente) -->
-        <section class="map-section" style="display: none;">
+        <section class="map-section" id="map-section" style="display: none;">
             <div class="map-header">
                 <h2>📍 Mapa General de Clientes</h2>
             </div>
@@ -181,15 +184,35 @@
         </section>
     </div>
 
-    <!-- Script de validación para mostrar el botón de admin PDF -->
+    <!-- Script de validación y control del botón de mapa -->
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Validación de acceso para Administrador (Reporte PDF)
             const acceso = localStorage.getItem('usuario_acceso');
             if (Number(acceso) === 1) {
                 const pdfLink = document.getElementById('navAdminPdf');
                 if (pdfLink) {
                     pdfLink.style.display = 'flex';
                 }
+            }
+
+            // Lógica para mostrar y desplazar hacia el mapa al hacer clic
+            const btnShowMap = document.getElementById('btnShowMap');
+            const mapSection = document.getElementById('map-section');
+
+            if (btnShowMap && mapSection) {
+                btnShowMap.addEventListener('click', (e) => {
+                    e.preventDefault(); // Evita el comportamiento por defecto de salto de ancla
+                    
+                    // Muestra la sección del mapa
+                    mapSection.style.display = 'block';
+                    
+                    // Desplaza la vista suavemente hacia el mapa
+                    mapSection.scrollIntoView({ behavior: 'smooth' });
+
+                    // Dispara evento de redibujado para que Google Maps cargue correctamente si estaba oculto
+                    window.dispatchEvent(new Event('resize'));
+                });
             }
         });
     </script>
