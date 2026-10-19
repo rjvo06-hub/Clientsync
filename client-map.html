@@ -31,23 +31,17 @@ async function startMap() {
             ]
         });
 
-        // Exponer la instancia globalmente para controles externos (buscador inteligente)
         window.map = map;
-
-        // Crear el contenedor flotante pequeño y elegante en el DOM
         createMobileBottomSheetContainer();
 
-        // 1. Cargar todos los clientes inicialmente
         await loadAndRenderClients(map);
 
-        // 2. Escuchar el evento cuando el usuario selecciona un sector en el modal de index.html
         document.addEventListener('sectorSelected', async (e) => {
             const targetPostal = e.detail.postalCode;
             console.log("🎯 Sector recibido para zoom por zona:", targetPostal);
             await zoomToZoneOrPostal(targetPostal);
         });
 
-        // 3. Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir la tarjeta correcta
         window.addEventListener('centerOnClient', (e) => {
             const client = e.detail;
             if (map && client.latitude && client.longitude) {
@@ -55,9 +49,8 @@ async function startMap() {
                 const lng = Number(client.longitude);
                 
                 map.setCenter({ lat, lng });
-                map.setZoom(17); // Zoom de acercamiento perfecto
+                map.setZoom(17);
 
-                // Abrir directamente la tarjeta flotante compacta con los datos de ESTE cliente exacto
                 showClientDetailsBottomSheet(client);
             }
         });
@@ -67,7 +60,6 @@ async function startMap() {
     }
 }
 
-// Inyectar el contenedor flotante pequeño en el DOM (no cubre toda la pantalla)
 function createMobileBottomSheetContainer() {
     if (document.getElementById('client-bottom-sheet')) return;
 
@@ -110,7 +102,6 @@ function closeMobileBottomSheet() {
     }
 }
 
-// Función centralizada para mostrar la tarjeta flotante compacta de un cliente
 function showClientDetailsBottomSheet(client) {
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
@@ -145,15 +136,12 @@ function showClientDetailsBottomSheet(client) {
 
     openMobileBottomSheet(sheetContent);
 
-    // Evento cerrar panel flotante
     document.getElementById('close-sheet-btn').addEventListener('click', closeMobileBottomSheet);
 
-    // Evento para redirigir a appointment-builder.html pasando el ID del cliente
     document.getElementById(`btn-goto-appointment-${client.id}`).addEventListener('click', () => {
         window.location.href = `./appointment-builder.html?client_id=${client.id}`;
     });
 
-    // Botón eliminar cliente
     const deleteBtn = document.getElementById(`sheet-delete-client-${client.id}`);
     if (deleteBtn) {
         deleteBtn.addEventListener('click', async () => {
@@ -182,7 +170,6 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
         const { data: clients, error } = await supabase.from('clients').select('*');
         if (error || !clients) return;
 
-        // Limpiar marcadores previos
         markers.forEach(m => m.setMap(null));
         markers = [];
 
