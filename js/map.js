@@ -15,7 +15,7 @@ function initMapWhenReady() {
 
 async function startMap() {
     console.log("🗺️ Inicializando mapa de Google Maps...");
-    // Coordenadas exactas del centro de Ottobrunn
+    // Coordenadas exactas del centro de Ottobrunn para la vista inicial
     const ottobrunnCenter = { lat: 48.0664, lng: 11.6611 };
 
     const mapElement = document.getElementById('map');
@@ -23,7 +23,7 @@ async function startMap() {
 
     try {
         map = new google.maps.Map(mapElement, {
-            zoom: 14, // Zoom ideal para abarcar Ottobrunn y ver todos los clientes cercanos
+            zoom: 14, // Zoom ideal para abarcar Ottobrunn
             center: ottobrunnCenter,
             styles: [
                 {
@@ -37,6 +37,13 @@ async function startMap() {
         window.map = map;
         infoWindow = new google.maps.InfoWindow({
             maxWidth: 220
+        });
+
+        // Cerrar automáticamente la tarjeta de cliente al hacer clic fuera de los marcadores (en el mapa)
+        map.addListener('click', () => {
+            if (infoWindow) {
+                infoWindow.close();
+            }
         });
 
         // 1. Cargar todos los clientes inicialmente manteniendo el centro en Ottobrunn
@@ -227,7 +234,11 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
 
                     markerMap[client.id] = marker;
 
-                    marker.addListener('click', () => {
+                    marker.addListener('click', (e) => {
+                        // Evitar que el clic en el marcador propague y cierre inmediatamente el InfoWindow
+                        if (e && e.domEvent) {
+                            e.domEvent.stopPropagation();
+                        }
                         showClientDetailsInfoWindow(client, marker);
                     });
 
