@@ -35,7 +35,7 @@ async function startMap() {
 
         window.map = map;
         infoWindow = new google.maps.InfoWindow({
-            maxWidth: 220
+            maxWidth: 200
         });
 
         // 1. Cargar todos los clientes inicialmente
@@ -70,7 +70,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante minimalista con la flecha en negro
+// Función para mostrar el globito flotante ultra compacto y minimalista
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
@@ -81,20 +81,20 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     }
 
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 195px; background: #0f172a; color: #f8fafc; border-radius: 6px;">
-            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 5px;">
-                <h3 style="margin: 0; font-size: 0.8rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0; width: 180px; background: #0f172a; color: #f8fafc; border-radius: 6px;">
+            <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px;">
+                <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                 </h3>
             </div>
-            <p style="margin: 0 0 2px 0; font-size: 0.68rem; color: #cbd5e1;"><strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}</p>
-            <p style="margin: 0 0 2px 0; font-size: 0.68rem; color: #cbd5e1;"><strong>📞</strong> ${client.phone || 'N/A'}</p>
-            <p style="margin: 0 0 6px 0; font-size: 0.68rem; color: #93c5fd;"><strong>📅</strong> ${currentAppointmentInfo}</p>
+            <p style="margin: 0 0 2px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;"><strong>📍</strong> ${client.address || 'Sin dirección'}</p>
+            <p style="margin: 0 0 2px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;"><strong>📞</strong> ${client.phone || 'N/A'}</p>
+            <p style="margin: 0 0 6px 0; font-size: 0.65rem; color: #93c5fd; line-height: 1.2;"><strong>📅</strong> ${currentAppointmentInfo}</p>
             
-            <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 5px; width: 100%; border-radius: 4px; font-size: 0.68rem; font-weight: bold; cursor: pointer; margin-bottom: 3px;">
+            <button type="button" id="infowindow-goto-${client.id}" style="background: #0d9488; color: white; border: none; padding: 4px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer; margin-bottom: 3px;">
                 📅 Gestionar Cita
             </button>
-            <button type="button" id="infowindow-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 4px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
+            <button type="button" id="infowindow-delete-${client.id}" style="background: #dc2626; color: white; border: none; padding: 3px; width: 100%; border-radius: 4px; font-size: 0.6rem; font-weight: bold; cursor: pointer;">
                 🗑️ Eliminar Cliente
             </button>
         </div>
@@ -104,13 +104,13 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     infoWindow.open(map, markerInstance);
 
     google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-        // Estilizar la tarjeta flotante y la flecha inferior a negro oscuro
+        // Estilizar contenedor principal e inyectar CSS para pintar la flecha de negro
         const iwContainer = document.querySelector('.gm-style-iw-c');
         if (iwContainer) {
             iwContainer.style.background = '#0f172a';
-            iwContainer.style.padding = '8px';
-            iwContainer.style.borderRadius = '10px';
-            iwContainer.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4)';
+            iwContainer.style.padding = '6px';
+            iwContainer.style.borderRadius = '8px';
+            iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
         }
 
         const iwOuter = document.querySelector('.gm-style-iw-d');
@@ -120,30 +120,26 @@ function showClientDetailsInfoWindow(client, markerInstance) {
             iwOuter.style.maxHeight = 'none';
         }
 
-        // Pintar la flecha inferior de negro
-        const iwTip = document.querySelector('.gm-style-iw-t::after');
-        const allTips = document.querySelectorAll('.gm-style-iw-t');
-        allTips.forEach(tip => {
-            tip.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
-        });
+        const closeBtn = document.querySelector('.gm-ui-hover-effect');
+        if (closeBtn) {
+            closeBtn.style.display = 'none';
+        }
 
-        // Inyectar CSS dinámico para asegurar que la flecha tome el color oscuro (#0f172a)
-        let styleTag = document.getElementById('custom-infowindow-arrow-style');
+        // Inyectar CSS global para asegurar que la flecha y los elementos de Google Maps adopten el color oscuro
+        let styleTag = document.getElementById('custom-infowindow-dark-style');
         if (!styleTag) {
             styleTag = document.createElement('style');
-            styleTag.id = 'custom-infowindow-arrow-style';
+            styleTag.id = 'custom-infowindow-dark-style';
             styleTag.innerHTML = `
                 .gm-style-iw-t::after {
                     background: #0f172a !important;
                     box-shadow: none !important;
                 }
+                .gm-style-iw-tc::after {
+                    background: #0f172a !important;
+                }
             `;
             document.head.appendChild(styleTag);
-        }
-
-        const closeBtn = document.querySelector('.gm-ui-hover-effect');
-        if (closeBtn) {
-            closeBtn.style.display = 'none';
         }
 
         const gotoBtn = document.getElementById(`infowindow-goto-${client.id}`);
