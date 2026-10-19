@@ -70,7 +70,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante minimalista sin espacios blancos laterales
+// Función para mostrar el globito flotante minimalista con la flecha en negro
 function showClientDetailsInfoWindow(client, markerInstance) {
     const hasAppointment = Boolean(client.appointment_date);
     let currentAppointmentInfo = 'No programada';
@@ -104,7 +104,7 @@ function showClientDetailsInfoWindow(client, markerInstance) {
     infoWindow.open(map, markerInstance);
 
     google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-        // Eliminar por completo el padding y fondo blanco por defecto que impone Google Maps en el contenedor flotante
+        // Estilizar la tarjeta flotante y la flecha inferior a negro oscuro
         const iwContainer = document.querySelector('.gm-style-iw-c');
         if (iwContainer) {
             iwContainer.style.background = '#0f172a';
@@ -118,6 +118,27 @@ function showClientDetailsInfoWindow(client, markerInstance) {
             iwOuter.style.overflow = 'hidden';
             iwOuter.style.padding = '0';
             iwOuter.style.maxHeight = 'none';
+        }
+
+        // Pintar la flecha inferior de negro
+        const iwTip = document.querySelector('.gm-style-iw-t::after');
+        const allTips = document.querySelectorAll('.gm-style-iw-t');
+        allTips.forEach(tip => {
+            tip.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+        });
+
+        // Inyectar CSS dinámico para asegurar que la flecha tome el color oscuro (#0f172a)
+        let styleTag = document.getElementById('custom-infowindow-arrow-style');
+        if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = 'custom-infowindow-arrow-style';
+            styleTag.innerHTML = `
+                .gm-style-iw-t::after {
+                    background: #0f172a !important;
+                    box-shadow: none !important;
+                }
+            `;
+            document.head.appendChild(styleTag);
         }
 
         const closeBtn = document.querySelector('.gm-ui-hover-effect');
