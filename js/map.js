@@ -31,6 +31,9 @@ async function startMap() {
             ]
         });
 
+        // Exponer la instancia globalmente para controles externos (buscador inteligente)
+        window.map = map;
+
         // Crear el contenedor inferior flotante para móviles (Bottom Sheet) si no existe
         createMobileBottomSheetContainer();
 
@@ -42,6 +45,21 @@ async function startMap() {
             const targetPostal = e.detail.postalCode;
             console.log("🎯 Sector recibido para zoom por zona:", targetPostal);
             await zoomToZoneOrPostal(targetPostal);
+        });
+
+        // 3. NUEVO: Escuchar el evento del buscador inteligente en client-map.html para hacer zoom y abrir la tarjeta
+        window.addEventListener('centerOnClient', (e) => {
+            const client = e.detail;
+            if (map && client.latitude && client.longitude) {
+                const lat = Number(client.latitude);
+                const lng = Number(client.longitude);
+                
+                map.setCenter({ lat, lng });
+                map.setZoom(17); // Zoom de acercamiento perfecto
+
+                // Simular el despliegue del BottomSheet con la información del cliente seleccionado
+                showClientDetailsBottomSheet(client);
+            }
         });
 
     } catch (e) {
@@ -90,6 +108,73 @@ function closeMobileBottomSheet() {
     }
 }
 
+// Función centralizada para mostrar la tarjeta flotante de un cliente
+function showClientDetailsBottomSheet(client) {
+    const hasAppointment = Boolean(client.appointment_date);
+    let currentAppointmentInfo = 'No programada';
+    if (client.appointment_date) {
+        const d = new Date(client.appointment_date);
+        const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
+        currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
+    }
+
+    const sheetContent = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 1.2rem; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'};">
+                ${hasAppointment ? '🔵' : '🔴'} ${client.name}
+            </h2>
+            <button type="button" id="close-sheet-btn" style="background: #e2e8f0; border: none; font-size: 1.2rem; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold;">✕</button>
+        </div>
+
+        <p style="margin: 0 0 8px 0; font-size: 0.95rem; color: #4a5568;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
+        <p style="margin: 0 0 8px 0; font-size: 0.95rem; color: #4a5568;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
+        <p style="margin: 0 0 20px 0; font-size: 0.95rem; color: #2b6cb0;"><strong>📅 Cita actual:</strong> ${currentAppointmentInfo}</p>
+        
+        <button type="button" id="btn-goto-appointment-${client.id}" style="background: #319795; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            📅 Programar / Gestionar Cita
+        </button>
+
+        <div style="padding-top: 10px; border-top: 2px dashed #e2e8f0; text-align: center;">
+            <button type="button" id="sheet-delete-client-${client.id}" style="background: #e53e3e; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer;">
+                🗑️ Eliminar este Cliente Incorrecto
+            </button>
+        </div>
+    `;
+
+    openMobileBottomSheet(sheetContent);
+
+    // Evento cerrar panel inferior
+    document.getElementById('close-sheet-btn').addEventListener('click', closeMobileBottomSheet);
+
+    // Evento para redirigir a appointment-builder.html pasando el ID del cliente
+    document.getElementById(`btn-goto-appointment-${client.id}`).addEventListener('click', () => {
+        window.location.href = `./appointment-builder.html?client_id=${client.id}`;
+    });
+
+    // Botón eliminar cliente
+    const deleteBtn = document.getElementById(`sheet-delete-client-${client.id}`);
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
+                deleteBtn.textContent = 'Eliminando...';
+                const { error: delErr } = await supabase
+                    .from('clients')
+                    .delete()
+                    .eq('id', client.id);
+
+                if (delErr) {
+                    alert('Error al eliminar: ' + delErr.message);
+                    deleteBtn.textContent = '🗑️ Eliminar este Cliente Incorrecto';
+                } else {
+                    alert('¡Cliente eliminado correctamente!');
+                    closeMobileBottomSheet();
+                    await loadAndRenderClients(map, null);
+                }
+            }
+        });
+    }
+}
+
 async function loadAndRenderClients(mapInstance, postalFilter = null) {
     try {
         const { data: clients, error } = await supabase.from('clients').select('*');
@@ -111,7 +196,6 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
                     bounds.extend(clientLatLng);
                     matchedAny = true;
 
-                    // Icono azul si tiene cita, rojo si no tiene
                     const hasAppointment = Boolean(client.appointment_date);
                     const markerIcon = hasAppointment 
                         ? "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" 
@@ -124,72 +208,8 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
                         icon: { url: markerIcon }
                     });
 
-                    // Evento al hacer clic en el pin del cliente (Muestra información básica y botón de redirección)
                     marker.addListener('click', () => {
-                        let currentAppointmentInfo = 'No programada';
-                        if (client.appointment_date) {
-                            const d = new Date(client.appointment_date);
-                            const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
-                            currentAppointmentInfo = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
-                        }
-
-                        const sheetContent = `
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px;">
-                                <h2 style="margin: 0; font-size: 1.2rem; color: ${hasAppointment ? '#2b6cb0' : '#e53e3e'};">
-                                    ${hasAppointment ? '🔵' : '🔴'} ${client.name}
-                                </h2>
-                                <button type="button" id="close-sheet-btn" style="background: #e2e8f0; border: none; font-size: 1.2rem; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold;">✕</button>
-                            </div>
-
-                            <p style="margin: 0 0 8px 0; font-size: 0.95rem; color: #4a5568;"><strong>📍 Dirección:</strong> ${client.address || 'N/A'}, ${client.postal_code || ''}</p>
-                            <p style="margin: 0 0 8px 0; font-size: 0.95rem; color: #4a5568;"><strong>📞 Teléfono:</strong> ${client.phone || 'N/A'}</p>
-                            <p style="margin: 0 0 20px 0; font-size: 0.95rem; color: #2b6cb0;"><strong>📅 Cita actual:</strong> ${currentAppointmentInfo}</p>
-                            
-                            <!-- Botón para ir al programa unificado de agendamiento -->
-                            <button type="button" id="btn-goto-appointment-${client.id}" style="background: #319795; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                📅 Programar / Gestionar Cita
-                            </button>
-
-                            <!-- Botón para eliminar cliente erróneo -->
-                            <div style="padding-top: 10px; border-top: 2px dashed #e2e8f0; text-align: center;">
-                                <button type="button" id="sheet-delete-client-${client.id}" style="background: #e53e3e; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer;">
-                                    🗑️ Eliminar este Cliente Incorrecto
-                                </button>
-                            </div>
-                        `;
-
-                        openMobileBottomSheet(sheetContent);
-
-                        // Evento cerrar panel inferior
-                        document.getElementById('close-sheet-btn').addEventListener('click', closeMobileBottomSheet);
-
-                        // Evento para redirigir a appointment-builder.html pasando el ID del cliente
-                        document.getElementById(`btn-goto-appointment-${client.id}`).addEventListener('click', () => {
-                            window.location.href = `./appointment-builder.html?client_id=${client.id}`;
-                        });
-
-                        // Botón eliminar cliente
-                        const deleteBtn = document.getElementById(`sheet-delete-client-${client.id}`);
-                        if (deleteBtn) {
-                            deleteBtn.addEventListener('click', async () => {
-                                if (confirm(`¿Estás seguro de eliminar a "${client.name}" de la base de datos y del mapa?`)) {
-                                    deleteBtn.textContent = 'Eliminando...';
-                                    const { error: delErr } = await supabase
-                                        .from('clients')
-                                        .delete()
-                                        .eq('id', client.id);
-
-                                    if (delErr) {
-                                        alert('Error al eliminar: ' + delErr.message);
-                                        deleteBtn.textContent = '🗑️ Eliminar este Cliente Incorrecto';
-                                    } else {
-                                        alert('¡Cliente eliminado correctamente!');
-                                        closeMobileBottomSheet();
-                                        await loadAndRenderClients(mapInstance, postalFilter);
-                                    }
-                                }
-                            });
-                        }
+                        showClientDetailsBottomSheet(client);
                     });
 
                     markers.push(marker);
@@ -197,7 +217,6 @@ async function loadAndRenderClients(mapInstance, postalFilter = null) {
             }
         });
 
-        // Si no hay filtro de sector específico, ajustamos bounds generales de los clientes
         if (!postalFilter && matchedAny && !bounds.isEmpty()) {
             mapInstance.fitBounds(bounds);
         }
