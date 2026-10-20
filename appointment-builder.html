@@ -15,6 +15,23 @@
         .inline-row-three { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
         .inline-col-three { flex: 1; min-width: 170px; }
         
+        .appointment-selection-card {
+            background: #fff;
+            border: 1px solid #cbd5e0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .appointment-selection-card.selected {
+            background-color: #ebf8ff;
+            border: 2px solid #2b6cb0;
+        }
+
         .suggestion-item-btn {
             width: 100%;
             padding: 12px 15px;
@@ -106,13 +123,13 @@
         </div>
 
         <p id="page-subtitle" style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
-            Busca un cliente por nombre o calle, revisa las citas del día con sus distancias, elige la fecha, hora, duración y el trabajo a realizar.
+            Busca un cliente, revisa su historial de citas y gestiona las visitas de forma independiente.
         </p>
 
         <form id="appointment-form">
             <div class="client-search-container">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <label style="font-weight: bold; color: #2d3748; font-size: 0.9rem;">1. Buscar Cliente (por nombre o calle):</label>
+                    <label style="font-weight: bold; color: #2d3748; font-size: 0.9rem;">1. Buscar Cliente (por nombre, dirección o CP):</label>
                     <button type="button" id="btn-open-map-selector" style="width: auto; padding: 4px 8px; font-size: 0.75rem; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer;">🗺️ Buscar en el Mapa</button>
                 </div>
                 <input type="text" id="client-search-input" placeholder="Escribe parte del nombre o la calle..." autocomplete="off" required>
@@ -124,8 +141,11 @@
                 <strong>Cliente Seleccionado:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
                 <strong>Dirección:</strong> <span id="det-address">-</span><br>
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
-                <div id="det-current-appointment" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e0; font-weight: bold; color: #2d3748;">
-                    📅 Cita actual: <span id="det-appt-status" style="color: #e53e3e;">No programada</span>
+                
+                <!-- Historial de citas y selección para reprogramar -->
+                <div id="appointments-selection-container" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e0; display: none;">
+                    <strong style="color: #2d3748; display: block; margin-bottom: 6px;">Historial de citas del cliente (Selecciona una para reprogramar):</strong>
+                    <div id="client-appointments-list"></div>
                 </div>
             </div>
 
@@ -187,21 +207,23 @@
         let activeClient = null;
         window.activeClient = null;
         let allClients = [];
+        let allAppointments = []; 
         let allServices = [];
+        let clientAppointments = []; 
+        let selectedAppointmentId = null; 
         let selectedDateOnly = '';
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
-        // Leer parámetros de acción de la URL (?action=reschedule o ?action=new)
         const urlParams = new URLSearchParams(window.location.search);
-        const actionType = urlParams.get('action') || 'reschedule'; // por defecto reprogramar
+        const actionType = urlParams.get('action') || 'reschedule';
 
         if (actionType === 'new') {
             document.getElementById('page-title').textContent = '➕ Programar Nueva Cita Adicional';
-            document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita para este cliente sin perder ni sobreescribir la cita que ya tiene asignada.';
+            document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita para este cliente manteniendo su historial.';
             document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
         } else {
             document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
-            document.getElementById('page-subtitle').textContent = 'Modifica la fecha y hora de la cita programada actual de este cliente.';
+            document.getElementById('page-subtitle').textContent = 'Selecciona una de las citas del cliente para modificar su fecha y hora.';
             document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
         }
 
@@ -210,100 +232,51 @@
             freeDateInput.setAttribute('min', todayStrSystem);
         }
 
-        function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * (Math.PI / 180);
-            const dLon = (lon2 - lon1) * (Math.PI / 180);
-            const a = 
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
-
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
-            return dateStr;
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
         }
 
         function suggestNextTimeForDate(dateStr) {
-            const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr) && c.id !== activeClient?.id);
-            if (clientsOnDate.length === 0) {
-                if (dateStr === todayStrSystem) {
-                    const now = new Date();
-                    const currentH = now.getHours();
-                    const currentM = now.getMinutes();
-                    const formattedH = String(currentH).padStart(2, '0');
-                    const formattedM = currentM > 0 ? String(Math.min(currentM + 15, 59)).padStart(2, '0') : '00';
-                    return `${formattedH}:${formattedM}`;
-                }
-                return "09:00";
-            }
+            const apptsOnDate = allAppointments.filter(a => a.appointment_date && a.appointment_date.startsWith(dateStr));
+            if (apptsOnDate.length === 0) return "09:00";
 
-            let latestHour = 9;
-            let latestMinute = 0;
-
-            clientsOnDate.forEach(c => {
-                const dateObj = new Date(c.appointment_date);
-                const h = dateObj.getHours();
-                const m = dateObj.getMinutes();
-                const totalMins = h * 60 + m;
-                
-                const durationMins = c.estimated_hours ? (Number(c.estimated_hours) * 60) : 60;
-                const endMins = totalMins + durationMins;
-
-                const currentLatestMins = latestHour * 60 + latestMinute;
-                if (endMins > currentLatestMins) {
-                    latestHour = Math.floor(endMins / 60);
-                    latestMinute = endMins % 60;
+            let latestHour = 9, latestMinute = 0;
+            apptsOnDate.forEach(a => {
+                const dateObj = new Date(a.appointment_date);
+                const totalMins = dateObj.getHours() * 60 + dateObj.getMinutes() + (a.estimated_hours ? Number(a.estimated_hours) * 60 : 60);
+                if (totalMins > latestHour * 60 + latestMinute) {
+                    latestHour = Math.floor(totalMins / 60);
+                    latestMinute = totalMins % 60;
                 }
             });
-
             if (latestHour > 20) latestHour = 20;
-
-            const formattedH = String(latestHour).padStart(2, '0');
-            const formattedM = String(latestMinute).padStart(2, '0');
-            return `${formattedH}:${formattedM}`;
+            return `${String(latestHour).padStart(2, '0')}:${String(latestMinute).padStart(2, '0')}`;
         }
 
         async function initForm() {
             try {
-                const { data: clientData, error: clientError } = await supabase.from('clients').select('*').order('name', { ascending: true });
-                if (clientError) throw clientError;
-                allClients = clientData || [];
+                const [{ data: clientData }, { data: apptData }, { data: serviceData }] = await Promise.all([
+                    supabase.from('clients').select('*').order('name', { ascending: true }),
+                    supabase.from('appointments').select('*'),
+                    supabase.from('services').select('*').order('name', { ascending: true })
+                ]);
 
-                const { data: serviceData, error: serviceError } = await supabase.from('services').select('*').order('name', { ascending: true });
-                if (!serviceError && serviceData) {
-                    allServices = serviceData;
-                }
+                allClients = clientData || [];
+                allAppointments = apptData || [];
+                allServices = serviceData || [];
 
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
                     const found = allClients.find(c => c.id === targetClientId);
-                    if (found) {
-                        selectClient(found);
-                    }
+                    if (found) selectClient(found);
                 }
 
-                initInteractiveMapModal(
-                    'map-modal',
-                    'interactive-map',
-                    'btn-open-map-selector',
-                    'close-map-modal',
-                    () => allClients,
-                    (selectedClient) => {
-                        selectClient(selectedClient);
-                    }
-                );
+                initInteractiveMapModal('map-modal', 'interactive-map', 'btn-open-map-selector', 'close-map-modal', () => allClients, selectClient);
 
             } catch (err) {
                 console.error('Error al inicializar:', err);
-                alert('Hubo un error al cargar la información.');
             }
         }
 
@@ -312,41 +285,19 @@
 
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
-            if (query.length === 0) {
-                dropdown.style.display = 'none';
-                return;
-            }
+            if (query.length === 0) { dropdown.style.display = 'none'; return; }
 
-            const startsWithMatches = allClients.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const address = (c.address || '').toLowerCase();
-                const postal = (c.postal_code || '').toLowerCase();
-                return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
-            });
-
-            const containsMatches = allClients.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const address = (c.address || '').toLowerCase();
-                const postal = (c.postal_code || '').toLowerCase();
-                
-                const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
-                const alreadyAdded = startsWithMatches.includes(c);
-
-                return hasMatch && !alreadyAdded;
-            });
-
-            const filtered = [...startsWithMatches, ...containsMatches];
-
+            const starts = allClients.filter(c => (c.name || '').toLowerCase().startsWith(query) || (c.address || '').toLowerCase().startsWith(query) || (c.postal_code || '').toLowerCase().startsWith(query));
+            const contains = allClients.filter(c => ((c.name || '').toLowerCase().includes(query) || (c.address || '').toLowerCase().includes(query) || (c.postal_code || '').toLowerCase().includes(query)) && !starts.includes(c));
+            
+            const filtered = [...starts, ...contains];
             dropdown.innerHTML = '';
             if (filtered.length > 0) {
                 filtered.forEach(client => {
                     const item = document.createElement('div');
                     item.className = 'client-result-item';
                     item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
-                    item.addEventListener('click', () => {
-                        selectClient(client);
-                        dropdown.style.display = 'none';
-                    });
+                    item.addEventListener('click', () => { selectClient(client); dropdown.style.display = 'none'; });
                     dropdown.appendChild(item);
                 });
                 dropdown.style.display = 'block';
@@ -357,9 +308,7 @@
         });
 
         document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none';
         });
 
         const serviceSearchInput = document.getElementById('service-search-input');
@@ -367,29 +316,15 @@
 
         serviceSearchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
-            if (query.length === 0) {
-                serviceDropdown.style.display = 'none';
-                return;
-            }
-
-            const startsWithMatches = allServices.filter(s => (s.name || '').toLowerCase().startsWith(query));
-            const containsMatches = allServices.filter(s => {
-                const name = (s.name || '').toLowerCase();
-                return name.includes(query) && !startsWithMatches.includes(s);
-            });
-
-            const filtered = [...startsWithMatches, ...containsMatches];
-
+            if (query.length === 0) { serviceDropdown.style.display = 'none'; return; }
+            const filtered = allServices.filter(s => (s.name || '').toLowerCase().includes(query));
             serviceDropdown.innerHTML = '';
             if (filtered.length > 0) {
                 filtered.forEach(srv => {
                     const item = document.createElement('div');
                     item.className = 'service-result-item';
                     item.textContent = srv.name;
-                    item.addEventListener('click', () => {
-                        serviceSearchInput.value = srv.name;
-                        serviceDropdown.style.display = 'none';
-                    });
+                    item.addEventListener('click', () => { serviceSearchInput.value = srv.name; serviceDropdown.style.display = 'none'; });
                     serviceDropdown.appendChild(item);
                 });
                 serviceDropdown.style.display = 'block';
@@ -400,20 +335,14 @@
         });
 
         document.addEventListener('click', (e) => {
-            if (!serviceSearchInput.contains(e.target) && !serviceDropdown.contains(e.target)) {
-                serviceDropdown.style.display = 'none';
-            }
+            if (!serviceSearchInput.contains(e.target) && !serviceDropdown.contains(e.target)) serviceDropdown.style.display = 'none';
         });
 
-        function selectClient(client) {
+        async function selectClient(client) {
             activeClient = client;
             window.activeClient = client;
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
-
-            if (client.service_requested) {
-                serviceSearchInput.value = client.service_requested;
-            }
 
             const detailsCard = document.getElementById('client-details');
             const dateSection = document.getElementById('date-section');
@@ -426,9 +355,6 @@
             document.getElementById('free-date-input').value = '';
             document.getElementById('appointment-time').value = '';
             document.getElementById('estimated-hours').value = '';
-            
-            saveBtn.disabled = true;
-            saveBtn.style.opacity = '0.6';
 
             if (!client.latitude || !client.longitude) {
                 alert('Este cliente no tiene coordenadas geográficas registradas.');
@@ -438,86 +364,70 @@
             document.getElementById('det-name').textContent = client.name;
             document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
-            
-            const apptStatusSpan = document.getElementById('det-appt-status');
-            if (client.appointment_date) {
-                const d = new Date(client.appointment_date);
-                const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
-                apptStatusSpan.style.color = '#2b6cb0';
-                apptStatusSpan.textContent = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
+
+            clientAppointments = allAppointments.filter(a => a.client_id === client.id);
+            const appointmentsContainer = document.getElementById('appointments-selection-container');
+            const appointmentsListDiv = document.getElementById('client-appointments-list');
+            appointmentsListDiv.innerHTML = '';
+
+            if (actionType === 'reschedule') {
+                if (clientAppointments.length > 0) {
+                    appointmentsContainer.style.display = 'block';
+                    clientAppointments.forEach((appt, index) => {
+                        const d = new Date(appt.appointment_date);
+                        const formatted = d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+                        const card = document.createElement('div');
+                        card.className = 'appointment-selection-card';
+                        card.innerHTML = `
+                            <div>
+                                <strong>Cita #${index + 1}:</strong> <span style="color: #2b6cb0;">${formatted}</span>
+                                <div style="font-size: 0.75rem; color: #666;">Servicio: ${appt.service_requested || 'General'}</div>
+                            </div>
+                            <span style="font-size: 0.8rem; font-weight: bold; color: #2b6cb0;">Seleccionar</span>
+                        `;
+                        card.addEventListener('click', () => {
+                            document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
+                            card.classList.add('selected');
+                            selectedAppointmentId = appt.id;
+                            dateSection.style.display = 'block';
+                        });
+                        appointmentsListDiv.appendChild(card);
+                    });
+                } else {
+                    appointmentsContainer.style.display = 'block';
+                    appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.85rem;">Este cliente no tiene citas registradas para reprogramar.</span>`;
+                }
             } else {
-                apptStatusSpan.style.color = '#e53e3e';
-                apptStatusSpan.textContent = 'No programada';
+                appointmentsContainer.style.display = 'none';
+                dateSection.style.display = 'block';
             }
 
             detailsCard.style.display = 'block';
-            dateSection.style.display = 'block';
 
-            const scheduledClients = allClients.filter(c => c.appointment_date && c.id !== client.id && c.latitude && c.longitude);
             suggestionsList.innerHTML = '';
+            const activeDates = [...new Set(allAppointments.map(a => a.appointment_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
+            activeDates.sort();
 
-            if (scheduledClients.length > 0) {
-                const activeDates = [...new Set(scheduledClients.map(c => c.appointment_date.split('T')[0]))].filter(d => d >= todayStrSystem);
-                activeDates.sort();
+            if (activeDates.length > 0) {
+                activeDates.forEach(dateStr => {
+                    const apptsOnThisDate = allAppointments.filter(a => a.appointment_date?.startsWith(dateStr));
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'suggestion-item-btn';
+                    btn.innerHTML = `<strong style="color: #2b6cb0;">📅 ${formatDateToDDMMYYYY(dateStr)}</strong> (${apptsOnThisDate.length} citas este día)`;
+                    btn.addEventListener('click', () => {
+                        selectedDateOnly = dateStr;
+                        document.getElementById('free-date-input').value = dateStr;
+                        document.getElementById('appointment-time').value = suggestNextTimeForDate(dateStr);
+                        updateFinalTimestamp();
 
-                if (activeDates.length > 0) {
-                    activeDates.forEach(dateStr => {
-                        const clientsOnThisDate = scheduledClients.filter(c => c.appointment_date.startsWith(dateStr));
-                        clientsOnThisDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
-
-                        const count = clientsOnThisDate.length;
-                        let badgeText = `${count} cita${count > 1 ? 's' : ''} este día`;
-
-                        let clientsDetailsHtml = '';
-                        clientsOnThisDate.forEach(dc => {
-                            const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                            
-                            const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(dc.latitude), Number(dc.longitude));
-                            const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
-
-                            clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${dc.name}</strong> (${dc.address || 'Sin dirección'}) a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
-                        });
-
-                        const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
-
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = `suggestion-item-btn`;
-                        btn.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px;">
-                                <strong style="font-size: 0.95rem; color: #2b6cb0;">📅 ${formattedDateDDMMYYYY}</strong>
-                                <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
-                            </div>
-                            <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 4px;">
-                                ${clientsDetailsHtml}
-                            </div>
-                        `;
-
-                        btn.addEventListener('click', () => {
-                            selectedDateOnly = dateStr;
-                            document.getElementById('free-date-input').value = dateStr;
-                            
-                            const suggestedTime = suggestNextTimeForDate(dateStr);
-                            document.getElementById('appointment-time').value = suggestedTime;
-
-                            updateFinalTimestamp();
-
-                            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
-                            btn.classList.add('selected-suggestion');
-
-                            saveBtn.disabled = false;
-                            saveBtn.style.opacity = '1';
-                        });
-
-                        suggestionsList.appendChild(btn);
+                        document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
+                        btn.classList.add('selected-suggestion');
+                        saveBtn.disabled = false;
+                        saveBtn.style.opacity = '1';
                     });
-                    suggestionBox.style.display = 'block';
-                } else {
-                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas agendadas en fechas futuras. Selecciona una fecha libre abajo.</p>`;
-                    suggestionBox.style.display = 'block';
-                }
-            } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas registradas en el sistema aún. Selecciona la fecha en el calendario.</p>`;
+                    suggestionsList.appendChild(btn);
+                });
                 suggestionBox.style.display = 'block';
             }
         }
@@ -525,21 +435,9 @@
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
-
-            if (chosenDate < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                e.target.value = '';
-                return;
-            }
-
             selectedDateOnly = chosenDate;
-            
-            const suggestedTime = suggestNextTimeForDate(chosenDate);
-            document.getElementById('appointment-time').value = suggestedTime;
-
+            document.getElementById('appointment-time').value = suggestNextTimeForDate(chosenDate);
             updateFinalTimestamp();
-
-            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
 
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = false;
@@ -547,9 +445,7 @@
         });
 
         document.getElementById('appointment-time').addEventListener('change', () => {
-            if (selectedDateOnly) {
-                updateFinalTimestamp();
-            }
+            if (selectedDateOnly) updateFinalTimestamp();
         });
 
         function updateFinalTimestamp() {
@@ -573,24 +469,9 @@
                 return;
             }
 
-            const chosenDatePart = apptVal.split('T')[0];
-            const chosenTimePart = apptVal.split('T')[1].substring(0, 5);
-
-            if (chosenDatePart < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
+            if (actionType === 'reschedule' && !selectedAppointmentId) {
+                alert('Por favor, selecciona cuál de las citas del historial deseas reprogramar.');
                 return;
-            }
-
-            if (chosenDatePart === todayStrSystem) {
-                const now = new Date();
-                const currentHours = String(now.getHours()).padStart(2, '0');
-                const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-                const currentTimeStr = `${currentHours}:${currentMinutes}`;
-
-                if (chosenTimePart < currentTimeStr) {
-                    alert('No puedes programar una cita a una hora que ya ha transcurrido el día de hoy.');
-                    return;
-                }
             }
 
             const btn = document.getElementById('save-btn');
@@ -604,7 +485,8 @@
                 }
             }
 
-            const updatePayload = {
+            const payload = {
+                client_id: clientId,
                 appointment_date: apptVal,
                 estimated_hours: hoursVal ? parseFloat(hoursVal) : null,
                 service_requested: serviceVal || null
@@ -613,30 +495,19 @@
             let errorResult = null;
 
             if (actionType === 'new') {
-                // Si es una nueva cita adicional y tu base de datos maneja un historial o bitácora de citas separada,
-                // aquí podrías insertar en otra tabla. Como los datos se guardan en la misma tabla de clientes,
-                // si deseas mantener la cita actual intacta, puedes registrarla o gestionarla según prefieras.
-                // Para mantener la lógica actual de Supabase sobre la columna appointment_date:
-                const { error } = await supabase
-                    .from('clients')
-                    .update(updatePayload)
-                    .eq('id', clientId);
+                const { error } = await supabase.from('appointments').insert([payload]);
                 errorResult = error;
             } else {
-                // Modo Reprogramar (Actualiza la fecha actual)
-                const { error } = await supabase
-                    .from('clients')
-                    .update(updatePayload)
-                    .eq('id', clientId);
+                const { error } = await supabase.from('appointments').update(payload).eq('id', selectedAppointmentId);
                 errorResult = error;
             }
 
             if (errorResult) {
-                alert('Error al procesar la cita: ' + errorResult.message);
+                alert('Error al guardar la cita: ' + errorResult.message);
                 btn.textContent = actionType === 'new' ? 'Confirmar y Crear Nueva Cita' : 'Confirmar y Actualizar Cita';
                 btn.disabled = false;
             } else {
-                alert(actionType === 'new' ? '¡Nueva cita programada con éxito!' : '¡Cita reprogramada con éxito!');
+                alert(actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!');
                 window.location.href = './index.html';
             }
         });
