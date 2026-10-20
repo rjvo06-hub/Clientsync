@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Agendación Inteligente</title>
+    <title>ClientSync | Gestión de Citas</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
@@ -118,12 +118,12 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 id="page-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">📅 Agendación Inteligente</h1>
+            <h1 id="page-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">📅 Gestión de Citas</h1>
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
         <p id="page-subtitle" style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
-            Busca un cliente, revisa su historial de citas y gestiona las visitas de forma independiente.
+            Gestiona las citas de tus clientes de manera rápida y organizada.
         </p>
 
         <form id="appointment-form">
@@ -142,9 +142,9 @@
                 <strong>Dirección:</strong> <span id="det-address">-</span><br>
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
                 
-                <!-- Historial de citas y selección para reprogramar -->
+                <!-- Historial de citas (Solo se muestra en modo Reprogramar) -->
                 <div id="appointments-selection-container" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e0; display: none;">
-                    <strong style="color: #2d3748; display: block; margin-bottom: 6px;">Historial de citas del cliente (Selecciona una para reprogramar):</strong>
+                    <strong style="color: #2d3748; display: block; margin-bottom: 6px;">Selecciona la cita que deseas reprogramar:</strong>
                     <div id="client-appointments-list"></div>
                 </div>
             </div>
@@ -182,7 +182,7 @@
             <input type="hidden" id="selected-appointment-date" required>
 
             <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; opacity: 0.6; margin-bottom: 30px; width: 100%;" disabled>
-                Confirmar y Agendar Cita
+                Confirmar y Guardar
             </button>
         </form>
     </div>
@@ -214,16 +214,17 @@
         let selectedDateOnly = '';
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
+        // Detectar si venimos a Agendar Nueva Cita (?action=new) o a Reprogramar (?action=reschedule)
         const urlParams = new URLSearchParams(window.location.search);
         const actionType = urlParams.get('action') || 'reschedule';
 
         if (actionType === 'new') {
-            document.getElementById('page-title').textContent = '➕ Programar Nueva Cita Adicional';
-            document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita para este cliente manteniendo su historial.';
+            document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
+            document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita para este cliente en la tabla de citas.';
             document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
         } else {
             document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
-            document.getElementById('page-subtitle').textContent = 'Selecciona una de las citas del cliente para modificar su fecha y hora.';
+            document.getElementById('page-subtitle').textContent = 'Selecciona una cita existente de este cliente para modificar su fecha y hora.';
             document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
         }
 
@@ -370,6 +371,7 @@
             const appointmentsListDiv = document.getElementById('client-appointments-list');
             appointmentsListDiv.innerHTML = '';
 
+            // Si estamos en modo Reprogramar, mostramos el listado de citas del cliente para elegir cuál modificar
             if (actionType === 'reschedule') {
                 if (clientAppointments.length > 0) {
                     appointmentsContainer.style.display = 'block';
@@ -395,9 +397,10 @@
                     });
                 } else {
                     appointmentsContainer.style.display = 'block';
-                    appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.85rem;">Este cliente no tiene citas registradas para reprogramar.</span>`;
+                    appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.85rem;">Este cliente no tiene citas registradas para reprogramar. Cambia a "Programar Nueva Cita" si deseas crear una.</span>`;
                 }
             } else {
+                // Si es modo Nueva Cita, habilitamos directamente el formulario de fecha y hora
                 appointmentsContainer.style.display = 'none';
                 dateSection.style.display = 'block';
             }
@@ -495,9 +498,11 @@
             let errorResult = null;
 
             if (actionType === 'new') {
+                // Registrar nueva cita independiente en la tabla appointments
                 const { error } = await supabase.from('appointments').insert([payload]);
                 errorResult = error;
             } else {
+                // Actualizar la cita existente seleccionada en la tabla appointments
                 const { error } = await supabase.from('appointments').update(payload).eq('id', selectedAppointmentId);
                 errorResult = error;
             }
