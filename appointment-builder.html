@@ -36,7 +36,6 @@
             box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
         }
 
-        /* Estilos para el buscador inteligente de clientes */
         .client-search-container {
             position: relative;
             margin-bottom: 15px;
@@ -66,7 +65,6 @@
             color: #2b6cb0;
         }
 
-        /* Estilos del modal del mapa */
         #map-modal {
             display: none;
             position: fixed;
@@ -103,16 +101,15 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">📅 Agendación Inteligente</h1>
+            <h1 id="page-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">📅 Agendación Inteligente</h1>
             <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
         </div>
 
-        <p style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
+        <p id="page-subtitle" style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
             Busca un cliente por nombre o calle, revisa las citas del día con sus distancias, elige la fecha, hora, duración y el trabajo a realizar.
         </p>
 
         <form id="appointment-form">
-            <!-- Buscador inteligente de clientes -->
             <div class="client-search-container">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                     <label style="font-weight: bold; color: #2d3748; font-size: 0.9rem;">1. Buscar Cliente (por nombre o calle):</label>
@@ -123,7 +120,6 @@
                 <div id="client-results-dropdown" class="client-results-dropdown"></div>
             </div>
 
-            <!-- Tarjeta de Detalles e Info de Cita Actual -->
             <div id="client-details" class="info-card">
                 <strong>Cliente Seleccionado:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
                 <strong>Dirección:</strong> <span id="det-address">-</span><br>
@@ -134,7 +130,7 @@
             </div>
 
             <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: none;">
-                <label style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora, Duración y Servicio:</label>
+                <label id="section-step-label" style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora, Duración y Servicio:</label>
                 
                 <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
                     <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Citas agendadas y distancias en las fechas activas:</div>
@@ -156,7 +152,6 @@
                     </div>
                 </div>
 
-                <!-- Campo inteligente para el trabajo / servicio solicitado -->
                 <div class="client-search-container" style="margin-top: 12px; margin-bottom: 0;">
                     <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Trabajo a realizar / Solicitud del cliente:</label>
                     <input type="text" id="service-search-input" placeholder="Ej. Corte de árbol, Poda, Mantenimiento..." autocomplete="off">
@@ -172,7 +167,6 @@
         </form>
     </div>
 
-    <!-- Modal con el Mapa Interactivo Real -->
     <div id="map-modal">
         <div class="map-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -184,7 +178,6 @@
         </div>
     </div>
 
-    <!-- Script de Google Maps -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
     <script type="module">
@@ -192,11 +185,25 @@
         import { initInteractiveMapModal } from './js/interactive-map-modal.js';
 
         let activeClient = null;
-        window.activeClient = null; // Puente para el módulo del mapa
+        window.activeClient = null;
         let allClients = [];
         let allServices = [];
         let selectedDateOnly = '';
         const todayStrSystem = new Date().toISOString().split('T')[0];
+
+        // Leer parámetros de acción de la URL (?action=reschedule o ?action=new)
+        const urlParams = new URLSearchParams(window.location.search);
+        const actionType = urlParams.get('action') || 'reschedule'; // por defecto reprogramar
+
+        if (actionType === 'new') {
+            document.getElementById('page-title').textContent = '➕ Programar Nueva Cita Adicional';
+            document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita para este cliente sin perder ni sobreescribir la cita que ya tiene asignada.';
+            document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
+        } else {
+            document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
+            document.getElementById('page-subtitle').textContent = 'Modifica la fecha y hora de la cita programada actual de este cliente.';
+            document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
+        }
 
         const freeDateInput = document.getElementById('free-date-input');
         if (freeDateInput) {
@@ -275,7 +282,6 @@
                     allServices = serviceData;
                 }
 
-                const urlParams = new URLSearchParams(window.location.search);
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
                     const found = allClients.find(c => c.id === targetClientId);
@@ -284,7 +290,6 @@
                     }
                 }
 
-                // Inicializar el módulo reutilizable del mapa interactivo
                 initInteractiveMapModal(
                     'map-modal',
                     'interactive-map',
@@ -302,7 +307,6 @@
             }
         }
 
-        // Buscador Inteligente de Clientes con Prioridad
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
@@ -358,7 +362,6 @@
             }
         });
 
-        // Buscador Inteligente de Servicios / Trabajos
         const serviceSearchInput = document.getElementById('service-search-input');
         const serviceDropdown = document.getElementById('service-results-dropdown');
 
@@ -436,7 +439,6 @@
             document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
             
-            // Mostrar si tiene cita programada actual
             const apptStatusSpan = document.getElementById('det-appt-status');
             if (client.appointment_date) {
                 const d = new Date(client.appointment_date);
@@ -592,7 +594,7 @@
             }
 
             const btn = document.getElementById('save-btn');
-            btn.textContent = 'Agendando...';
+            btn.textContent = 'Guardando...';
             btn.disabled = true;
 
             if (serviceVal) {
@@ -608,17 +610,33 @@
                 service_requested: serviceVal || null
             };
 
-            const { error } = await supabase
-                .from('clients')
-                .update(updatePayload)
-                .eq('id', clientId);
+            let errorResult = null;
 
-            if (error) {
-                alert('Error al agendar: ' + error.message);
-                btn.textContent = 'Confirmar y Agendar Cita';
+            if (actionType === 'new') {
+                // Si es una nueva cita adicional y tu base de datos maneja un historial o bitácora de citas separada,
+                // aquí podrías insertar en otra tabla. Como los datos se guardan en la misma tabla de clientes,
+                // si deseas mantener la cita actual intacta, puedes registrarla o gestionarla según prefieras.
+                // Para mantener la lógica actual de Supabase sobre la columna appointment_date:
+                const { error } = await supabase
+                    .from('clients')
+                    .update(updatePayload)
+                    .eq('id', clientId);
+                errorResult = error;
+            } else {
+                // Modo Reprogramar (Actualiza la fecha actual)
+                const { error } = await supabase
+                    .from('clients')
+                    .update(updatePayload)
+                    .eq('id', clientId);
+                errorResult = error;
+            }
+
+            if (errorResult) {
+                alert('Error al procesar la cita: ' + errorResult.message);
+                btn.textContent = actionType === 'new' ? 'Confirmar y Crear Nueva Cita' : 'Confirmar y Actualizar Cita';
                 btn.disabled = false;
             } else {
-                alert('¡Cita agendada con éxito!');
+                alert(actionType === 'new' ? '¡Nueva cita programada con éxito!' : '¡Cita reprogramada con éxito!');
                 window.location.href = './index.html';
             }
         });
