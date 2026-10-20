@@ -123,10 +123,14 @@
                 <div id="client-results-dropdown" class="client-results-dropdown"></div>
             </div>
 
+            <!-- Tarjeta de Detalles e Info de Cita Actual -->
             <div id="client-details" class="info-card">
                 <strong>Cliente Seleccionado:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
                 <strong>Dirección:</strong> <span id="det-address">-</span><br>
-                <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span>
+                <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
+                <div id="det-current-appointment" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e0; font-weight: bold; color: #2d3748;">
+                    📅 Cita actual: <span id="det-appt-status" style="color: #e53e3e;">No programada</span>
+                </div>
             </div>
 
             <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: none;">
@@ -431,6 +435,19 @@
             document.getElementById('det-name').textContent = client.name;
             document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
+            
+            // Mostrar si tiene cita programada actual
+            const apptStatusSpan = document.getElementById('det-appt-status');
+            if (client.appointment_date) {
+                const d = new Date(client.appointment_date);
+                const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
+                apptStatusSpan.style.color = '#2b6cb0';
+                apptStatusSpan.textContent = `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}`;
+            } else {
+                apptStatusSpan.style.color = '#e53e3e';
+                apptStatusSpan.textContent = 'No programada';
+            }
+
             detailsCard.style.display = 'block';
             dateSection.style.display = 'block';
 
