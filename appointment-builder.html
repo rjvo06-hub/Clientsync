@@ -21,7 +21,6 @@
             padding: 10px 12px;
             border-radius: 8px;
             margin-bottom: 8px;
-            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -142,7 +141,6 @@
                 <strong>Dirección:</strong> <span id="det-address">-</span><br>
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
                 
-                <!-- Sección para mostrar citas actuales o historial -->
                 <div id="appointments-selection-container" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e0; display: none;">
                     <strong id="appointments-box-title" style="color: #2d3748; display: block; margin-bottom: 6px;">Citas actuales del cliente:</strong>
                     <div id="client-appointments-list"></div>
@@ -215,17 +213,20 @@
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const urlParams = new URLSearchParams(window.location.search);
-        const actionType = urlParams.get('action') || 'reschedule';
+        let actionType = urlParams.get('action') || 'reschedule';
 
-        if (actionType === 'new') {
-            document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
-            document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita para este cliente manteniendo visible su cita actual.';
-            document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
-        } else {
-            document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
-            document.getElementById('page-subtitle').textContent = 'Selecciona una cita existente para modificar su fecha.';
-            document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
+        function updateUIModeText() {
+            if (actionType === 'new') {
+                document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
+                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita o reprograma una cita existente usando los botones al lado.';
+                document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
+            } else {
+                document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
+                document.getElementById('page-subtitle').textContent = 'Selecciona una cita existente para modificar su fecha.';
+                document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
+            }
         }
+        updateUIModeText();
 
         const freeDateInput = document.getElementById('free-date-input');
         if (freeDateInput) {
@@ -462,7 +463,6 @@
             document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
 
-            // Obtener las citas del cliente desde la tabla appointments
             clientAppointments = allAppointments.filter(a => a.client_id === client.id);
             const appointmentsContainer = document.getElementById('appointments-selection-container');
             const appointmentsBoxTitle = document.getElementById('appointments-box-title');
@@ -471,51 +471,51 @@
 
             if (clientAppointments.length > 0) {
                 appointmentsContainer.style.display = 'block';
-                
-                if (actionType === 'reschedule') {
-                    appointmentsBoxTitle.textContent = 'Selecciona la cita que deseas reprogramar:';
-                    clientAppointments.forEach((appt, index) => {
-                        const d = new Date(appt.scheduled_date);
-                        const formatted = !isNaN(d) ? d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : 'Fecha no válida';
-                        const card = document.createElement('div');
-                        card.className = 'appointment-selection-card';
-                        card.innerHTML = `
-                            <div>
-                                <strong>Cita #${index + 1}:</strong> <span style="color: #2b6cb0;">${formatted}</span>
-                                <div style="font-size: 0.75rem; color: #666;">Servicio: ${appt.service_requested || 'General'}</div>
-                            </div>
-                            <span style="font-size: 0.8rem; font-weight: bold; color: #2b6cb0;">Seleccionar</span>
-                        `;
-                        card.addEventListener('click', () => {
-                            document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
-                            card.classList.add('selected');
-                            selectedAppointmentId = appt.id;
-                            dateSection.style.display = 'block';
-                        });
-                        appointmentsListDiv.appendChild(card);
+                appointmentsBoxTitle.textContent = '📅 Citas actuales del cliente:';
+
+                clientAppointments.forEach((appt, index) => {
+                    const d = new Date(appt.scheduled_date);
+                    const formatted = !isNaN(d) ? d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : 'Fecha no válida';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'appointment-selection-card';
+                    card.innerHTML = `
+                        <div style="flex: 1;">
+                            <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
+                            <div style="font-size: 0.75rem; color: #666;">Servicio: ${appt.service_requested || 'General'}</div>
+                        </div>
+                        <button type="button" class="btn-quick-reschedule" data-id="${appt.id}" style="width: auto; padding: 6px 10px; background: #3182ce; color: white; border: none; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
+                            🔄 Reprogramar
+                        </button>
+                    `;
+
+                    // Evento para reprogramar directamente esta cita desde el botón al lado
+                    card.querySelector('.btn-quick-reschedule').addEventListener('click', () => {
+                        actionType = 'reschedule';
+                        selectedAppointmentId = appt.id;
+                        updateUIModeText();
+                        
+                        document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        dateSection.style.display = 'block';
+                        
+                        // Si ya tiene fecha, pre-llenarla para editar más rápido
+                        if (appt.scheduled_date) {
+                            const datePart = appt.scheduled_date.split('T')[0];
+                            const timePart = appt.scheduled_date.split('T')[1].substring(0, 5);
+                            document.getElementById('free-date-input').value = datePart;
+                            document.getElementById('appointment-time').value = timePart;
+                            selectedDateOnly = datePart;
+                            updateFinalTimestamp();
+                            saveBtn.disabled = false;
+                            saveBtn.style.opacity = '1';
+                        }
                     });
-                } else {
-                    // Modo NUEVA CITA: Mostramos la cita actual solo como referencia informativa
-                    appointmentsBoxTitle.textContent = '📅 Cita(s) actual(es) registrada(s):';
-                    clientAppointments.forEach((appt, index) => {
-                        const d = new Date(appt.scheduled_date);
-                        const formatted = !isNaN(d) ? d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : 'Fecha no válida';
-                        const card = document.createElement('div');
-                        card.style.background = '#fff';
-                        card.style.border = '1px solid #cbd5e0';
-                        card.style.padding = '8px 12px';
-                        card.style.borderRadius = '8px';
-                        card.style.marginBottom = '6px';
-                        card.innerHTML = `
-                            <div>
-                                <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
-                                <div style="font-size: 0.75rem; color: #666;">Servicio: ${appt.service_requested || 'General'}</div>
-                            </div>
-                        `;
-                        appointmentsListDiv.appendChild(card);
-                    });
-                    dateSection.style.display = 'block'; // Habilitar formulario para la nueva cita
-                }
+
+                    appointmentsListDiv.appendChild(card);
+                });
+
+                dateSection.style.display = 'block';
             } else {
                 appointmentsContainer.style.display = 'block';
                 appointmentsBoxTitle.textContent = 'Estado de citas:';
@@ -641,7 +641,7 @@
             }
 
             if (actionType === 'reschedule' && !selectedAppointmentId) {
-                alert('Por favor, selecciona cuál de las citas del historial deseas reprogramar.');
+                alert('Por favor, haz clic en el botón "🔄 Reprogramar" al lado de la cita que deseas modificar.');
                 return;
             }
 
