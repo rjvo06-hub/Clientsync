@@ -2,29 +2,30 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClientSync | Gestión de Citas</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
-        .container { max-width: 650px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
-        select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; }
-        .info-card { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; color: #4a5568; display: none; }
-        .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 6px; }
+        .container { max-width: 650px; margin: 8px auto 40px auto; background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 80px; }
+        select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; }
+        .info-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.85rem; color: #4a5568; display: none; }
+        .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.85rem; display: none; }
         
-        .inline-row-three { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-        .inline-col-three { flex: 1; min-width: 170px; }
-        
-        /* Contenedor específico para Fecha y Hora en una sola línea fija */
-        .datetime-row { display: flex; gap: 10px; margin-bottom: 12px; }
-        .datetime-col { flex: 1; min-width: 0; }
+        /* Proporción optimizada para Fecha (más larga) y Hora (más compacta) */
+        .datetime-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .datetime-col-date { flex: 1.3; min-width: 0; }
+        .datetime-col-time { flex: 0.9; min-width: 0; }
 
+        .inline-row-three { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .inline-col-three { flex: 1; min-width: 140px; }
+        
         .appointment-selection-card {
             background: #fff;
             border: 1px solid #cbd5e0;
-            padding: 10px 12px;
+            padding: 8px 10px;
             border-radius: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -37,11 +38,11 @@
 
         .suggestion-item-btn {
             width: 100%;
-            padding: 12px 15px;
-            margin-top: 8px;
+            padding: 10px 12px;
+            margin-top: 6px;
             border-radius: 8px;
             font-weight: normal;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             text-align: left;
             cursor: pointer;
             background: white !important;
@@ -58,7 +59,7 @@
 
         .client-search-container {
             position: relative;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         .client-results-dropdown, .service-results-dropdown {
             position: absolute;
@@ -78,7 +79,7 @@
             padding: 10px 12px;
             cursor: pointer;
             border-bottom: 1px solid #edf2f7;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .client-result-item:hover, .service-result-item:hover {
             background: #ebf8ff;
@@ -102,7 +103,7 @@
             width: 95%;
             max-width: 700px;
             height: 80vh;
-            padding: 15px;
+            padding: 12px;
             border-radius: 12px;
             display: flex;
             flex-direction: column;
@@ -113,15 +114,16 @@
             flex-grow: 1;
             border-radius: 8px;
             border: 1px solid #cbd5e0;
-            margin-top: 10px;
+            margin-top: 8px;
         }
 
         details summary {
             cursor: pointer;
             font-weight: bold;
             color: #2d3748;
-            padding: 6px 0;
+            padding: 4px 0;
             user-select: none;
+            font-size: 0.85rem;
         }
         details summary:hover {
             color: #2b6cb0;
@@ -131,20 +133,20 @@
 <body>
 
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 id="page-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">📅 Gestión de Citas</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h1 id="page-title" style="margin: 0; font-size: 1.1rem; color: #2d3748;">📅 Gestión de Citas</h1>
+            <a href="./index.html" style="padding: 6px 10px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.8rem;">← Mapa</a>
         </div>
 
-        <p id="page-subtitle" style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
+        <p id="page-subtitle" style="color: #4a5568; font-size: 0.8rem; margin-bottom: 12px;">
             Gestiona las citas y optimiza tus rutas según las distancias.
         </p>
 
         <form id="appointment-form">
             <div class="client-search-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <label style="font-weight: bold; color: #2d3748; font-size: 0.9rem;">1. Buscar Cliente (por nombre o calle):</label>
-                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 4px 8px; font-size: 0.75rem; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer;">🗺️ Buscar en el Mapa</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-weight: bold; color: #2d3748; font-size: 0.85rem;">1. Buscar Cliente (por nombre o calle):</label>
+                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 3px 6px; font-size: 0.7rem; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer;">🗺️ Mapa</button>
                 </div>
                 <input type="text" id="client-search-input" placeholder="Escribe parte del nombre o la calle..." autocomplete="off" required>
                 <input type="hidden" id="client-select" required>
@@ -156,53 +158,53 @@
                 <strong>Dirección:</strong> <span id="det-address">-</span><br>
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
                 
-                <div id="appointments-selection-container" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e0; display: none;">
+                <div id="appointments-selection-container" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e0; display: none;">
                     <details>
                         <summary id="appointments-box-title">📅 Citas actuales del cliente:</summary>
-                        <div id="client-appointments-list" style="margin-top: 8px;"></div>
+                        <div id="client-appointments-list" style="margin-top: 6px;"></div>
                     </details>
                 </div>
             </div>
 
-            <div id="date-section" style="background: #f7fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: none;">
-                <label id="section-step-label" style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora, Duración y Servicio:</label>
+            <div id="date-section" style="background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
+                <label id="section-step-label" style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 6px;">2. Seleccionar Fecha, Hora y Servicio:</label>
                 
-                <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
+                <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 10px;">
                     <details>
-                        <summary style="color: #2b6cb0; font-size: 0.85rem;">💡 Citas agendadas y distancias (fechas recomendadas)</summary>
-                        <div id="suggestions-list" style="margin-top: 8px;"></div>
+                        <summary style="color: #2b6cb0;">💡 Citas agendadas y distancias (fechas recomendadas)</summary>
+                        <div id="suggestions-list" style="margin-top: 6px;"></div>
                     </details>
                 </div>
 
-                <!-- Fecha y Hora forzadas estrictamente en la misma línea -->
+                <!-- Fecha (más ancha) y Hora (más compacta) optimizadas -->
                 <div class="datetime-row">
-                    <div class="datetime-col">
-                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Fecha:</label>
+                    <div class="datetime-col-date">
+                        <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Fecha:</label>
                         <input type="date" id="free-date-input" style="width: 100%;" required>
                     </div>
-                    <div class="datetime-col">
-                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Hora:</label>
+                    <div class="datetime-col-time">
+                        <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Hora:</label>
                         <input type="time" id="appointment-time" required>
                     </div>
                 </div>
 
                 <div class="inline-row-three">
                     <div class="inline-col-three">
-                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Horas est. (Opc):</label>
+                        <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Horas est. (Opc):</label>
                         <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
                     </div>
                 </div>
 
-                <div class="client-search-container" style="margin-top: 12px; margin-bottom: 0;">
-                    <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Trabajo a realizar / Solicitud del cliente:</label>
-                    <input type="text" id="service-search-input" placeholder="Ej. Corte de árbol, Poda, Mantenimiento..." autocomplete="off">
+                <div class="client-search-container" style="margin-top: 10px; margin-bottom: 0;">
+                    <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Trabajo a realizar / Solicitud del cliente:</label>
+                    <input type="text" id="service-search-input" placeholder="Ej. Corte de árbol, Poda..." autocomplete="off">
                     <div id="service-results-dropdown" class="service-results-dropdown"></div>
                 </div>
             </div>
 
             <input type="hidden" id="selected-appointment-date" required>
 
-            <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; opacity: 0.6; margin-bottom: 30px; width: 100%;" disabled>
+            <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 12px; font-size: 0.95rem; opacity: 0.6; margin-bottom: 20px; width: 100%;" disabled>
                 Confirmar y Agendar Cita
             </button>
         </form>
@@ -211,10 +213,10 @@
     <div id="map-modal">
         <div class="map-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; font-size: 1rem; color: #2d3748;">🗺️ Selecciona un cliente en el mapa</h3>
-                <button type="button" id="close-map-modal" style="width: auto; padding: 6px 12px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
+                <h3 style="margin: 0; font-size: 0.95rem; color: #2d3748;">🗺️ Selecciona un cliente en el mapa</h3>
+                <button type="button" id="close-map-modal" style="width: auto; padding: 5px 10px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">✕ Cerrar</button>
             </div>
-            <p style="font-size: 0.8rem; color: #666; margin: 6px 0 0 0;">Haz clic en cualquier pin del mapa para seleccionar al cliente.</p>
+            <p style="font-size: 0.75rem; color: #666; margin: 4px 0 0 0;">Haz clic en cualquier pin del mapa para seleccionar al cliente.</p>
             <div id="interactive-map"></div>
         </div>
     </div>
@@ -511,7 +513,7 @@
                             <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
                             <div style="font-size: 0.75rem; color: #666;">Servicio: ${appt.service_requested || 'General'}</div>
                         </div>
-                        <button type="button" class="btn-quick-reschedule" data-id="${appt.id}" style="width: auto; padding: 6px 10px; background: #3182ce; color: white; border: none; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
+                        <button type="button" class="btn-quick-reschedule" data-id="${appt.id}" style="width: auto; padding: 5px 8px; background: #3182ce; color: white; border: none; border-radius: 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
                             🔄 Reprogramar
                         </button>
                     `;
@@ -544,7 +546,7 @@
             } else {
                 appointmentsContainer.style.display = 'block';
                 appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (0):`;
-                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.85rem;">Este cliente no tiene ninguna cita programada actualmente.</span>`;
+                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.8rem;">Este cliente no tiene ninguna cita programada actualmente.</span>`;
                 dateSection.style.display = 'block';
             }
 
@@ -574,24 +576,24 @@
                             const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(scheduledClient.latitude), Number(scheduledClient.longitude));
                             const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
 
-                            clientsDetailsHtml += `<div style="font-size: 0.85rem; color: #4a5568; margin-top: 4px;">• <strong>${scheduledClient.name}</strong> (${scheduledClient.address || 'Sin dirección'}) a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
+                            clientsDetailsHtml += `<div style="font-size: 0.8rem; color: #4a5568; margin-top: 3px;">• <strong>${scheduledClient.name}</strong> a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
                         }
                     });
 
                     const totalCountOnDay = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr)).length;
-                    let badgeText = `${totalCountOnDay} cita${totalCountOnDay > 1 ? 's' : ''} este día`;
+                    let badgeText = `${totalCountOnDay} cita${totalCountOnDay > 1 ? 's' : ''}`;
                     const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
 
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = `suggestion-item-btn`;
                     btn.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px;">
-                            <strong style="font-size: 0.95rem; color: #2b6cb0;">📅 ${formattedDateDDMMYYYY}</strong>
-                            <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 4px;">
+                            <strong style="font-size: 0.85rem; color: #2b6cb0;">📅 ${formattedDateDDMMYYYY}</strong>
+                            <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
                         </div>
-                        <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 4px;">
-                            ${clientsDetailsHtml || '<span style="font-size: 0.8rem; color: #666;">Sin otras citas agendadas este día</span>'}
+                        <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 3px;">
+                            ${clientsDetailsHtml || '<span style="font-size: 0.75rem; color: #666;">Sin otras citas este día</span>'}
                         </div>
                     `;
 
@@ -621,7 +623,7 @@
 
                 suggestionBox.style.display = 'block';
             } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas registradas en el sistema aún. Selecciona la fecha en el calendario.</p>`;
+                suggestionsList.innerHTML = `<p style="font-size: 0.8rem; color: #718096; margin: 2px 0;">No hay citas registradas. Selecciona la fecha en el calendario.</p>`;
                 suggestionBox.style.display = 'block';
             }
         }
