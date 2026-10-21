@@ -9,50 +9,36 @@
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 6px; }
         .container { max-width: 650px; margin: 8px auto 40px auto; background: white; padding: 14px; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); padding-bottom: 80px; width: 100%; border: 1px solid #e2e8f0; }
-        select, input, button { font-size: 14px; width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: #ffffff; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
+        select, input, button { font-size: 14px; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: #ffffff; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
         select:focus, input:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15); }
         
         .info-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.82rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.82rem; display: none; }
         
-        /* Contenedor en Grid de 3 elementos: Fecha | Separador Transparente | Hora */
-        .datetime-grid-split {
-            display: grid;
-            grid-template-columns: 1fr 24px 1fr;
-            align-items: end;
-            gap: 6px;
-            width: 100%;
+        .form-row-group {
             margin-bottom: 12px;
-        }
-        .datetime-col {
-            min-width: 0;
             width: 100%;
         }
-        /* El tercer campo transparente del tamaño de un símbolo */
-        .transparent-separator-field {
-            background: transparent !important;
-            border: 1px solid transparent !important;
-            box-shadow: none !important;
-            pointer-events: none;
-            text-align: center;
-            color: #cbd5e0;
-            font-size: 14px;
-            padding: 10px 0;
+        
+        /* Tamaños específicos y compactos para fecha y hora */
+        .date-input-box {
+            width: 175px !important;
+            max-width: 100%;
+        }
+        .time-input-box {
+            width: 115px !important; /* Campo de hora pequeño ajustado exactamente al texto */
+            max-width: 100%;
         }
 
         /* Iconos limpios para fecha y hora */
         input[type="date"] {
-            background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>') no-repeat right 12px center;
+            background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>') no-repeat right 10px center;
             background-size: 14px;
         }
         input[type="time"] {
-            background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>') no-repeat right 12px center;
+            background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>') no-repeat right 8px center;
             background-size: 14px;
-        }
-
-        .form-row-group {
-            margin-bottom: 12px;
-            width: 100%;
+            padding-right: 26px;
         }
 
         .appointment-selection-card {
@@ -210,25 +196,21 @@
                     </details>
                 </div>
 
-                <!-- Rejilla de 3 columnas: Fecha | Campo transparente separador | Hora -->
-                <div class="datetime-grid-split">
-                    <div class="datetime-col">
-                        <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">📅 Fecha:</label>
-                        <input type="date" id="free-date-input" required>
-                    </div>
-                    <div class="datetime-col">
-                        <label style="font-size: 0.72rem; font-weight: 600; color: transparent; display: block; margin-bottom: 3px;">-</label>
-                        <input type="text" class="transparent-separator-field" value="·" readonly tabindex="-1">
-                    </div>
-                    <div class="datetime-col">
-                        <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">⏰ Hora:</label>
-                        <input type="time" id="appointment-time" required>
-                    </div>
+                <!-- Campo de Fecha -->
+                <div class="form-row-group">
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">📅 Fecha de la cita:</label>
+                    <input type="date" id="free-date-input" class="date-input-box" required>
+                </div>
+
+                <!-- Campo de Hora más pequeño y adaptado -->
+                <div class="form-row-group">
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">⏰ Hora de la cita:</label>
+                    <input type="time" id="appointment-time" class="time-input-box" required>
                 </div>
 
                 <div class="form-row-group">
                     <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Horas estimadas (Opcional):</label>
-                    <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
+                    <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%;">
                 </div>
 
                 <div class="client-search-container" style="margin-top: 8px; margin-bottom: 0;">
