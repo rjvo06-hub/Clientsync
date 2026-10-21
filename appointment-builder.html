@@ -489,7 +489,6 @@
                         </button>
                     `;
 
-                    // Evento para reprogramar directamente esta cita desde el botón al lado
                     card.querySelector('.btn-quick-reschedule').addEventListener('click', () => {
                         actionType = 'reschedule';
                         selectedAppointmentId = appt.id;
@@ -499,7 +498,6 @@
                         card.classList.add('selected');
                         dateSection.style.display = 'block';
                         
-                        // Si ya tiene fecha, pre-llenarla para editar más rápido
                         if (appt.scheduled_date) {
                             const datePart = appt.scheduled_date.split('T')[0];
                             const timePart = appt.scheduled_date.split('T')[1].substring(0, 5);
@@ -525,13 +523,28 @@
 
             detailsCard.style.display = 'block';
 
-            // REGENERAR SUGERENCIAS INTELIGENTES CON DISTANCIAS EN KM
+            // ----------------------------------------------------
+            // REGENERAR SUGERENCIAS INTELIGENTES (FILTRANDO FECHAS OCUPADAS)
+            // ----------------------------------------------------
             suggestionsList.innerHTML = '';
+
+            // 1. Identificar las fechas exactas en las que ESTE cliente ya tiene cita
+            const clientAlreadyBookedDates = new Set(
+                clientAppointments.map(a => a.scheduled_date ? a.scheduled_date.split('T')[0] : null).filter(Boolean)
+            );
+
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
             activeDates.sort();
 
             if (activeDates.length > 0) {
+                let validSuggestionsCount = 0;
+
                 activeDates.forEach(dateStr => {
+                    // Si el cliente ya tiene una cita este día, se omite de las opciones de ruta
+                    if (clientAlreadyBookedDates.has(dateStr)) {
+                        return;
+                    }
+
                     const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr) && a.client_id !== client.id);
 
                     let clientsDetailsHtml = '';
@@ -581,7 +594,13 @@
                     });
 
                     suggestionsList.appendChild(btn);
+                    validSuggestionsCount++;
                 });
+
+                if (validSuggestionsCount === 0) {
+                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">El cliente ya tiene citas agendadas en todas las fechas activas disponibles.</p>`;
+                }
+
                 suggestionBox.style.display = 'block';
             } else {
                 suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas registradas en el sistema aún. Selecciona la fecha en el calendario.</p>`;
