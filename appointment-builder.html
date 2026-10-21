@@ -20,28 +20,32 @@
             width: 100%;
         }
 
-        /* Rejilla de 4 elementos en línea: Fecha | Transparente 1 | Hora | Transparente 2 */
+        /* Rejilla de 4 columnas: Fecha flexible | Separador de 1 carácter | Hora estrecha | Separador de 1 carácter */
         .datetime-four-grid {
             display: grid;
-            grid-template-columns: 1fr 18px 110px 18px;
+            grid-template-columns: 1fr 24px 110px 24px;
             align-items: end;
-            gap: 6px;
+            gap: 4px;
             width: 100%;
             margin-bottom: 12px;
         }
         .datetime-col {
             min-width: 0;
+        }
+        .datetime-col input {
             width: 100%;
         }
 
-        /* Campos transparentes auxiliares para equilibrar y engañar al navegador */
+        /* Campos transparentes auxiliares estrictamente del tamaño de un carácter */
         .transparent-helper-field {
+            width: 24px !important;
+            min-width: 24px !important;
             background: transparent !important;
             border: 1px solid transparent !important;
             box-shadow: none !important;
             pointer-events: none;
             color: transparent;
-            padding: 10px 0;
+            padding: 10px 0 !important;
             text-align: center;
         }
 
@@ -211,7 +215,7 @@
                     </details>
                 </div>
 
-                <!-- Rejilla con los 4 campos: Fecha, Transparente 1, Hora, Transparente 2 -->
+                <!-- Rejilla de 4 columnas con separadores compactos del tamaño de un carácter -->
                 <div class="form-row-group">
                     <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">📅 Fecha y ⏰ Hora:</label>
                     <div class="datetime-four-grid">
