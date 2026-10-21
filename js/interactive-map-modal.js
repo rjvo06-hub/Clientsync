@@ -11,6 +11,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     let modalMap = null;
     let modalMarkers = [];
     let modalInfoWindow = null;
+    let userLocationMarker = null; // Referencia para tu marcador de ubicación
 
     openBtn.addEventListener('click', () => {
         modal.style.display = 'flex';
@@ -65,14 +66,92 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             maxWidth: 195
         });
 
-        // NUEVO: Cerrar la ventana del cliente al hacer clic en cualquier parte vacía del mapa
+        // Cerrar la ventana del cliente al hacer clic en cualquier parte vacía del mapa
         modalMap.addListener('click', () => {
             if (modalInfoWindow) {
                 modalInfoWindow.close();
             }
         });
 
+        // CREAR UN BOTÓN FLOTANTE EN EL MAPA PARA OBTENER TU UBICACIÓN
+        createGeolocationControl();
+
         await loadAndRenderModalClients();
+    }
+
+    // Función para crear el botón flotante de geolocalización dentro del contenedor del mapa
+    function createGeolocationControl() {
+        const controlDiv = document.createElement('div');
+        controlDiv.style.margin = '10px';
+        controlDiv.style.zIndex = '5';
+
+        const controlButton = document.createElement('button');
+        controlButton.style.backgroundColor = '#ffffff';
+        controlButton.style.border = '2px solid rgba(0,0,0,0.2)';
+        controlButton.style.borderRadius = '6px';
+        controlButton.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+        controlButton.style.cursor = 'pointer';
+        controlButton.style.fontFamily = 'Roboto, Arial, sans-serif';
+        controlButton.style.fontSize = '12px';
+        controlButton.style.fontWeight = 'bold';
+        controlButton.style.padding = '8px 12px';
+        controlButton.style.textAlign = 'center';
+        controlButton.style.color = '#2d3748';
+        controlButton.innerHTML = '📍 Mi Ubicación';
+        
+        controlButton.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert('Tu navegador no soporta geolocalización.');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const pos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    // Si ya existe el marcador de ubicación anterior, lo removemos
+                    if (userLocationMarker) {
+                        userLocationMarker.setMap(null);
+                    }
+
+                    // Crear un icono sumamente distinto (Un pin verde grande o estilo distintivo con URL de Google Icons)
+                    userLocationMarker = new google.maps.Marker({
+                        position: pos,
+                        map: modalMap,
+                        title: '📍 ¡Aquí estás tú!',
+                        icon: {
+                            // Usamos un pin verde claro/distinto o un icono de estrella/persona para diferenciarlo de rojo/azul de clientes
+                            url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
+                            scaledSize: new google.maps.Size(40, 40)
+                        },
+                        zIndex: 9999 // Asegura que esté siempre por encima de todo
+                    });
+
+                    const userWindow = new google.maps.InfoWindow({
+                        content: `<div style="font-family: sans-serif; background: #064e3b; color: #ecfdf5; padding: 6px; border-radius: 6px; font-size: 0.7rem; text-align: center;"><strong>📍 ¡Estás aquí!</strong><br>Ubicación actual</div>`
+                    });
+
+                    userLocationMarker.addListener('click', () => {
+                        userWindow.open(modalMap, userLocationMarker);
+                    });
+
+                    // Centrar el mapa en tu ubicación y hacer zoom de acercamiento
+                    modalMap.setCenter(pos);
+                    modalMap.setZoom(16);
+                    userWindow.open(modalMap, userLocationMarker);
+                },
+                (error) => {
+                    alert('Error al obtener la ubicación: ' + error.message);
+                },
+                { enableHighAccuracy: true }
+            );
+        });
+
+        controlDiv.appendChild(controlButton);
+        modalMap.controls[google.maps.ControlPosition.TOP_RIGHT].push(controlDiv);
     }
 
     async function loadAndRenderModalClients() {
