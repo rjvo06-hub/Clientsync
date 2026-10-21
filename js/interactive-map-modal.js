@@ -13,23 +13,29 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     let modalInfoWindow = null;
     let userLocationMarker = null;
 
-    // INYECTAR EL BOTÓN DE UBICACIÓN EN LA CABECERA DEL MODAL UNA SOLA VEZ
+    // INYECCIÓN AUTOMÁTICA DEL BOTÓN EN EL MODAL (Independiente del HTML)
     const modalContent = mapElement.closest('.map-modal-content');
-    if (modalContent && !document.getElementById('geo-btn-header')) {
-        const headerBar = modalContent.querySelector('div'); // Contenedor del título y botón cerrar
+    if (modalContent && !document.getElementById('geo-btn-dynamic')) {
+        const headerBar = modalContent.querySelector('div'); // Fila superior de la cabecera
         if (headerBar) {
+            // Asegurar que la cabecera use flexbox para alinear los elementos ordenadamente
+            headerBar.style.display = 'flex';
+            headerBar.style.justifyContent = 'space-between';
+            headerBar.style.alignItems = 'center';
+
             const geoBtn = document.createElement('button');
-            geoBtn.id = 'geo-btn-header';
+            geoBtn.id = 'geo-btn-dynamic';
             geoBtn.type = 'button';
             geoBtn.innerHTML = '📍 Mi Ubicación';
             geoBtn.style.background = '#3182ce';
             geoBtn.style.color = 'white';
             geoBtn.style.border = 'none';
             geoBtn.style.borderRadius = '6px';
-            geoBtn.style.padding = '4px 8px';
+            geoBtn.style.padding = '6px 10px';
             geoBtn.style.fontSize = '0.75rem';
             geoBtn.style.fontWeight = 'bold';
             geoBtn.style.cursor = 'pointer';
+            geoBtn.style.marginLeft = 'auto';
             geoBtn.style.marginRight = '8px';
 
             geoBtn.addEventListener('click', () => {
@@ -49,6 +55,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                             userLocationMarker.setMap(null);
                         }
 
+                        // Marcador verde brillante exclusivo para tu ubicación actual
                         userLocationMarker = new google.maps.Marker({
                             position: pos,
                             map: modalMap,
@@ -68,9 +75,11 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                             userWindow.open(modalMap, userLocationMarker);
                         });
 
-                        modalMap.setCenter(pos);
-                        modalMap.setZoom(16);
-                        userWindow.open(modalMap, userLocationMarker);
+                        if (modalMap) {
+                            modalMap.setCenter(pos);
+                            modalMap.setZoom(16);
+                            userWindow.open(modalMap, userLocationMarker);
+                        }
                     },
                     (error) => {
                         alert('Error al obtener la ubicación: ' + error.message);
@@ -79,7 +88,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 );
             });
 
-            // Insertarlo antes del botón de cerrar
+            // Insertar el botón antes del botón de cerrar existente
             const closeButton = headerBar.querySelector('button');
             if (closeButton) {
                 headerBar.insertBefore(geoBtn, closeButton);
@@ -308,7 +317,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
             if (!styleTag) {
                 styleTag = document.createElement('style');
-                styleTag.id = 'custom-infowinned-dark-style-modal';
+                styleTag.id = 'custom-infowindow-dark-style-modal';
                 styleTag.innerHTML = `
                     .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
                     .gm-style-iw-tc::after { background: #0f172a !important; }
