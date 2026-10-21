@@ -123,7 +123,7 @@
         </div>
 
         <p id="page-subtitle" style="color: #4a5568; font-size: 0.85rem; margin-bottom: 20px;">
-            Busca un cliente, revisa las citas del día con sus distancias ideales, y gestiona las visitas.
+            Gestiona las citas y optimiza tus rutas según las distancias.
         </p>
 
         <form id="appointment-form">
@@ -142,9 +142,9 @@
                 <strong>Dirección:</strong> <span id="det-address">-</span><br>
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
                 
-                <!-- Historial / Selección para reprogramar si aplica -->
+                <!-- Sección para mostrar citas actuales o historial -->
                 <div id="appointments-selection-container" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e0; display: none;">
-                    <strong style="color: #2d3748; display: block; margin-bottom: 6px;">Selecciona la cita que deseas reprogramar:</strong>
+                    <strong id="appointments-box-title" style="color: #2d3748; display: block; margin-bottom: 6px;">Citas actuales del cliente:</strong>
                     <div id="client-appointments-list"></div>
                 </div>
             </div>
@@ -219,7 +219,7 @@
 
         if (actionType === 'new') {
             document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
-            document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita optimizando tu ruta por distancias.';
+            document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita para este cliente manteniendo visible su cita actual.';
             document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
         } else {
             document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
@@ -465,12 +465,15 @@
             // Obtener las citas del cliente desde la tabla appointments
             clientAppointments = allAppointments.filter(a => a.client_id === client.id);
             const appointmentsContainer = document.getElementById('appointments-selection-container');
+            const appointmentsBoxTitle = document.getElementById('appointments-box-title');
             const appointmentsListDiv = document.getElementById('client-appointments-list');
             appointmentsListDiv.innerHTML = '';
 
-            if (actionType === 'reschedule') {
-                if (clientAppointments.length > 0) {
-                    appointmentsContainer.style.display = 'block';
+            if (clientAppointments.length > 0) {
+                appointmentsContainer.style.display = 'block';
+                
+                if (actionType === 'reschedule') {
+                    appointmentsBoxTitle.textContent = 'Selecciona la cita que deseas reprogramar:';
                     clientAppointments.forEach((appt, index) => {
                         const d = new Date(appt.scheduled_date);
                         const formatted = !isNaN(d) ? d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : 'Fecha no válida';
@@ -492,17 +495,37 @@
                         appointmentsListDiv.appendChild(card);
                     });
                 } else {
-                    appointmentsContainer.style.display = 'block';
-                    appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.85rem;">Este cliente no tiene citas registradas para reprogramar.</span>`;
+                    // Modo NUEVA CITA: Mostramos la cita actual solo como referencia informativa
+                    appointmentsBoxTitle.textContent = '📅 Cita(s) actual(es) registrada(s):';
+                    clientAppointments.forEach((appt, index) => {
+                        const d = new Date(appt.scheduled_date);
+                        const formatted = !isNaN(d) ? d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : 'Fecha no válida';
+                        const card = document.createElement('div');
+                        card.style.background = '#fff';
+                        card.style.border = '1px solid #cbd5e0';
+                        card.style.padding = '8px 12px';
+                        card.style.borderRadius = '8px';
+                        card.style.marginBottom = '6px';
+                        card.innerHTML = `
+                            <div>
+                                <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
+                                <div style="font-size: 0.75rem; color: #666;">Servicio: ${appt.service_requested || 'General'}</div>
+                            </div>
+                        `;
+                        appointmentsListDiv.appendChild(card);
+                    });
+                    dateSection.style.display = 'block'; // Habilitar formulario para la nueva cita
                 }
             } else {
-                appointmentsContainer.style.display = 'none';
+                appointmentsContainer.style.display = 'block';
+                appointmentsBoxTitle.textContent = 'Estado de citas:';
+                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.85rem;">Este cliente no tiene ninguna cita programada actualmente.</span>`;
                 dateSection.style.display = 'block';
             }
 
             detailsCard.style.display = 'block';
 
-            // REGENERAR SUGERENCIAS INTELIGENTES CON DISTANCIAS EN KM BASADAS EN APPOINTMENTS
+            // REGENERAR SUGERENCIAS INTELIGENTES CON DISTANCIAS EN KM
             suggestionsList.innerHTML = '';
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
             activeDates.sort();
