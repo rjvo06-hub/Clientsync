@@ -13,12 +13,11 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     let modalInfoWindow = null;
     let userLocationMarker = null;
 
-    // INYECCIÓN AUTOMÁTICA DEL BOTÓN EN EL MODAL (Independiente del HTML)
+    // INYECCIÓN AUTOMÁTICA DEL BOTÓN DE UBICACIÓN EN LA CABECERA
     const modalContent = mapElement.closest('.map-modal-content');
     if (modalContent && !document.getElementById('geo-btn-dynamic')) {
-        const headerBar = modalContent.querySelector('div'); // Fila superior de la cabecera
+        const headerBar = modalContent.querySelector('div'); 
         if (headerBar) {
-            // Asegurar que la cabecera use flexbox para alinear los elementos ordenadamente
             headerBar.style.display = 'flex';
             headerBar.style.justifyContent = 'space-between';
             headerBar.style.alignItems = 'center';
@@ -55,30 +54,77 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                             userLocationMarker.setMap(null);
                         }
 
-                        // Marcador verde brillante exclusivo para tu ubicación actual
+                        // Icono estilo pin moderno / palito y bolita
+                        const pinSvg = {
+                            path: "M 0,0 C -2,-20 -10,-22 -10,-30 a 10,10 0 1,1 20,0 c 0,8 -8,10 -10,30 z",
+                            fillColor: "#4f46e5",
+                            fillOpacity: 1,
+                            strokeColor: "#ffffff",
+                            strokeWeight: 2,
+                            scale: 1.2,
+                            anchor: new google.maps.Point(0, 0)
+                        };
+
                         userLocationMarker = new google.maps.Marker({
                             position: pos,
                             map: modalMap,
                             title: '📍 ¡Aquí estás tú!',
-                            icon: {
-                                url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
-                                scaledSize: new google.maps.Size(40, 40)
-                            },
+                            icon: pinSvg,
                             zIndex: 9999
                         });
 
+                        // Ventana flotante con la misma estructura idéntica de las tarjetas de clientes
                         const userWindow = new google.maps.InfoWindow({
-                            content: `<div style="font-family: sans-serif; background: #064e3b; color: #ecfdf5; padding: 6px; border-radius: 6px; font-size: 0.7rem; text-align: center;"><strong>📍 ¡Estás aquí!</strong><br>Ubicación actual</div>`
+                            maxWidth: 195,
+                            content: `
+                                <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
+                                    
+                                    <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
+                                        <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            📍 Mi Ubicación Actual
+                                        </h3>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                        <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
+                                            <strong>📌 Coordenadas:</strong> ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}
+                                        </p>
+                                    </div>
+
+                                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
+                                        <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Estado: <strong style="color: #4ade80;">Punto de partida</strong></span>
+                                    </div>
+
+                                </div>
+                            `
                         });
 
                         userLocationMarker.addListener('click', () => {
                             userWindow.open(modalMap, userLocationMarker);
+                            
+                            setTimeout(() => {
+                                const iwContainer = document.querySelector('.gm-style-iw-c');
+                                if (iwContainer) {
+                                    iwContainer.style.background = '#0f172a';
+                                    iwContainer.style.padding = '2px 4px 4px 4px';
+                                    iwContainer.style.borderRadius = '8px';
+                                    iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
+                                }
+                                const iwOuter = document.querySelector('.gm-style-iw-d');
+                                if (iwOuter) {
+                                    iwOuter.style.overflow = 'hidden';
+                                    iwOuter.style.padding = '0';
+                                    iwOuter.style.maxHeight = 'none';
+                                }
+                                const closeBtn = document.querySelector('.gm-ui-hover-effect');
+                                if (closeBtn) closeBtn.style.display = 'none';
+                            }, 50);
                         });
 
                         if (modalMap) {
                             modalMap.setCenter(pos);
                             modalMap.setZoom(16);
-                            userWindow.open(modalMap, userLocationMarker);
+                            google.maps.event.trigger(userLocationMarker, 'click');
                         }
                     },
                     (error) => {
@@ -88,7 +134,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 );
             });
 
-            // Insertar el botón antes del botón de cerrar existente
             const closeButton = headerBar.querySelector('button');
             if (closeButton) {
                 headerBar.insertBefore(geoBtn, closeButton);
@@ -150,7 +195,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             maxWidth: 195
         });
 
-        // Cerrar la ventana del cliente al hacer clic en cualquier parte vacía del mapa
         modalMap.addListener('click', () => {
             if (modalInfoWindow) {
                 modalInfoWindow.close();
