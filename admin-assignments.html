@@ -40,6 +40,35 @@
         .inline-edit-col { flex: 1; min-width: 140px; }
         
         .day-load-preview { background: #edf2f7; border: 1px solid #cbd5e0; padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; color: #2d3748; display: block; }
+
+        /* Estilos para el Modal Flotante del Día Seleccionado */
+        #day-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .day-modal-content {
+            background: white;
+            width: 100%;
+            max-width: 650px;
+            max-height: 85vh;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
@@ -61,13 +90,23 @@
         </div>
     </div>
 
+    <!-- Modal Flotante para ver las citas del día seleccionado -->
+    <div id="day-modal">
+        <div class="day-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 id="modal-day-title" style="margin: 0; font-size: 1.05rem; color: #2d3748;">📅 Citas del Día</h3>
+                <button type="button" id="close-day-modal" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
+            </div>
+            <div id="modal-day-body"></div>
+        </div>
+    </div>
+
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
         let currentTab = 'day';
         let selectedMonthDate = new Date();
-        let selectedCalendarDateStr = null;
         let searchFilterText = '';
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
@@ -152,7 +191,6 @@
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 currentTab = e.target.getAttribute('data-tab');
-                selectedCalendarDateStr = null;
                 renderCurrentView();
             });
         });
@@ -298,11 +336,8 @@
 
                 const dayAppointments = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
                 const count = dayAppointments.length;
-                const isSelected = selectedCalendarDateStr === dateStr;
 
                 let classes = 'cal-day';
-                if (isSelected) classes += ' selected';
-
                 if (count >= 1 && count <= 2) {
                     classes += ' status-green';
                 } else if (count > 2 && count <= 4) {
@@ -319,44 +354,53 @@
                 `;
             }
 
-            calendarHtml += `</div><div id="calendar-day-details"></div>`;
+            calendarHtml += `</div>`;
             container.innerHTML = calendarHtml;
 
             document.getElementById('prev-month').addEventListener('click', () => {
                 selectedMonthDate.setMonth(selectedMonthDate.getMonth() - 1);
-                selectedCalendarDateStr = null;
                 renderMonthView(container);
             });
             document.getElementById('next-month').addEventListener('click', () => {
                 selectedMonthDate.setMonth(selectedMonthDate.getMonth() + 1);
-                selectedCalendarDateStr = null;
                 renderMonthView(container);
             });
 
+            // Evento para abrir las citas del día seleccionado en un Modal flotante
             document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
                 cell.addEventListener('click', () => {
-                    selectedCalendarDateStr = cell.getAttribute('data-date');
-                    renderMonthView(container);
-                    renderDayDetailsInMonth(selectedCalendarDateStr);
+                    const dateStr = cell.getAttribute('data-date');
+                    openDayModal(dateStr);
                 });
             });
+        }
 
-            if (selectedCalendarDateStr) {
-                renderDayDetailsInMonth(selectedCalendarDateStr);
+        function openDayModal(dateStr) {
+            const modal = document.getElementById('day-modal');
+            const modalTitle = document.getElementById('modal-day-title');
+            const modalBody = document.getElementById('modal-day-body');
+
+            modalTitle.textContent = `📅 Citas del ${formatDateToDDMMYYYY(dateStr)}`;
+            renderDayViewContainer(modalBody, dateStr, "Citas programadas");
+            modal.style.display = 'flex';
+        }
+
+        document.getElementById('close-day-modal').addEventListener('click', () => {
+            document.getElementById('day-modal').style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('day-modal');
+            if (e.target === modal) {
+                modal.style.display = 'none';
             }
-        }
-
-        function renderDayDetailsInMonth(dateStr) {
-            const detailsContainer = document.getElementById('calendar-day-details');
-            if (!detailsContainer) return;
-            renderDayViewContainer(detailsContainer, dateStr, `Citas del`);
-        }
+        });
 
         function renderSearchView(container) {
             let html = `
                 <div style="margin-bottom: 15px;">
                     <label style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 5px;">🔍 Buscar por nombre de cliente:</label>
-                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Escribe el nombre del cliente (ej. Ramiro, Cliente 023)..." style="width: 100%; padding: 10px; font-size: 0.95rem;">
+                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Escribe el nombre del cliente..." style="width: 100%; padding: 10px; font-size: 0.95rem;">
                 </div>
                 <div id="search-results-list">
             `;
@@ -418,7 +462,6 @@
                         </div>
                     </div>
 
-                    <!-- Formulario desplegable con validación min="hoy" -->
                     <div class="edit-form-box" id="edit-box-${client.id}" data-original-date="${rawDatePart}">
                         <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 8px;">💡 Reagendar / Modificar Cita:</div>
 
@@ -437,7 +480,6 @@
                             </div>
                         </div>
 
-                        <!-- Caja de volumen y cálculo de distancia -->
                         <div class="day-load-preview" id="load-preview-${client.id}"></div>
 
                         <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
@@ -461,12 +503,7 @@
             const chosenDate = dateInput.value;
             const originalDate = editBox.getAttribute('data-original-date');
 
-            if (!chosenDate) {
-                previewBox.style.display = 'none';
-                return;
-            }
-
-            if (chosenDate === originalDate) {
+            if (!chosenDate || chosenDate === originalDate) {
                 previewBox.style.display = 'none';
                 return;
             }
@@ -619,6 +656,7 @@
                     clientObj.appointment_date = fullTimestamp;
                     clientObj.estimated_hours = newHours ? parseFloat(newHours) : null;
                 }
+                document.getElementById('day-modal').style.display = 'none';
                 renderCurrentView();
             }
         }
