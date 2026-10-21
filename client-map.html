@@ -165,7 +165,7 @@
         }
 
         .btn-geolocation {
-            background: #2563eb;
+            background: #3182ce;
             color: white;
             border: none;
             padding: 6px 12px;
@@ -176,21 +176,20 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 2px 4px rgba(49, 130, 206, 0.3);
             transition: background 0.2s;
         }
 
         .btn-geolocation:hover {
-            background: #1d4ed8;
+            background: #2b6cb0;
         }
 
-        /* Altura fija asegurada para móviles sin parpadeos */
         #map {
             width: 100% !important;
             height: 480px !important;
             border-radius: var(--radius-md);
             border: 1px solid var(--border-subtle);
-            overflow: hidden;
+            overflow: display;
             display: block;
         }
     </style>
@@ -200,7 +199,7 @@
     <div class="container">
         <header class="app-header">
             <div class="header-left">
-                <a href="./index.html" class="btn-back">← Volver</a>
+                <a href="./appointment-builder.html?action=new" class="btn-back">➕ Nueva Cita</a>
                 <h1>ClientSync</h1>
             </div>
             <span class="badge-brand">WerkSolutions</span>
@@ -214,30 +213,39 @@
         <section class="map-section">
             <div class="map-header">
                 <h2>📍 Mapa General de Clientes</h2>
-                <button type="button" id="btn-my-location" class="btn-geolocation">📍 Mi ubicación</button>
+                <button type="button" id="btn-my-location" class="btn-geolocation">📍 Mi Ubicación</button>
             </div>
             <div id="map"></div>
         </section>
     </div>
 
-    <!-- Lógica de Geolocalización, Búsqueda y Inicialización del Mapa con gestureHandling: 'greedy' -->
+    <!-- Lógica unificada con el diseño y funciones del módulo interactivo -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
-        let myLocationMarker = null;
+        let allAppointments = [];
         let mapInstance = null;
         let markers = [];
-        let infoWindows = [];
+        let mainInfoWindow = null;
+        let userLocationMarker = null;
 
         async function initMainMap() {
             const mapElement = document.getElementById('map');
             if (!mapElement) return;
 
             try {
+                // Cargar datos de Supabase (Clientes y Citas) en paralelo
+                const [{ data: clientData }, { data: apptData }] = await Promise.all([
+                    supabase.from('clients').select('*').order('name', { ascending: true }),
+                    supabase.from('appointments').select('*')
+                ]);
+
+                allClients = clientData || [];
+                allAppointments = apptData || [];
+
                 const defaultCenter = { lat: 48.0679, lng: 11.6585 };
 
-                // Inicializamos el mapa con gestureHandling: 'greedy' para mover con un solo dedo
                 mapInstance = new google.maps.Map(mapElement, {
                     center: defaultCenter,
                     zoom: 14,
@@ -247,94 +255,172 @@
                     fullscreenControl: true
                 });
 
-                window.activeMap = mapInstance;
-
-                // Cargar clientes de Supabase y pintar pines
-                const { data: clientData, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
-                if (error) throw error;
-                allClients = clientData || [];
-
-                renderMarkers(allClients);
-
-                // Escuchar evento de centrado desde la búsqueda superior
-                window.addEventListener('centerOnClient', (e) => {
-                    const client = e.detail;
-                    if (client && client.latitude && client.longitude) {
-                        const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
-                        mapInstance.setCenter(pos);
-                        mapInstance.setZoom(16);
-
-                        const foundMarker = markers.find(m => m.clientId === client.id);
-                        if (foundMarker && foundMarker.infoWindow) {
-                            closeAllInfoWindows();
-                            foundMarker.infoWindow.open(mapInstance, foundMarker);
-                        }
-                    }
+                mainInfoWindow = new google.maps.InfoWindow({
+                    maxWidth: 195
                 });
+
+                // Al hacer clic en cualquier parte vacía del mapa, se cierran las ventanas flotantes
+                mapInstance.addListener('click', () => {
+                    if (mainInfoWindow) mainInfoWindow.close();
+                });
+
+                renderMarkers(allClients, allAppointments);
+                setupGeolocation();
+                setupSearch();
 
             } catch (err) {
                 console.error('Error al inicializar el mapa principal:', err);
             }
         }
 
-        function renderMarkers(clients) {
-            clearMarkers();
+        async function renderMarkers(clients, appointments) {
+            markers.forEach(m => m.setMap(null));
+            markers = [];
+
+            const clientIdsWithAppointment = new Set((appointments || []).map(a => a.client_id));
 
             clients.forEach(client => {
                 if (!client.latitude || !client.longitude) return;
 
                 const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
-                const pinColor = client.assigned_employee && client.assigned_employee !== 'General' ? 'green' : 'red';
-                const iconUrl = `http://maps.google.com/mapfiles/ms/icons/${pinColor}-dot.png`;
+                
+                // Color de pin igual al modal: Azul si tiene cita, Rojo si no tiene
+                const hasAppointment = clientIdsWithAppointment.has(client.id);
+                const markerIcon = hasAppointment 
+                    ? "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" 
+                    : "http://maps.google.com/mapfiles/ms/icons/red-dot.png";
 
                 const marker = new google.maps.Marker({
                     position: pos,
                     map: mapInstance,
                     title: client.name,
-                    icon: {
-                        url: iconUrl,
-                        scaledSize: new google.maps.Size(35, 35)
-                    },
-                    animation: google.maps.Animation.DROP
+                    icon: { url: markerIcon }
                 });
 
-                marker.clientId = client.id;
-
-                const contentString = `
-                    <div style="font-family: sans-serif; padding: 4px; max-width: 200px;">
-                        <strong style="font-size: 0.95rem; color: #2563eb;">${client.name}</strong><br>
-                        <span style="font-size: 0.8rem; color: #475569;">📍 ${client.address || 'Sin dirección'}</span><br>
-                        <span style="font-size: 0.8rem; color: #059669; font-weight: bold;">👤 Técnico: ${client.assigned_employee || 'Sin asignar'}</span><br>
-                        <a href="./appointment-builder.html?client_id=${client.id}&action=reschedule" style="display: inline-block; margin-top: 6px; font-size: 0.75rem; background: #2563eb; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-weight: bold;">Gestionar Cita</a>
-                    </div>
-                `;
-
-                const infoWindow = new google.maps.InfoWindow({
-                    content: contentString
-                });
-
-                marker.infoWindow = infoWindow;
-                infoWindows.push(infoWindow);
-
-                marker.addListener('click', () => {
-                    closeAllInfoWindows();
-                    infoWindow.open(mapInstance, marker);
+                marker.addListener('click', async () => {
+                    await showClientInfoWindow(client, marker);
                 });
 
                 markers.push(marker);
             });
         }
 
-        function closeAllInfoWindows() {
-            infoWindows.forEach(iw => iw.close());
+        // Ventana flotante idéntica con el diseño oscuro unificado
+        async function showClientInfoWindow(client, markerInstance) {
+            let clientAppts = [];
+            try {
+                const { data } = await supabase
+                    .from('appointments')
+                    .select('*')
+                    .eq('client_id', client.id)
+                    .order('scheduled_date', { ascending: true });
+                clientAppts = data || [];
+            } catch (err) {
+                console.error("Error al consultar citas:", err);
+            }
+
+            const hasAppointment = clientAppts.length > 0;
+            let appointmentSection = '';
+
+            if (hasAppointment) {
+                let apptsHtml = '';
+                clientAppts.forEach((appt, index) => {
+                    const d = new Date(appt.scheduled_date);
+                    const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h)` : '';
+                    const formattedDate = !isNaN(d) ? `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}` : 'Fecha pendiente';
+                    
+                    apptsHtml += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #1e293b;">
+                            <div>
+                                <strong style="color: #93c5fd; font-size: 0.62rem; display: block;">Cita #${index + 1}:</strong>
+                                <span style="color: #f8fafc; font-size: 0.60rem;">${formattedDate}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                appointmentSection = `
+                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
+                        <span style="color: #94a3b8; display: block; margin-bottom: 3px;">Citas programadas (${clientAppts.length}):</span>
+                        <div style="max-height: 90px; overflow-y: auto;">
+                            ${apptsHtml}
+                        </div>
+                    </div>
+                `;
+            } else {
+                appointmentSection = `
+                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
+                        <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada: <strong style="color: #f87171;">No programada</strong></span>
+                    </div>
+                `;
+            }
+
+            const clientPhone = client.phone || client.telefono || client.phone_number || client.celular || '';
+            let phoneActionHtml = '';
+            if (clientPhone && String(clientPhone).trim() !== '' && String(clientPhone) !== 'N/A') {
+                phoneActionHtml = `<a href="tel:${clientPhone}" title="Llamar" style="text-decoration: none; font-size: 0.8rem; margin-left: 6px;">📞</a>`;
+            }
+
+            const contentHtml = `
+                <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
+                    <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
+                        <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${hasAppointment ? '🔵' : '🔴'} ${client.name}
+                        </h3>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
+                            <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
+                        </p>
+                        ${phoneActionHtml}
+                    </div>
+
+                    ${appointmentSection}
+
+                    <div style="margin-top: 6px;">
+                        <a href="./appointment-builder.html?client_id=${client.id}&action=reschedule" style="display: block; background: #2563eb; color: white; text-align: center; padding: 6px; border-radius: 4px; font-size: 0.65rem; text-decoration: none; font-weight: bold;">
+                            Gestionar Cita ➔
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            mainInfoWindow.setContent(contentHtml);
+            mainInfoWindow.open(mapInstance, markerInstance);
+
+            // Aplicar el estilo oscuro a la ventana flotante nativa de Google Maps
+            google.maps.event.addListenerOnce(mainInfoWindow, 'domready', () => {
+                const iwContainer = document.querySelector('.gm-style-iw-c');
+                if (iwContainer) {
+                    iwContainer.style.background = '#0f172a';
+                    iwContainer.style.padding = '2px 4px 4px 4px';
+                    iwContainer.style.borderRadius = '8px';
+                    iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
+                }
+                const iwOuter = document.querySelector('.gm-style-iw-d');
+                if (iwOuter) {
+                    iwOuter.style.overflow = 'hidden';
+                    iwOuter.style.padding = '0';
+                    iwOuter.style.maxHeight = 'none';
+                }
+                const closeBtn = document.querySelector('.gm-ui-hover-effect');
+                if (closeBtn) closeBtn.style.display = 'none';
+
+                let styleTag = document.getElementById('custom-infowindow-dark-style');
+                if (!styleTag) {
+                    styleTag = document.createElement('style');
+                    styleTag.id = 'custom-infowindow-dark-style';
+                    styleTag.innerHTML = `
+                        .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
+                        .gm-style-iw-tc::after { background: #0f172a !important; }
+                    `;
+                    document.head.appendChild(styleTag);
+                }
+            });
         }
 
-        function clearMarkers() {
-            markers.forEach(m => m.setMap(null));
-            markers = [];
-            infoWindows = [];
-        }
-
+        // Geolocalización con el pin vectorial tipo "palito y bolita" y ventana unificada
         function setupGeolocation() {
             const btnLoc = document.getElementById('btn-my-location');
             if (!btnLoc) return;
@@ -345,123 +431,167 @@
                     return;
                 }
 
-                btnLoc.textContent = 'Localizando...';
-
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        const userLat = position.coords.latitude;
-                        const userLng = position.coords.longitude;
-                        const userPos = { lat: userLat, lng: userLng };
+                        const pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
 
-                        btnLoc.textContent = '📍 Mi ubicación';
-
-                        if (mapInstance) {
-                            mapInstance.setCenter(userPos);
-                            mapInstance.setZoom(16);
-
-                            if (myLocationMarker) {
-                                myLocationMarker.setMap(null);
-                            }
-
-                            myLocationMarker = new google.maps.Marker({
-                                position: userPos,
-                                map: mapInstance,
-                                title: 'Mi ubicación actual',
-                                icon: {
-                                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                                    scaledSize: new google.maps.Size(40, 40)
-                                },
-                                animation: google.maps.Animation.DROP
-                            });
-
-                            const infoWindow = new google.maps.InfoWindow({
-                                content: '<div style="font-family:sans-serif; font-size:0.85rem; color:#0f172a;"><strong>📍 Estás aquí</strong></div>'
-                            });
-
-                            myLocationMarker.addListener('click', () => {
-                                infoWindow.open(mapInstance, myLocationMarker);
-                            });
+                        if (userLocationMarker) {
+                            userLocationMarker.setMap(null);
                         }
+
+                        // Icono vectorial tipo "palito y bolita" idéntico al modal
+                        const pinSvg = {
+                            path: "M 0,0 C -2,-20 -10,-22 -10,-30 a 10,10 0 1,1 20,0 c 0,8 -8,10 -10,30 z",
+                            fillColor: "#4f46e5",
+                            fillOpacity: 1,
+                            strokeColor: "#ffffff",
+                            strokeWeight: 2,
+                            scale: 1.2,
+                            anchor: new google.maps.Point(0, 0)
+                        };
+
+                        userLocationMarker = new google.maps.Marker({
+                            position: pos,
+                            map: mapInstance,
+                            title: '📍 ¡Aquí estás tú!',
+                            icon: pinSvg,
+                            zIndex: 9999
+                        });
+
+                        userLocationMarker.addListener('click', () => {
+                            showUserLocationInfoWindow(pos, userLocationMarker);
+                        });
+
+                        mapInstance.setCenter(pos);
+                        mapInstance.setZoom(16);
+                        showUserLocationInfoWindow(pos, userLocationMarker);
                     },
                     (error) => {
-                        btnLoc.textContent = '📍 Mi ubicación';
-                        console.error('Error de geolocalización:', error);
-                        alert('No se pudo obtener tu ubicación. Revisa los permisos de GPS.');
+                        alert('No se pudo obtener tu ubicación: ' + error.message);
                     },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    { enableHighAccuracy: true }
                 );
             });
         }
 
-        const searchInput = document.getElementById('client-search-input');
-        const dropdown = document.getElementById('client-results-dropdown');
+        function showUserLocationInfoWindow(pos, markerInstance) {
+            const contentHtml = `
+                <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
+                    <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
+                        <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            📍 Mi Ubicación Actual
+                        </h3>
+                    </div>
 
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            if (query.length === 0) {
-                dropdown.style.display = 'none';
-                return;
-            }
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
+                            <strong>📌 Coordenadas:</strong> ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}
+                        </p>
+                    </div>
 
-            const startsWithMatches = allClients.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const address = (c.address || '').toLowerCase();
-                const postal = (c.postal_code || '').toLowerCase();
-                return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
+                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
+                        <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Estado: <strong style="color: #4ade80;">Punto de partida</strong></span>
+                    </div>
+                </div>
+            `;
+
+            mainInfoWindow.setContent(contentHtml);
+            mainInfoWindow.open(mapInstance, markerInstance);
+
+            google.maps.event.addListenerOnce(mainInfoWindow, 'domready', () => {
+                const iwContainer = document.querySelector('.gm-style-iw-c');
+                if (iwContainer) {
+                    iwContainer.style.background = '#0f172a';
+                    iwContainer.style.padding = '2px 4px 4px 4px';
+                    iwContainer.style.borderRadius = '8px';
+                    iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
+                }
+                const iwOuter = document.querySelector('.gm-style-iw-d');
+                if (iwOuter) {
+                    iwOuter.style.overflow = 'hidden';
+                    iwOuter.style.padding = '0';
+                    iwOuter.style.maxHeight = 'none';
+                }
+                const closeBtn = document.querySelector('.gm-ui-hover-effect');
+                if (closeBtn) closeBtn.style.display = 'none';
             });
+        }
 
-            const containsMatches = allClients.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const address = (c.address || '').toLowerCase();
-                const postal = (c.postal_code || '').toLowerCase();
-                
-                const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
-                const alreadyAdded = startsWithMatches.includes(c);
+        // Búsqueda interactiva superior
+        function setupSearch() {
+            const searchInput = document.getElementById('client-search-input');
+            const dropdown = document.getElementById('client-results-dropdown');
 
-                return hasMatch && !alreadyAdded;
-            });
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                if (query.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
 
-            const filtered = [...startsWithMatches, ...containsMatches];
-
-            dropdown.innerHTML = '';
-            if (filtered.length > 0) {
-                filtered.forEach(client => {
-                    const item = document.createElement('div');
-                    item.className = 'client-result-item';
-                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#64748b;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
-                    
-                    item.addEventListener('click', () => {
-                        searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
-                        dropdown.style.display = 'none';
-
-                        if (client.latitude && client.longitude) {
-                            const event = new CustomEvent('centerOnClient', { detail: client });
-                            window.dispatchEvent(event);
-                        } else {
-                            alert('Este cliente no tiene coordenadas geográficas registradas.');
-                        }
-                    });
-
-                    dropdown.appendChild(item);
+                const startsWithMatches = allClients.filter(c => {
+                    const name = (c.name || '').toLowerCase();
+                    const address = (c.address || '').toLowerCase();
+                    const postal = (c.postal_code || '').toLowerCase();
+                    return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
                 });
-                dropdown.style.display = 'block';
-            } else {
-                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontraron clientes</div>`;
-                dropdown.style.display = 'block';
-            }
-        });
 
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
+                const containsMatches = allClients.filter(c => {
+                    const name = (c.name || '').toLowerCase();
+                    const address = (c.address || '').toLowerCase();
+                    const postal = (c.postal_code || '').toLowerCase();
+                    
+                    const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
+                    return hasMatch && !startsWithMatches.includes(c);
+                });
 
-        // Inicializar al cargar la página
-        window.addEventListener('DOMContentLoaded', () => {
-            initMainMap();
-            setupGeolocation();
-        });
+                const filtered = [...startsWithMatches, ...containsMatches];
+
+                dropdown.innerHTML = '';
+                if (filtered.length > 0) {
+                    filtered.forEach(client => {
+                        const item = document.createElement('div');
+                        item.className = 'client-result-item';
+                        item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#64748b;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
+                        
+                        item.addEventListener('click', async () => {
+                            searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
+                            dropdown.style.display = 'none';
+
+                            if (client.latitude && client.longitude) {
+                                const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
+                                mapInstance.setCenter(pos);
+                                mapInstance.setZoom(17);
+
+                                const foundMarker = markers.find(m => m.getTitle() === client.name);
+                                if (foundMarker) {
+                                    await showClientInfoWindow(client, foundMarker);
+                                }
+                            } else {
+                                alert('Este cliente no tiene coordenadas geográficas registradas.');
+                            }
+                        });
+
+                        dropdown.appendChild(item);
+                    });
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontraron clientes</div>`;
+                    dropdown.style.display = 'block';
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', initMainMap);
     </script>
 </body>
 </html>
