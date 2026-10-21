@@ -20,10 +20,10 @@
             width: 100%;
         }
 
-        /* Rejilla de 6 columnas: Fecha flexible | Separador | Hora fija | Separador | Horas estimadas fija */
+        /* Rejilla de 6 columnas con los 3 tamaños proporcionales: Fecha (1fr) | Separador | Hora (95px) | Separador | Hrs Est (75px) */
         .datetime-six-grid {
             display: grid;
-            grid-template-columns: 1fr 16px 110px 16px 110px;
+            grid-template-columns: 1fr 16px 95px 16px 75px;
             align-items: end;
             gap: 2px;
             width: 100%;
@@ -220,7 +220,7 @@
                     </details>
                 </div>
 
-                <!-- Bloque unificado en una sola línea para Fecha, Hora y Horas estimadas -->
+                <!-- Bloque de 6 columnas con los 3 tamaños proporcionales exactos -->
                 <div class="form-row-group">
                     <div class="datetime-six-grid" style="margin-bottom: 3px;">
                         <div class="datetime-col">
@@ -232,7 +232,7 @@
                         </div>
                         <div class="datetime-col"></div>
                         <div class="datetime-col">
-                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;" title="Horas estimadas">⏱️ Hrs Est.:</label>
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">⏱️ Hrs:</label>
                         </div>
                     </div>
 
