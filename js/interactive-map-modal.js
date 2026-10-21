@@ -11,21 +11,21 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     let modalMap = null;
     let modalMarkers = [];
     let modalInfoWindow = null;
-    let isInitialized = false;
 
     openBtn.addEventListener('click', () => {
         modal.style.display = 'flex';
         
-        // Disparar redimensionamiento para que Google Maps pinte bien los tiles dentro del modal
         setTimeout(() => {
             if (modalMap) {
                 google.maps.event.trigger(modalMap, 'resize');
-                
-                // Si ya hay un cliente activo seleccionado, centrar el mapa en él con zoom cercano
                 const activeClient = window.activeClient;
                 if (activeClient && activeClient.latitude && activeClient.longitude) {
                     modalMap.setCenter({ lat: Number(activeClient.latitude), lng: Number(activeClient.longitude) });
                     modalMap.setZoom(17);
+                } else {
+                    // Si no hay cliente activo, centrar en Ottobrunn
+                    modalMap.setCenter({ lat: 48.0664, lng: 11.6611 });
+                    modalMap.setZoom(14);
                 }
             } else {
                 initModalMap();
@@ -66,7 +66,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         });
 
         await loadAndRenderModalClients();
-        isInitialized = true;
     }
 
     async function loadAndRenderModalClients() {
@@ -74,20 +73,17 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         if (!clients || clients.length === 0) return;
 
         try {
-            // Consultar las citas actuales para marcar en azul los que tengan cita
             const { data: appointments } = await supabase.from('appointments').select('client_id');
             const clientIdsWithAppointment = new Set((appointments || []).map(a => a.client_id));
 
             modalMarkers.forEach(m => m.setMap(null));
             modalMarkers = [];
 
-            const bounds = new google.maps.LatLngBounds();
             const activeClient = window.activeClient;
 
             clients.forEach(client => {
                 if (client.latitude && client.longitude) {
                     const clientLatLng = { lat: Number(client.latitude), lng: Number(client.longitude) };
-                    bounds.extend(clientLatLng);
 
                     const hasAppointment = clientIdsWithAppointment.has(client.id);
                     const markerIcon = hasAppointment 
@@ -107,7 +103,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
                     modalMarkers.push(marker);
 
-                    // Si coincide con el cliente activo, abrir su infowindow de inmediato y hacer zoom
                     if (activeClient && activeClient.id === client.id) {
                         modalMap.setCenter(clientLatLng);
                         modalMap.setZoom(17);
@@ -116,8 +111,10 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 }
             });
 
-            if (!activeClient && !bounds.isEmpty()) {
-                modalMap.fitBounds(bounds);
+            // Si no hay un cliente activo seleccionado, fijar el centro explícitamente en Ottobrunn
+            if (!activeClient) {
+                modalMap.setCenter({ lat: 48.0664, lng: 11.6611 });
+                modalMap.setZoom(14);
             }
         } catch (err) {
             console.error('Error al renderizar mapa modal:', err);
@@ -180,15 +177,16 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         }
 
         const contentHtml = `
-            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 180px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
+            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
+                
                 <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                    <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">
+                    <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         ${hasAppointment ? '🔵' : '🔴'} ${client.name}
                     </h3>
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; flex: 1; word-break: break-word;">
+                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
                         <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
                     </p>
                     ${phoneActionHtml}
@@ -201,6 +199,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                         ✔ Seleccionar este cliente
                     </button>
                 </div>
+
             </div>
         `;
 
@@ -223,6 +222,17 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             }
             const closeBtn = document.querySelector('.gm-ui-hover-effect');
             if (closeBtn) closeBtn.style.display = 'none';
+
+            let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
+            if (!styleTag) {
+                styleTag = document.createElement('style');
+                styleTag.id = 'custom-infowindow-dark-style-modal';
+                styleTag.innerHTML = `
+                    .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
+                    .gm-style-iw-tc::after { background: #0f172a !important; }
+                `;
+                document.head.appendChild(styleTag);
+            }
 
             const selectBtn = document.getElementById('modal-select-client-btn');
             if (selectBtn) {
