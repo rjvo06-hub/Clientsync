@@ -34,7 +34,6 @@
 
         .badge-count { font-size: 0.65rem; background: rgba(0,0,0,0.1); padding: 1px 5px; border-radius: 10px; font-weight: bold; }
 
-        /* Estilos del Buscador Inteligente Desplegable */
         .client-search-container {
             position: relative;
             margin-bottom: 20px;
@@ -64,7 +63,6 @@
             color: #2b6cb0;
         }
 
-        /* Estilos para los Modales Flotantes */
         .custom-modal {
             display: none;
             position: fixed;
@@ -92,7 +90,7 @@
             overflow-y: auto;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
-        .day-load-preview { background: #edf2f7; border: 1px solid #cbd5e0; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 0.85rem; color: #2d3748; display: block; }
+        .day-load-preview { background: #edf2f7; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 0.85rem; color: #2d3748; display: block; }
     </style>
 </head>
 <body>
@@ -114,7 +112,7 @@
         </div>
     </div>
 
-    <!-- Modal Flotante para ver las citas del día seleccionado -->
+    <!-- Modal para ver citas del día -->
     <div id="day-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
@@ -125,11 +123,11 @@
         </div>
     </div>
 
-    <!-- Modal Flotante para Modificar / Reagendar Cita con Estructura Estándar -->
+    <!-- Modal para Modificar Cita con la lógica exacta de distancias y horas -->
     <div id="reschedule-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 style="margin: 0; font-size: 1.05rem; color: #2b6cb0;">🔄 Modificar Cita</h3>
+                <h3 style="margin: 0; font-size: 1.05rem; color: #2b6cb0;">🔄 Modificar Cita y Optimizar Ruta</h3>
                 <button type="button" id="close-reschedule-modal" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
             </div>
             <form id="reschedule-form">
@@ -156,11 +154,12 @@
                     </div>
                 </div>
 
+                <!-- Caja de distancias y citas ya programadas ese día (Lógica idéntica al agendador) -->
                 <div class="day-load-preview" id="res-load-preview"></div>
 
                 <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" id="cancel-reschedule-btn" style="background: #e2e8f0; color: #4a5568; border: none; padding: 10px 16px; font-weight: bold; cursor: pointer; border-radius: 6px;">Cancelar</button>
-                    <button type="submit" style="background: #38a169; color: white; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 6px;">Guardar y Actualizar</button>
+                    <button type="submit" style="background: #38a169; color: white; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 6px;">Guardar y Actualizar Cita</button>
                 </div>
             </form>
         </div>
@@ -686,7 +685,7 @@
 
             if (apptsOnDate.length > 0) {
                 apptsOnDate.sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
-                let detailsHtml = `<strong style="color: #2b6cb0;">📅 Citas ya programadas para el ${formattedDateStr} (${apptsOnDate.length}):</strong><div style="margin-top: 4px;">`;
+                let detailsHtml = `<strong style="color: #2b6cb0;">💡 Citas agendadas y distancias en esta fecha (${formattedDateStr}):</strong><div style="margin-top: 6px;">`;
                 
                 apptsOnDate.forEach(dc => {
                     const otherClient = allClients.find(c => c.id === dc.client_id);
@@ -701,19 +700,20 @@
                             Number(otherClient.latitude), Number(otherClient.longitude)
                         );
                         if (distKm <= 1.0) {
-                            distText = ` <span style="color: #38a169; font-weight: bold;">(Estás a ${distKm.toFixed(2)} km de ${clientName} 🟢)</span>`;
+                            const meters = Math.round(distKm * 1000);
+                            distText = ` <span style="color: #38a169; font-weight: bold;">(a ${meters} m 🟢)</span>`;
                         } else {
-                            distText = ` <span style="color: #c05621;">(Distancia a ${clientName}: <b>${distKm.toFixed(1)} km</b>)</span>`;
+                            distText = ` <span style="color: #2b6cb0; font-weight: bold;">(a ${distKm.toFixed(1)} km)</span>`;
                         }
                     }
 
-                    detailsHtml += `<div style="margin-top: 4px; font-size: 0.8rem; color: #4a5568;">• <strong>${clientName}</strong> — 📍 ${clientAddress || 'Sin dirección'} a las <b>${timeStr}h</b> ${distText}</div>`;
+                    detailsHtml += `<div style="margin-top: 4px; font-size: 0.85rem; color: #4a5568;">• <strong>${clientName}</strong> (${clientAddress || 'Sin dirección'}) a las ${timeStr}h ${distText}</div>`;
                 });
                 detailsHtml += `</div>`;
                 previewBox.innerHTML = detailsHtml;
                 previewBox.style.display = 'block';
             } else {
-                previewBox.innerHTML = `<strong style="color: #2b6cb0;">📅 Citas para el ${formattedDateStr}:</strong> <span style="color: #38a169;">No hay otras citas este día (Día totalmente libre).</span>`;
+                previewBox.innerHTML = `<strong style="color: #2b6cb0;">💡 Citas agendadas en esta fecha (${formattedDateStr}):</strong> <div style="font-size: 0.85rem; color: #38a169; margin-top: 4px;">Sin otras citas agendadas este día (Día totalmente libre).</div>`;
                 previewBox.style.display = 'block';
             }
         }
@@ -763,7 +763,6 @@
                 document.getElementById('reschedule-modal').style.display = 'none';
                 document.getElementById('day-modal').style.display = 'none';
 
-                // Recargar datos actualizados
                 const [{ data: clients, error: clientErr }, { data: appts, error: apptErr }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
                     supabase.from('appointments').select('*').order('scheduled_date', { ascending: true })
