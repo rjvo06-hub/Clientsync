@@ -20,14 +20,13 @@
             width: 100%;
         }
 
-        /* Rejilla de 4 columnas: Fecha flexible | Separador de 1 carácter | Hora estrecha | Separador de 1 carácter */
+        /* Rejilla exacta de 4 columnas idéntica para etiquetas y campos */
         .datetime-four-grid {
             display: grid;
             grid-template-columns: 1fr 24px 110px 24px;
             align-items: end;
             gap: 4px;
             width: 100%;
-            margin-bottom: 12px;
         }
         .datetime-col {
             min-width: 0;
@@ -215,9 +214,19 @@
                     </details>
                 </div>
 
-                <!-- Rejilla de 4 columnas con separadores compactos del tamaño de un carácter -->
+                <!-- Bloque de Fecha y Hora perfectamente alineado en columnas separadas -->
                 <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">📅 Fecha y ⏰ Hora:</label>
+                    <div class="datetime-four-grid" style="margin-bottom: 3px;">
+                        <div class="datetime-col">
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">📅 Fecha:</label>
+                        </div>
+                        <div class="datetime-col"></div>
+                        <div class="datetime-col">
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">⏰ Hora:</label>
+                        </div>
+                        <div class="datetime-col"></div>
+                    </div>
+
                     <div class="datetime-four-grid">
                         <div class="datetime-col">
                             <input type="date" id="free-date-input" required>
