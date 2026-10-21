@@ -20,12 +20,12 @@
             width: 100%;
         }
 
-        /* Rejilla exacta de 4 columnas idéntica para etiquetas y campos */
-        .datetime-four-grid {
+        /* Rejilla de 6 columnas: Fecha flexible | Separador | Hora fija | Separador | Horas estimadas fija */
+        .datetime-six-grid {
             display: grid;
-            grid-template-columns: 1fr 24px 110px 24px;
+            grid-template-columns: 1fr 16px 110px 16px 110px;
             align-items: end;
-            gap: 4px;
+            gap: 2px;
             width: 100%;
         }
         .datetime-col {
@@ -35,10 +35,10 @@
             width: 100%;
         }
 
-        /* Campos transparentes auxiliares estrictamente del tamaño de un carácter */
+        /* Campos transparentes auxiliares estrictamente del tamaño compacto */
         .transparent-helper-field {
-            width: 24px !important;
-            min-width: 24px !important;
+            width: 16px !important;
+            min-width: 16px !important;
             background: transparent !important;
             border: 1px solid transparent !important;
             box-shadow: none !important;
@@ -220,8 +220,9 @@
                     </details>
                 </div>
 
+                <!-- Bloque unificado en una sola línea para Fecha, Hora y Horas estimadas -->
                 <div class="form-row-group">
-                    <div class="datetime-four-grid" style="margin-bottom: 3px;">
+                    <div class="datetime-six-grid" style="margin-bottom: 3px;">
                         <div class="datetime-col">
                             <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">📅 Fecha:</label>
                         </div>
@@ -230,9 +231,12 @@
                             <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">⏰ Hora:</label>
                         </div>
                         <div class="datetime-col"></div>
+                        <div class="datetime-col">
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;" title="Horas estimadas">⏱️ Hrs Est.:</label>
+                        </div>
                     </div>
 
-                    <div class="datetime-four-grid">
+                    <div class="datetime-six-grid">
                         <div class="datetime-col">
                             <input type="date" id="free-date-input" required>
                         </div>
@@ -245,12 +249,10 @@
                         <div class="datetime-col">
                             <input type="text" class="transparent-helper-field" value="" readonly tabindex="-1">
                         </div>
+                        <div class="datetime-col">
+                            <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Horas estimadas (Opcional):</label>
-                    <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
                 </div>
 
                 <div class="client-search-container" style="margin-top: 8px; margin-bottom: 0;">
@@ -590,6 +592,9 @@
                             const timePart = appt.scheduled_date.split('T')[1].substring(0, 5);
                             document.getElementById('free-date-input').value = datePart;
                             document.getElementById('appointment-time').value = timePart;
+                            if (appt.estimated_hours) {
+                                document.getElementById('estimated-hours').value = appt.estimated_hours;
+                            }
                             selectedDateOnly = datePart;
                             updateFinalTimestamp();
                             saveBtn.disabled = false;
@@ -641,7 +646,6 @@
                             const isCurrentClient = (scheduledClient.id === client.id);
 
                             if (isCurrentClient) {
-                                // Muestra el nombre, la hora y la etiqueta (Actual) en azul destacada limpiamente
                                 clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 6px; border-radius: 4px;">• ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
                             } else {
                                 const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(scheduledClient.latitude), Number(scheduledClient.longitude));
