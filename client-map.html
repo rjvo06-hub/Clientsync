@@ -145,6 +145,7 @@
             border-radius: var(--radius-xl);
             border: 1px solid var(--border-subtle);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+            position: relative;
         }
 
         .map-header {
@@ -162,10 +163,31 @@
             color: var(--text-main);
         }
 
+        /* Botón de Geolocalización Flotante */
+        .btn-geolocation {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+            transition: background 0.2s;
+        }
+
+        .btn-geolocation:hover {
+            background: #1d4ed8;
+        }
+
         #map {
             width: 100%;
             height: 75vh;
-            min-height: 500px; /* Asegura un alto mínimo para que renderice los tiles */
+            min-height: 500px;
             border-radius: var(--radius-md);
             border: 1px solid var(--border-subtle);
             overflow: hidden;
@@ -201,6 +223,7 @@
         <section class="map-section">
             <div class="map-header">
                 <h2>📍 Mapa General de Clientes</h2>
+                <button type="button" id="btn-my-location" class="btn-geolocation">📍 Mi ubicación</button>
             </div>
             <div id="map"></div>
         </section>
@@ -218,11 +241,12 @@
         });
     </script>
 
-    <!-- Scripts de la app y lógica del buscador inteligente enlazada al mapa -->
+    <!-- Lógica de Geolocalización y Búsqueda -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
+        let myLocationMarker = null;
 
         async function initMapSearch() {
             try {
@@ -232,6 +256,70 @@
             } catch (err) {
                 console.error('Error al cargar clientes para el mapa:', err);
             }
+        }
+
+        // Función para obtener y marcar la ubicación actual del usuario
+        function setupGeolocation() {
+            const btnLoc = document.getElementById('btn-my-location');
+            if (!btnLoc) return;
+
+            btnLoc.addEventListener('click', () => {
+                if (!navigator.geolocation) {
+                    alert('Tu navegador no soporta geolocalización.');
+                    return;
+                }
+
+                btnLoc.textContent = 'Localizando...';
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        const userPos = { lat: userLat, lng: userLng };
+
+                        btnLoc.textContent = '📍 Mi ubicación';
+
+                        // Intentamos acceder al objeto mapa global expuesto por map.js
+                        if (window.activeMap) {
+                            window.activeMap.setCenter(userPos);
+                            window.activeMap.setZoom(16);
+
+                            // Si ya existe el marcador anterior, lo removemos
+                            if (myLocationMarker) {
+                                myLocationMarker.setMap(null);
+                            }
+
+                            // Creamos un marcador distintivo para la posición del usuario
+                            myLocationMarker = new google.maps.Marker({
+                                position: userPos,
+                                map: window.activeMap,
+                                title: 'Mi ubicación actual',
+                                icon: {
+                                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                                    scaledSize: new google.maps.Size(40, 40)
+                                },
+                                animation: google.maps.Animation.DROP
+                            });
+
+                            const infoWindow = new google.maps.InfoWindow({
+                                content: '<div style="font-family:sans-serif; font-size:0.85rem; color:#0f172a;"><strong>📍 Estás aquí</strong></div>'
+                            });
+
+                            myLocationMarker.addListener('click', () => {
+                                infoWindow.open(window.activeMap, myLocationMarker);
+                            });
+                        } else {
+                            alert('El mapa aún está cargando. Inténtalo de nuevo en un segundo.');
+                        }
+                    },
+                    (error) => {
+                        btnLoc.textContent = '📍 Mi ubicación';
+                        console.error('Error de geolocalización:', error);
+                        alert('No se pudo obtener tu ubicación. Asegúrate de dar permisos de GPS.');
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
         }
 
         const searchInput = document.getElementById('client-search-input');
@@ -276,7 +364,6 @@
                         dropdown.style.display = 'none';
 
                         if (client.latitude && client.longitude) {
-                            // Dispara el evento que intercepta map.js para centrar, dar zoom y abrir el BottomSheet
                             const event = new CustomEvent('centerOnClient', { detail: client });
                             window.dispatchEvent(event);
                         } else {
@@ -300,6 +387,7 @@
         });
 
         initMapSearch();
+        window.addEventListener('DOMContentLoaded', setupGeolocation);
     </script>
 
     <script type="module" src="./js/app.js"></script>
