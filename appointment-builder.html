@@ -213,12 +213,13 @@
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const urlParams = new URLSearchParams(window.location.search);
-        let actionType = 'new'; // Forzado estrictamente a 'new' por defecto
+        // CORRECCIÓN: Por defecto es 'new' a menos que la URL pida explícitamente reprogramar
+        let actionType = urlParams.get('action') === 'reschedule' ? 'reschedule' : 'new';
 
         function updateUIModeText() {
             if (actionType === 'new') {
                 document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
-                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita seleccionando fecha y hora.';
+                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita o selecciona una fecha recomendada.';
                 document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
             } else {
                 document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
@@ -435,7 +436,7 @@
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
 
-            // ESTRICTO: Por defecto siempre es una cita nueva al seleccionar cliente
+            // Por defecto, al seleccionar cliente se prepara para una cita NUEVA
             actionType = 'new';
             selectedAppointmentId = null;
             updateUIModeText();
@@ -494,7 +495,7 @@
                         </button>
                     `;
 
-                    // AQUÍ SÍ: Únicamente cuando se pulsa explícitamente el botón de reprogramar
+                    // ESTRICTO: Solo se activa la reprogramación si haces clic en este botón específico
                     card.querySelector('.btn-quick-reschedule').addEventListener('click', () => {
                         actionType = 'reschedule';
                         selectedAppointmentId = appt.id;
@@ -529,7 +530,7 @@
 
             detailsCard.style.display = 'block';
 
-            // Regenerar sugerencias inteligentes
+            // Regenerar sugerencias inteligentes de ruta
             suggestionsList.innerHTML = '';
 
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
@@ -572,7 +573,7 @@
                     `;
 
                     btn.addEventListener('click', () => {
-                        // Elegir una sugerencia de ruta SIEMPRE genera una cita nueva y limpia selecciones de reprogramación
+                        // Elegir una sugerencia de fecha mantiene el modo de cita nueva
                         actionType = 'new';
                         selectedAppointmentId = null;
                         updateUIModeText();
@@ -604,7 +605,7 @@
             }
         }
 
-        // Si cambia la fecha manualmente en el input, ES OBLIGATORIAMENTE CITA NUEVA
+        // Si se cambia la fecha manualmente, se asegura que sea cita nueva
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
@@ -661,7 +662,6 @@
                 return;
             }
 
-            // VALIDACIÓN ESTRICTA: Si dice que es reprogramación pero no hay ID válido seleccionado, lo bloqueamos tajantemente
             if (actionType === 'reschedule' && !selectedAppointmentId) {
                 alert('Por favor, haz clic en el botón "🔄 Reprogramar" al lado de la cita que deseas modificar.');
                 return;
