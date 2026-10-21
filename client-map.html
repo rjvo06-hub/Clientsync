@@ -184,7 +184,7 @@
             background: #1d4ed8;
         }
 
-        /* Altura fija asegurada para móviles */
+        /* Altura fija asegurada para móviles sin parpadeos */
         #map {
             width: 100% !important;
             height: 480px !important;
@@ -220,21 +220,119 @@
         </section>
     </div>
 
-    <!-- Lógica de Geolocalización y Búsqueda -->
+    <!-- Lógica de Geolocalización, Búsqueda y Inicialización del Mapa con gestureHandling: 'greedy' -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
         let myLocationMarker = null;
+        let mapInstance = null;
+        let markers = [];
+        let infoWindows = [];
 
-        async function initMapSearch() {
+        async function initMainMap() {
+            const mapElement = document.getElementById('map');
+            if (!mapElement) return;
+
             try {
+                const defaultCenter = { lat: 48.0679, lng: 11.6585 };
+
+                // Inicializamos el mapa con gestureHandling: 'greedy' para mover con un solo dedo
+                mapInstance = new google.maps.Map(mapElement, {
+                    center: defaultCenter,
+                    zoom: 14,
+                    gestureHandling: 'greedy', 
+                    mapTypeControl: true,
+                    streetViewControl: false,
+                    fullscreenControl: true
+                });
+
+                window.activeMap = mapInstance;
+
+                // Cargar clientes de Supabase y pintar pines
                 const { data: clientData, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
                 if (error) throw error;
                 allClients = clientData || [];
+
+                renderMarkers(allClients);
+
+                // Escuchar evento de centrado desde la búsqueda superior
+                window.addEventListener('centerOnClient', (e) => {
+                    const client = e.detail;
+                    if (client && client.latitude && client.longitude) {
+                        const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
+                        mapInstance.setCenter(pos);
+                        mapInstance.setZoom(16);
+
+                        const foundMarker = markers.find(m => m.clientId === client.id);
+                        if (foundMarker && foundMarker.infoWindow) {
+                            closeAllInfoWindows();
+                            foundMarker.infoWindow.open(mapInstance, foundMarker);
+                        }
+                    }
+                });
+
             } catch (err) {
-                console.error('Error al cargar clientes para el mapa:', err);
+                console.error('Error al inicializar el mapa principal:', err);
             }
+        }
+
+        function renderMarkers(clients) {
+            clearMarkers();
+
+            clients.forEach(client => {
+                if (!client.latitude || !client.longitude) return;
+
+                const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
+                const pinColor = client.assigned_employee && client.assigned_employee !== 'General' ? 'green' : 'red';
+                const iconUrl = `http://maps.google.com/mapfiles/ms/icons/${pinColor}-dot.png`;
+
+                const marker = new google.maps.Marker({
+                    position: pos,
+                    map: mapInstance,
+                    title: client.name,
+                    icon: {
+                        url: iconUrl,
+                        scaledSize: new google.maps.Size(35, 35)
+                    },
+                    animation: google.maps.Animation.DROP
+                });
+
+                marker.clientId = client.id;
+
+                const contentString = `
+                    <div style="font-family: sans-serif; padding: 4px; max-width: 200px;">
+                        <strong style="font-size: 0.95rem; color: #2563eb;">${client.name}</strong><br>
+                        <span style="font-size: 0.8rem; color: #475569;">📍 ${client.address || 'Sin dirección'}</span><br>
+                        <span style="font-size: 0.8rem; color: #059669; font-weight: bold;">👤 Técnico: ${client.assigned_employee || 'Sin asignar'}</span><br>
+                        <a href="./appointment-builder.html?client_id=${client.id}&action=reschedule" style="display: inline-block; margin-top: 6px; font-size: 0.75rem; background: #2563eb; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-weight: bold;">Gestionar Cita</a>
+                    </div>
+                `;
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: contentString
+                });
+
+                marker.infoWindow = infoWindow;
+                infoWindows.push(infoWindow);
+
+                marker.addListener('click', () => {
+                    closeAllInfoWindows();
+                    infoWindow.open(mapInstance, marker);
+                });
+
+                markers.push(marker);
+            });
+        }
+
+        function closeAllInfoWindows() {
+            infoWindows.forEach(iw => iw.close());
+        }
+
+        function clearMarkers() {
+            markers.forEach(m => m.setMap(null));
+            markers = [];
+            infoWindows = [];
         }
 
         function setupGeolocation() {
@@ -257,10 +355,9 @@
 
                         btnLoc.textContent = '📍 Mi ubicación';
 
-                        const foundMap = window.activeMap || window.map;
-                        if (foundMap) {
-                            foundMap.setCenter(userPos);
-                            foundMap.setZoom(16);
+                        if (mapInstance) {
+                            mapInstance.setCenter(userPos);
+                            mapInstance.setZoom(16);
 
                             if (myLocationMarker) {
                                 myLocationMarker.setMap(null);
@@ -268,7 +365,7 @@
 
                             myLocationMarker = new google.maps.Marker({
                                 position: userPos,
-                                map: foundMap,
+                                map: mapInstance,
                                 title: 'Mi ubicación actual',
                                 icon: {
                                     url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
@@ -282,10 +379,8 @@
                             });
 
                             myLocationMarker.addListener('click', () => {
-                                infoWindow.open(foundMap, myLocationMarker);
+                                infoWindow.open(mapInstance, myLocationMarker);
                             });
-                        } else {
-                            alert('El mapa se está cargando, inténtalo de nuevo en un segundo.');
                         }
                     },
                     (error) => {
@@ -362,12 +457,11 @@
             }
         });
 
-        initMapSearch();
-        setupGeolocation();
+        // Inicializar al cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            initMainMap();
+            setupGeolocation();
+        });
     </script>
-
-    <!-- Carga de scripts de la aplicación y el mapa -->
-    <script type="module" src="./js/app.js"></script>
-    <script type="module" src="./js/map.js"></script>
 </body>
 </html>
