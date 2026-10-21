@@ -8,13 +8,86 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
     if (!modal || !openBtn || !mapElement) return;
 
-    // Asegurar que el contenedor del mapa sea relativo para albergar el botón flotante
-    mapElement.style.position = 'relative';
-
     let modalMap = null;
     let modalMarkers = [];
     let modalInfoWindow = null;
     let userLocationMarker = null;
+
+    // INYECTAR EL BOTÓN DE UBICACIÓN EN LA CABECERA DEL MODAL UNA SOLA VEZ
+    const modalContent = mapElement.closest('.map-modal-content');
+    if (modalContent && !document.getElementById('geo-btn-header')) {
+        const headerBar = modalContent.querySelector('div'); // Contenedor del título y botón cerrar
+        if (headerBar) {
+            const geoBtn = document.createElement('button');
+            geoBtn.id = 'geo-btn-header';
+            geoBtn.type = 'button';
+            geoBtn.innerHTML = '📍 Mi Ubicación';
+            geoBtn.style.background = '#3182ce';
+            geoBtn.style.color = 'white';
+            geoBtn.style.border = 'none';
+            geoBtn.style.borderRadius = '6px';
+            geoBtn.style.padding = '4px 8px';
+            geoBtn.style.fontSize = '0.75rem';
+            geoBtn.style.fontWeight = 'bold';
+            geoBtn.style.cursor = 'pointer';
+            geoBtn.style.marginRight = '8px';
+
+            geoBtn.addEventListener('click', () => {
+                if (!navigator.geolocation) {
+                    alert('Tu navegador no soporta geolocalización.');
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        if (userLocationMarker) {
+                            userLocationMarker.setMap(null);
+                        }
+
+                        userLocationMarker = new google.maps.Marker({
+                            position: pos,
+                            map: modalMap,
+                            title: '📍 ¡Aquí estás tú!',
+                            icon: {
+                                url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
+                                scaledSize: new google.maps.Size(40, 40)
+                            },
+                            zIndex: 9999
+                        });
+
+                        const userWindow = new google.maps.InfoWindow({
+                            content: `<div style="font-family: sans-serif; background: #064e3b; color: #ecfdf5; padding: 6px; border-radius: 6px; font-size: 0.7rem; text-align: center;"><strong>📍 ¡Estás aquí!</strong><br>Ubicación actual</div>`
+                        });
+
+                        userLocationMarker.addListener('click', () => {
+                            userWindow.open(modalMap, userLocationMarker);
+                        });
+
+                        modalMap.setCenter(pos);
+                        modalMap.setZoom(16);
+                        userWindow.open(modalMap, userLocationMarker);
+                    },
+                    (error) => {
+                        alert('Error al obtener la ubicación: ' + error.message);
+                    },
+                    { enableHighAccuracy: true }
+                );
+            });
+
+            // Insertarlo antes del botón de cerrar
+            const closeButton = headerBar.querySelector('button');
+            if (closeButton) {
+                headerBar.insertBefore(geoBtn, closeButton);
+            } else {
+                headerBar.appendChild(geoBtn);
+            }
+        }
+    }
 
     openBtn.addEventListener('click', () => {
         modal.style.display = 'flex';
@@ -75,84 +148,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             }
         });
 
-        // CREAR EL BOTÓN FLOTANTE HTML DIRECTAMENTE SOBRE EL CONTENEDOR
-        createHtmlGeolocationButton();
-
         await loadAndRenderModalClients();
-    }
-
-    // Botón flotante HTML independiente
-    function createHtmlGeolocationButton() {
-        // Evitar duplicados si ya se creó
-        if (document.getElementById('geo-btn-floating')) return;
-
-        const btn = document.createElement('button');
-        btn.id = 'geo-btn-floating';
-        btn.innerHTML = '📍 Mi Ubicación';
-        btn.type = 'button';
-        btn.style.position = 'absolute';
-        btn.style.top = '12px';
-        btn.style.right = '60px'; // Ubicado a la izquierda del botón de pantalla completa de Google Maps
-        btn.style.zIndex = '1000';
-        btn.style.backgroundColor = '#ffffff';
-        btn.style.border = '1px solid #cbd5e0';
-        btn.style.borderRadius = '6px';
-        btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
-        btn.style.cursor = 'pointer';
-        btn.style.fontFamily = 'Roboto, Arial, sans-serif';
-        btn.style.fontSize = '12px';
-        btn.style.fontWeight = 'bold';
-        btn.style.padding = '8px 12px';
-        btn.style.color = '#2d3748';
-
-        btn.addEventListener('click', () => {
-            if (!navigator.geolocation) {
-                alert('Tu navegador no soporta geolocalización.');
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const pos = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-
-                    if (userLocationMarker) {
-                        userLocationMarker.setMap(null);
-                    }
-
-                    userLocationMarker = new google.maps.Marker({
-                        position: pos,
-                        map: modalMap,
-                        title: '📍 ¡Aquí estás tú!',
-                        icon: {
-                            url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
-                            scaledSize: new google.maps.Size(40, 40)
-                        },
-                        zIndex: 9999
-                    });
-
-                    const userWindow = new google.maps.InfoWindow({
-                        content: `<div style="font-family: sans-serif; background: #064e3b; color: #ecfdf5; padding: 6px; border-radius: 6px; font-size: 0.7rem; text-align: center;"><strong>📍 ¡Estás aquí!</strong><br>Ubicación actual</div>`
-                    });
-
-                    userLocationMarker.addListener('click', () => {
-                        userWindow.open(modalMap, userLocationMarker);
-                    });
-
-                    modalMap.setCenter(pos);
-                    modalMap.setZoom(16);
-                    userWindow.open(modalMap, userLocationMarker);
-                },
-                (error) => {
-                    alert('Error al obtener la ubicación: ' + error.message);
-                },
-                { enableHighAccuracy: true }
-            );
-        });
-
-        mapElement.appendChild(btn);
     }
 
     async function loadAndRenderModalClients() {
@@ -312,7 +308,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
             if (!styleTag) {
                 styleTag = document.createElement('style');
-                styleTag.id = 'custom-infowindow-dark-style-modal';
+                styleTag.id = 'custom-infowinned-dark-style-modal';
                 styleTag.innerHTML = `
                     .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
                     .gm-style-iw-tc::after { background: #0f172a !important; }
