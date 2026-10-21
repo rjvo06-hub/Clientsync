@@ -213,16 +213,16 @@
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const urlParams = new URLSearchParams(window.location.search);
-        let actionType = urlParams.get('action') || 'reschedule';
+        let actionType = urlParams.get('action') || 'new';
 
         function updateUIModeText() {
             if (actionType === 'new') {
                 document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
-                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita o reprograma una cita existente usando los botones al lado.';
+                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita o selecciona una fecha libre.';
                 document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
             } else {
                 document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
-                document.getElementById('page-subtitle').textContent = 'Selecciona una cita existente para modificar su fecha.';
+                document.getElementById('page-subtitle').textContent = 'Modificando la fecha de la cita seleccionada.';
                 document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
             }
         }
@@ -435,6 +435,11 @@
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
 
+            // Restablecer por defecto a crear cita nueva al cambiar de cliente
+            actionType = 'new';
+            selectedAppointmentId = null;
+            updateUIModeText();
+
             if (client.service_requested) {
                 serviceSearchInput.value = client.service_requested;
             }
@@ -523,15 +528,8 @@
 
             detailsCard.style.display = 'block';
 
-            // ----------------------------------------------------
-            // REGENERAR SUGERENCIAS INTELIGENTES (FILTRANDO FECHAS OCUPADAS)
-            // ----------------------------------------------------
+            // Regenerar sugerencias inteligentes
             suggestionsList.innerHTML = '';
-
-            // 1. Identificar las fechas exactas en las que ESTE cliente ya tiene cita
-            const clientAlreadyBookedDates = new Set(
-                clientAppointments.map(a => a.scheduled_date ? a.scheduled_date.split('T')[0] : null).filter(Boolean)
-            );
 
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
             activeDates.sort();
@@ -540,11 +538,6 @@
                 let validSuggestionsCount = 0;
 
                 activeDates.forEach(dateStr => {
-                    // Si el cliente ya tiene una cita este día, se omite de las opciones de ruta
-                    if (clientAlreadyBookedDates.has(dateStr)) {
-                        return;
-                    }
-
                     const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr) && a.client_id !== client.id);
 
                     let clientsDetailsHtml = '';
@@ -578,6 +571,12 @@
                     `;
 
                     btn.addEventListener('click', () => {
+                        // Si hace clic en una sugerencia y no estaba en modo reprogramar explícito, aseguramos modo nuevo
+                        if (!selectedAppointmentId) {
+                            actionType = 'new';
+                            updateUIModeText();
+                        }
+
                         selectedDateOnly = dateStr;
                         document.getElementById('free-date-input').value = dateStr;
                         
@@ -597,10 +596,6 @@
                     validSuggestionsCount++;
                 });
 
-                if (validSuggestionsCount === 0) {
-                    suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">El cliente ya tiene citas agendadas en todas las fechas activas disponibles.</p>`;
-                }
-
                 suggestionBox.style.display = 'block';
             } else {
                 suggestionsList.innerHTML = `<p style="font-size: 0.85rem; color: #718096; margin: 4px 0;">No hay citas registradas en el sistema aún. Selecciona la fecha en el calendario.</p>`;
@@ -616,6 +611,12 @@
                 alert('No se pueden programar citas en fechas pasadas.');
                 e.target.value = '';
                 return;
+            }
+
+            // Si el usuario cambia la fecha manualmente y no seleccionó explícitamente reprogramar una cita anterior, es una cita nueva
+            if (!selectedAppointmentId) {
+                actionType = 'new';
+                updateUIModeText();
             }
 
             selectedDateOnly = chosenDate;
@@ -660,8 +661,7 @@
             }
 
             if (actionType === 'reschedule' && !selectedAppointmentId) {
-                alert('Por favor, haz clic en el botón "🔄 Reprogramar" al lado de la cita que deseas modificar.');
-                return;
+                actionType = 'new'; // Corrección de seguridad por si acaso
             }
 
             const chosenDatePart = apptVal.split('T')[0];
