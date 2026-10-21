@@ -8,15 +8,23 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 6px; }
-        .container { max-width: 650px; margin: 8px auto 40px auto; background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding-bottom: 80px; }
+        .container { max-width: 650px; margin: 8px auto 40px auto; background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding-bottom: 80px; width: 100%; }
         select, input, button { font-size: 16px; width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; }
         .info-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.85rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.85rem; display: none; }
         
-        /* Contenedor seguro para Fecha y Hora sin desbordamientos */
-        .datetime-row { display: flex; gap: 10px; margin-bottom: 10px; width: 100%; }
-        .datetime-col-date { width: 62%; min-width: 0; }
-        .datetime-col-time { width: 38%; min-width: 0; }
+        /* Contenedor Grid seguro para evitar cualquier desbordamiento en móviles */
+        .datetime-grid {
+            display: grid;
+            grid-template-columns: 1.8fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .datetime-field {
+            min-width: 0;
+            width: 100%;
+        }
 
         .inline-row-three { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
         .inline-col-three { flex: 1; min-width: 140px; }
@@ -176,13 +184,13 @@
                     </details>
                 </div>
 
-                <!-- Fecha y Hora optimizadas con porcentajes fijos y separación perfecta -->
-                <div class="datetime-row">
-                    <div class="datetime-col-date">
+                <!-- Rejilla CSS para Fecha y Hora adaptada a móviles sin desbordamiento -->
+                <div class="datetime-grid">
+                    <div class="datetime-field">
                         <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Fecha:</label>
-                        <input type="date" id="free-date-input" style="width: 100%;" required>
+                        <input type="date" id="free-date-input" required>
                     </div>
-                    <div class="datetime-col-time">
+                    <div class="datetime-field">
                         <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Hora:</label>
                         <input type="time" id="appointment-time" required>
                     </div>
