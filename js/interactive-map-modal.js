@@ -65,6 +65,13 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             maxWidth: 195
         });
 
+        // NUEVO: Cerrar la ventana del cliente al hacer clic en cualquier parte vacía del mapa
+        modalMap.addListener('click', () => {
+            if (modalInfoWindow) {
+                modalInfoWindow.close();
+            }
+        });
+
         await loadAndRenderModalClients();
     }
 
