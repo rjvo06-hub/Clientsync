@@ -8,10 +8,13 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
     if (!modal || !openBtn || !mapElement) return;
 
+    // Asegurar que el contenedor del mapa sea relativo para albergar el botón flotante
+    mapElement.style.position = 'relative';
+
     let modalMap = null;
     let modalMarkers = [];
     let modalInfoWindow = null;
-    let userLocationMarker = null; // Referencia para tu marcador de ubicación
+    let userLocationMarker = null;
 
     openBtn.addEventListener('click', () => {
         modal.style.display = 'flex';
@@ -24,7 +27,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                     modalMap.setCenter({ lat: Number(activeClient.latitude), lng: Number(activeClient.longitude) });
                     modalMap.setZoom(17);
                 } else {
-                    // Si no hay cliente activo, centrar en Ottobrunn
                     modalMap.setCenter({ lat: 48.0664, lng: 11.6611 });
                     modalMap.setZoom(14);
                 }
@@ -73,33 +75,37 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             }
         });
 
-        // CREAR UN BOTÓN FLOTANTE EN EL MAPA PARA OBTENER TU UBICACIÓN
-        createGeolocationControl();
+        // CREAR EL BOTÓN FLOTANTE HTML DIRECTAMENTE SOBRE EL CONTENEDOR
+        createHtmlGeolocationButton();
 
         await loadAndRenderModalClients();
     }
 
-    // Función para crear el botón flotante de geolocalización dentro del contenedor del mapa
-    function createGeolocationControl() {
-        const controlDiv = document.createElement('div');
-        controlDiv.style.margin = '10px';
-        controlDiv.style.zIndex = '5';
+    // Botón flotante HTML independiente
+    function createHtmlGeolocationButton() {
+        // Evitar duplicados si ya se creó
+        if (document.getElementById('geo-btn-floating')) return;
 
-        const controlButton = document.createElement('button');
-        controlButton.style.backgroundColor = '#ffffff';
-        controlButton.style.border = '2px solid rgba(0,0,0,0.2)';
-        controlButton.style.borderRadius = '6px';
-        controlButton.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-        controlButton.style.cursor = 'pointer';
-        controlButton.style.fontFamily = 'Roboto, Arial, sans-serif';
-        controlButton.style.fontSize = '12px';
-        controlButton.style.fontWeight = 'bold';
-        controlButton.style.padding = '8px 12px';
-        controlButton.style.textAlign = 'center';
-        controlButton.style.color = '#2d3748';
-        controlButton.innerHTML = '📍 Mi Ubicación';
-        
-        controlButton.addEventListener('click', () => {
+        const btn = document.createElement('button');
+        btn.id = 'geo-btn-floating';
+        btn.innerHTML = '📍 Mi Ubicación';
+        btn.type = 'button';
+        btn.style.position = 'absolute';
+        btn.style.top = '12px';
+        btn.style.right = '60px'; // Ubicado a la izquierda del botón de pantalla completa de Google Maps
+        btn.style.zIndex = '1000';
+        btn.style.backgroundColor = '#ffffff';
+        btn.style.border = '1px solid #cbd5e0';
+        btn.style.borderRadius = '6px';
+        btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+        btn.style.cursor = 'pointer';
+        btn.style.fontFamily = 'Roboto, Arial, sans-serif';
+        btn.style.fontSize = '12px';
+        btn.style.fontWeight = 'bold';
+        btn.style.padding = '8px 12px';
+        btn.style.color = '#2d3748';
+
+        btn.addEventListener('click', () => {
             if (!navigator.geolocation) {
                 alert('Tu navegador no soporta geolocalización.');
                 return;
@@ -112,22 +118,19 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                         lng: position.coords.longitude
                     };
 
-                    // Si ya existe el marcador de ubicación anterior, lo removemos
                     if (userLocationMarker) {
                         userLocationMarker.setMap(null);
                     }
 
-                    // Crear un icono sumamente distinto (Un pin verde grande o estilo distintivo con URL de Google Icons)
                     userLocationMarker = new google.maps.Marker({
                         position: pos,
                         map: modalMap,
                         title: '📍 ¡Aquí estás tú!',
                         icon: {
-                            // Usamos un pin verde claro/distinto o un icono de estrella/persona para diferenciarlo de rojo/azul de clientes
                             url: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
                             scaledSize: new google.maps.Size(40, 40)
                         },
-                        zIndex: 9999 // Asegura que esté siempre por encima de todo
+                        zIndex: 9999
                     });
 
                     const userWindow = new google.maps.InfoWindow({
@@ -138,7 +141,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                         userWindow.open(modalMap, userLocationMarker);
                     });
 
-                    // Centrar el mapa en tu ubicación y hacer zoom de acercamiento
                     modalMap.setCenter(pos);
                     modalMap.setZoom(16);
                     userWindow.open(modalMap, userLocationMarker);
@@ -150,8 +152,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             );
         });
 
-        controlDiv.appendChild(controlButton);
-        modalMap.controls[google.maps.ControlPosition.TOP_RIGHT].push(controlDiv);
+        mapElement.appendChild(btn);
     }
 
     async function loadAndRenderModalClients() {
@@ -197,7 +198,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 }
             });
 
-            // Si no hay un cliente activo seleccionado, fijar el centro explícitamente en Ottobrunn
             if (!activeClient) {
                 modalMap.setCenter({ lat: 48.0664, lng: 11.6611 });
                 modalMap.setZoom(14);
