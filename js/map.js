@@ -36,7 +36,7 @@ async function startMap() {
 
         window.map = map;
         infoWindow = new google.maps.InfoWindow({
-            maxWidth: 195
+            maxWidth: 220
         });
 
         // 1. Cargar clientes y sus citas asociadas desde appointments
@@ -70,7 +70,7 @@ async function startMap() {
     }
 }
 
-// Función para mostrar el globito flotante del cliente consultando appointments
+// Función para mostrar el globito flotante con todas las citas listadas
 async function showClientDetailsInfoWindow(client, markerInstance) {
     let appointments = [];
     try {
@@ -88,19 +88,30 @@ async function showClientDetailsInfoWindow(client, markerInstance) {
     let appointmentSection = '';
 
     if (hasAppointment) {
-        const nextAppt = appointments[0];
-        const d = new Date(nextAppt.scheduled_date);
-        const hoursInfo = nextAppt.estimated_hours ? ` (${nextAppt.estimated_hours}h est.)` : '';
-        const formattedDate = !isNaN(d) ? `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}` : 'Fecha pendiente';
-        
-        appointmentSection = `
-            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
-                <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada (${appointments.length}):</span>
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px;">
-                    <strong style="color: #93c5fd; font-size: 0.62rem;">${formattedDate}</strong>
-                    <button type="button" id="infowindow-reschedule-${client.id}" style="background: #2563eb; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.58rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
+        let apptsHtml = '';
+        appointments.forEach((appt, index) => {
+            const d = new Date(appt.scheduled_date);
+            const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h)` : '';
+            const formattedDate = !isNaN(d) ? `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}` : 'Fecha pendiente';
+            
+            apptsHtml += `
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #1e293b;">
+                    <div>
+                        <strong style="color: #93c5fd; font-size: 0.62rem; display: block;">Cita #${index + 1}:</strong>
+                        <span style="color: #f8fafc; font-size: 0.60rem;">${formattedDate}</span>
+                    </div>
+                    <button type="button" class="btn-infowindow-reschedule" data-client-id="${client.id}" style="background: #2563eb; color: white; border: none; padding: 3px 6px; border-radius: 4px; font-size: 0.58rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
                         Reprogramar
                     </button>
+                </div>
+            `;
+        });
+
+        appointmentSection = `
+            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
+                <span style="color: #94a3b8; display: block; margin-bottom: 3px;">Citas programadas (${appointments.length}):</span>
+                <div style="max-height: 110px; overflow-y: auto;">
+                    ${apptsHtml}
                 </div>
             </div>
         `;
@@ -119,7 +130,7 @@ async function showClientDetailsInfoWindow(client, markerInstance) {
     }
 
     const contentHtml = `
-        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 175px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
+        <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
             
             <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
                 <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -178,12 +189,13 @@ async function showClientDetailsInfoWindow(client, markerInstance) {
             document.head.appendChild(styleTag);
         }
 
-        const rescheduleBtn = document.getElementById(`infowindow-reschedule-${client.id}`);
-        if (rescheduleBtn) {
-            rescheduleBtn.addEventListener('click', () => {
+        // Asignar evento a los botones de reprogramar de cada cita en la lista
+        const rescheduleBtns = document.querySelectorAll('.btn-infowindow-reschedule');
+        rescheduleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
                 window.location.href = `./appointment-builder.html?client_id=${client.id}&action=reschedule`;
             });
-        }
+        });
 
         const newAppointmentBtn = document.getElementById(`infowindow-new-${client.id}`);
         if (newAppointmentBtn) {
