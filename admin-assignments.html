@@ -34,12 +34,6 @@
         .cal-day.status-red { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
 
         .badge-count { font-size: 0.65rem; background: rgba(0,0,0,0.1); padding: 1px 5px; border-radius: 10px; font-weight: bold; }
-        
-        .edit-form-box { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-top: 12px; display: none; }
-        .inline-edit-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-        .inline-edit-col { flex: 1; min-width: 140px; }
-        
-        .day-load-preview { background: #edf2f7; border: 1px solid #cbd5e0; padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; color: #2d3748; display: block; }
 
         /* Estilos del Buscador Inteligente Desplegable */
         .client-search-container {
@@ -135,6 +129,7 @@
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
+        let allAppointments = [];
         let currentTab = 'day';
         let selectedMonthDate = new Date();
         let searchFilterText = '';
@@ -162,54 +157,18 @@
             return { name: 'Otoño', months: [9, 10, 11] };
         }
 
-        function formatDateToDDMMYYYY(dateStr) {
-            if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
-            return dateStr;
-        }
-
-        function suggestNextTimeForDate(dateStr, excludeClientId) {
-            const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr) && c.id !== excludeClientId);
-            if (clientsOnDate.length === 0) return "09:00";
-
-            let latestHour = 9;
-            let latestMinute = 0;
-
-            clientsOnDate.forEach(c => {
-                const dateObj = new Date(c.appointment_date);
-                const h = dateObj.getHours();
-                const m = dateObj.getMinutes();
-                const totalMins = h * 60 + m;
-                
-                const durationMins = c.estimated_hours ? (Number(c.estimated_hours) * 60) : 60;
-                const endMins = totalMins + durationMins;
-
-                const currentLatestMins = latestHour * 60 + latestMinute;
-                if (endMins > currentLatestMins) {
-                    latestHour = Math.floor(endMins / 60);
-                    latestMinute = endMins % 60;
-                }
-            });
-
-            if (latestHour > 20) latestHour = 20;
-
-            const formattedH = String(latestHour).padStart(2, '0');
-            const formattedM = String(latestMinute).padStart(2, '0');
-            return `${formattedH}:${formattedM}`;
-        }
-
         async function initAdminPanel() {
             try {
-                const { data: clients, error } = await supabase
-                    .from('clients')
-                    .select('*')
-                    .order('appointment_date', { ascending: true });
+                const [{ data: clients, error: clientErr }, { data: appts, error: apptErr }] = await Promise.all([
+                    supabase.from('clients').select('*').order('name', { ascending: true }),
+                    supabase.from('appointments').select('*').order('scheduled_date', { ascending: true })
+                ]);
 
-                if (error) throw error;
+                if (clientErr) throw clientErr;
+                if (apptErr) throw apptErr;
+
                 allClients = clients || [];
+                allAppointments = appts || [];
                 renderCurrentView();
             } catch (err) {
                 console.error('Error al cargar datos:', err);
@@ -239,9 +198,9 @@
         }
 
         function renderDayViewContainer(container, dateStr, titleText) {
-            const dayClients = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+            const dayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
 
-            if (dayClients.length === 0) {
+            if (dayAppts.length === 0) {
                 container.innerHTML = `
                     <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;">
                         <strong>No hay citas programadas para el ${dateStr}.</strong>
@@ -253,16 +212,15 @@
             const targetDateObj = new Date(dateStr);
             const currentSeason = getSeasonByDate(targetDateObj);
 
-            const clientsWithoutAppointment = allClients.filter(c => {
-                if (c.appointment_date) return false;
-                if (!c.latitude || !c.longitude) return false;
-                return true;
-            });
+            const clientsWithApptIds = new Set(allAppointments.map(a => a.client_id));
+            const clientsWithoutAppointment = allClients.filter(c => !clientsWithApptIds.has(c.id) && c.latitude && c.longitude);
 
             let opportunitiesMap = new Map();
 
-            dayClients.forEach(appClient => {
-                if (!appClient.latitude || !appClient.longitude) return;
+            dayAppts.forEach(appt => {
+                const appClient = allClients.find(c => c.id === appt.client_id);
+                if (!appClient || !appClient.latitude || !appClient.longitude) return;
+
                 clientsWithoutAppointment.forEach(freeClient => {
                     const dist = calculateDistanceKm(
                         Number(appClient.latitude), Number(appClient.longitude), 
@@ -284,8 +242,11 @@
 
             let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
 
-            dayClients.forEach(client => {
-                html += buildClientCardHtml(client);
+            dayAppts.forEach(appt => {
+                const client = allClients.find(c => c.id === appt.client_id);
+                if (client) {
+                    html += buildAppointmentCardHtml(client, appt);
+                }
             });
 
             if (opportunitiesMap.size > 0) {
@@ -365,7 +326,7 @@
                 const monthStr = String(month + 1).padStart(2, '0');
                 const dateStr = `${year}-${monthStr}-${dayStr}`;
 
-                const dayAppointments = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(dateStr));
+                const dayAppointments = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
                 const count = dayAppointments.length;
 
                 let classes = 'cal-day';
@@ -437,7 +398,14 @@
             `;
 
             if (searchedClientObj) {
-                html += buildClientCardHtml(searchedClientObj);
+                const clientAppts = allAppointments.filter(a => a.client_id === searchedClientObj.id);
+                if (clientAppts.length > 0) {
+                    clientAppts.forEach(appt => {
+                        html += buildAppointmentCardHtml(searchedClientObj, appt);
+                    });
+                } else {
+                    html += `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 8px; text-align: center; color: #c05621;">Este cliente no tiene citas programadas actualmente.</div>`;
+                }
             }
 
             html += `</div>`;
@@ -492,7 +460,17 @@
                             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
                             searchFilterText = searchInput.value;
                             dropdown.style.display = 'none';
-                            resultArea.innerHTML = buildClientCardHtml(client);
+                            
+                            const clientAppts = allAppointments.filter(a => a.client_id === client.id);
+                            let apptsHtml = '';
+                            if (clientAppts.length > 0) {
+                                clientAppts.forEach(appt => {
+                                    apptsHtml += buildAppointmentCardHtml(client, appt);
+                                });
+                            } else {
+                                apptsHtml = `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 8px; text-align: center; color: #c05621;">Este cliente no tiene citas programadas actualmente.</div>`;
+                            }
+                            resultArea.innerHTML = apptsHtml;
                             attachEventListeners();
                         });
                         dropdown.appendChild(item);
@@ -511,22 +489,20 @@
             });
         }
 
-        function buildClientCardHtml(client) {
-            const dateObj = client.appointment_date ? new Date(client.appointment_date) : null;
-            const dateStrFormatted = dateObj ? dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin cita agendada';
+        function buildAppointmentCardHtml(client, appt) {
+            const dateObj = appt.scheduled_date ? new Date(appt.scheduled_date) : null;
+            const dateStrFormatted = dateObj ? dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Fecha pendiente';
             const currentEmp = client.assigned_employee || 'General';
-            const hoursInfo = client.estimated_hours ? ` (${client.estimated_hours}h est.)` : '';
-
-            const rawDatePart = client.appointment_date ? client.appointment_date.split('T')[0] : todayStrSystem;
-            const rawTimePart = client.appointment_date && client.appointment_date.split('T')[1] ? client.appointment_date.split('T')[1].substring(0, 5) : '09:00';
+            const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h est.)` : '';
 
             return `
-                <div class="client-row" id="card-${client.id}">
+                <div class="client-row" id="card-${appt.id}">
                     <div class="client-row-content">
                         <div style="flex: 2; min-width: 200px;">
                             <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
                             <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
-                            <span style="font-size: 0.85rem; color: ${client.appointment_date ? '#2f855a' : '#c05621'}; font-weight: bold;">📅 ${dateStrFormatted}${hoursInfo}</span>
+                            <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}${hoursInfo}</span>
+                            <div style="font-size: 0.75rem; color: #718096; margin-top: 2px;">Servicio: ${appt.service_requested || 'General'}</div>
                         </div>
                         <div style="flex: 1; min-width: 150px;">
                             <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
@@ -538,94 +514,11 @@
                             </select>
                         </div>
                         <div style="display: flex; align-items: flex-end;">
-                            <button type="button" class="toggle-edit-btn" data-client-id="${client.id}" style="background: #edf2f7; color: #2b6cb0; border: 1px solid #cbd5e0; font-size: 0.8rem; cursor: pointer; padding: 8px 12px; border-radius: 6px;">✏️ Modificar cita</button>
-                        </div>
-                    </div>
-
-                    <div class="edit-form-box" id="edit-box-${client.id}" data-original-date="${rawDatePart}">
-                        <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 8px;">💡 Reagendar / Modificar Cita:</div>
-
-                        <div class="inline-edit-row">
-                            <div class="inline-edit-col">
-                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Nueva Fecha:</label>
-                                <input type="date" class="edit-date-input" data-client-id="${client.id}" id="edit-date-${client.id}" value="${rawDatePart}" min="${todayStrSystem}" style="width: 100%;">
-                            </div>
-                            <div class="inline-edit-col">
-                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Hora de atención:</label>
-                                <input type="time" id="edit-time-${client.id}" value="${rawTimePart}" style="width: 100%;">
-                            </div>
-                            <div class="inline-edit-col">
-                                <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 2px;">Horas est. (Opc):</label>
-                                <input type="number" id="edit-hours-${client.id}" step="0.5" min="0.5" value="${client.estimated_hours || ''}" placeholder="Ej. 1.5" style="width: 100%;">
-                            </div>
-                        </div>
-
-                        <div class="day-load-preview" id="load-preview-${client.id}"></div>
-
-                        <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
-                            <button type="button" class="cancel-edit-btn" data-client-id="${client.id}" style="background: #e2e8f0; color: #4a5568; border: none; padding: 6px 12px; font-size: 0.8rem; cursor: pointer;">Cancelar</button>
-                            <button type="button" class="save-edit-btn" data-client-id="${client.id}" style="background: #38a169; color: white; border: none; padding: 6px 14px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">Guardar Cambios</button>
+                            <button type="button" class="reschedule-redirect-btn" data-client-id="${client.id}" style="background: #3182ce; color: white; border: none; font-size: 0.8rem; cursor: pointer; padding: 8px 12px; border-radius: 6px; font-weight: bold;">🔄 Modificar cita</button>
                         </div>
                     </div>
                 </div>
             `;
-        }
-
-        function updateDateLoadPreview(clientId) {
-            const client = allClients.find(c => c.id === clientId);
-            const dateInput = document.getElementById(`edit-date-${clientId}`);
-            const editBox = document.getElementById(`edit-box-${clientId}`);
-            const previewBox = document.getElementById(`load-preview-${clientId}`);
-            const timeInput = document.getElementById(`edit-time-${clientId}`);
-            
-            if (!dateInput || !previewBox || !timeInput || !client) return;
-
-            const chosenDate = dateInput.value;
-            const originalDate = editBox.getAttribute('data-original-date');
-
-            if (!chosenDate || chosenDate === originalDate) {
-                previewBox.style.display = 'none';
-                return;
-            }
-
-            const clientsOnDate = allClients.filter(c => c.appointment_date && c.appointment_date.startsWith(chosenDate) && c.id !== clientId);
-            const formattedDateStr = formatDateToDDMMYYYY(chosenDate);
-
-            if (clientsOnDate.length > 0) {
-                clientsOnDate.sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date));
-                let detailsHtml = `<strong style="color: #2b6cb0;">📅 Citas ya programadas para el ${formattedDateStr} (${clientsOnDate.length}):</strong><div style="margin-top: 4px;">`;
-                
-                clientsOnDate.forEach(dc => {
-                    const timeStr = new Date(dc.appointment_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                    
-                    let distText = '';
-                    if (client.latitude && client.longitude && dc.latitude && dc.longitude) {
-                        const distKm = calculateDistanceKm(
-                            Number(client.latitude), Number(client.longitude),
-                            Number(dc.latitude), Number(dc.longitude)
-                        );
-                        if (distKm <= 1.0) {
-                            distText = ` <span style="color: #38a169; font-weight: bold;">(Estás a ${distKm.toFixed(2)} km de ${dc.name} 🟢)</span>`;
-                        } else {
-                            distText = ` <span style="color: #c05621;">(Distancia a ${dc.name}: <b>${distKm.toFixed(1)} km</b>)</span>`;
-                        }
-                    } else {
-                        distText = ` <span style="color: #718096;">(Sin ubicación exacta)</span>`;
-                    }
-
-                    detailsHtml += `<div style="margin-top: 4px; font-size: 0.8rem; color: #4a5568;">• <strong>${dc.name}</strong> — 📍 ${dc.address || 'Sin dirección'} a las <b>${timeStr}h</b> ${distText}</div>`;
-                });
-                detailsHtml += `</div>`;
-
-                previewBox.innerHTML = detailsHtml;
-                previewBox.style.display = 'block';
-            } else {
-                previewBox.innerHTML = `<strong style="color: #2b6cb0;">📅 Citas para el ${formattedDateStr}:</strong> <span style="color: #38a169;">No hay otras citas este día (Día totalmente libre).</span>`;
-                previewBox.style.display = 'block';
-            }
-
-            const suggestedTime = suggestNextTimeForDate(chosenDate, clientId);
-            timeInput.value = suggestedTime;
         }
 
         function attachEventListeners() {
@@ -634,24 +527,9 @@
                 sel.addEventListener('change', handleEmpChange);
             });
 
-            document.querySelectorAll('.toggle-edit-btn').forEach(btn => {
-                btn.removeEventListener('click', handleToggleEdit);
-                btn.addEventListener('click', handleToggleEdit);
-            });
-
-            document.querySelectorAll('.edit-date-input').forEach(input => {
-                input.removeEventListener('change', handleDateInputChange);
-                input.addEventListener('change', handleDateInputChange);
-            });
-
-            document.querySelectorAll('.cancel-edit-btn').forEach(btn => {
-                btn.removeEventListener('click', handleCancelEdit);
-                btn.addEventListener('click', handleCancelEdit);
-            });
-
-            document.querySelectorAll('.save-edit-btn').forEach(btn => {
-                btn.removeEventListener('click', handleSaveEdit);
-                btn.addEventListener('click', handleSaveEdit);
+            document.querySelectorAll('.reschedule-redirect-btn').forEach(btn => {
+                btn.removeEventListener('click', handleRescheduleRedirect);
+                btn.addEventListener('click', handleRescheduleRedirect);
             });
         }
 
@@ -675,71 +553,10 @@
             }
         }
 
-        function handleToggleEdit(e) {
+        function handleRescheduleRedirect(e) {
             const clientId = e.target.getAttribute('data-client-id');
-            const editBox = document.getElementById(`edit-box-${clientId}`);
-            if (editBox) {
-                const willBeVisible = editBox.style.display !== 'block';
-                editBox.style.display = willBeVisible ? 'block' : 'none';
-                
-                if (willBeVisible) {
-                    updateDateLoadPreview(clientId);
-                }
-            }
-        }
-
-        function handleDateInputChange(e) {
-            const clientId = e.target.getAttribute('data-client-id');
-            updateDateLoadPreview(clientId);
-        }
-
-        function handleCancelEdit(e) {
-            const clientId = e.target.getAttribute('data-client-id');
-            const editBox = document.getElementById(`edit-box-${clientId}`);
-            if (editBox) editBox.style.display = 'none';
-        }
-
-        async function handleSaveEdit(e) {
-            const clientId = e.target.getAttribute('data-client-id');
-            const newDate = document.getElementById(`edit-date-${clientId}`).value;
-            const newTime = document.getElementById(`edit-time-${clientId}`).value || '09:00';
-            const newHours = document.getElementById(`edit-hours-${clientId}`).value;
-
-            if (!newDate) {
-                alert('Por favor selecciona una fecha válida.');
-                return;
-            }
-
-            if (newDate < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                return;
-            }
-
-            const fullTimestamp = `${newDate}T${newTime}:00.000Z`;
-
-            const updatePayload = {
-                appointment_date: fullTimestamp,
-                estimated_hours: newHours ? parseFloat(newHours) : null
-            };
-
-            const { error } = await supabase
-                .from('clients')
-                .update(updatePayload)
-                .eq('id', clientId);
-
-            if (error) {
-                alert('Error al actualizar la cita: ' + error.message);
-            } else {
-                alert('¡Cita modificada y reagendada con éxito!');
-                const clientObj = allClients.find(c => c.id === clientId);
-                if (clientObj) {
-                    clientObj.appointment_date = fullTimestamp;
-                    clientObj.estimated_hours = newHours ? parseFloat(newHours) : null;
-                }
-                const modal = document.getElementById('day-modal');
-                if (modal) modal.style.display = 'none';
-                renderCurrentView();
-            }
+            // Redirige directamente al programa de agendamiento inteligente con acción de reprogramar
+            window.location.href = `./appointment-builder.html?client_id=${clientId}&action=reschedule`;
         }
 
         initAdminPanel();
