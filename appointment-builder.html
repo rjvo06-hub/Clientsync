@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -111,6 +111,18 @@
             border: 1px solid #cbd5e0;
             margin-top: 10px;
         }
+
+        /* Estilo para los menús desplegables minimizables (details) */
+        details summary {
+            cursor: pointer;
+            font-weight: bold;
+            color: #2d3748;
+            padding: 6px 0;
+            user-select: none;
+        }
+        details summary:hover {
+            color: #2b6cb0;
+        }
     </style>
 </head>
 <body>
@@ -142,8 +154,10 @@
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
                 
                 <div id="appointments-selection-container" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e0; display: none;">
-                    <strong id="appointments-box-title" style="color: #2d3748; display: block; margin-bottom: 6px;">Citas actuales del cliente:</strong>
-                    <div id="client-appointments-list"></div>
+                    <details>
+                        <summary id="appointments-box-title">📅 Citas actuals del cliente:</summary>
+                        <div id="client-appointments-list" style="margin-top: 8px;"></div>
+                    </details>
                 </div>
             </div>
 
@@ -151,8 +165,10 @@
                 <label id="section-step-label" style="font-size: 0.9rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 8px;">2. Seleccionar Fecha, Hora, Duración y Servicio:</label>
                 
                 <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
-                    <div style="font-size: 0.85rem; font-weight: bold; color: #2b6cb0; margin-bottom: 5px;">💡 Citas agendadas y distancias en las fechas activas:</div>
-                    <div id="suggestions-list"></div>
+                    <details>
+                        <summary style="color: #2b6cb0; font-size: 0.85rem;">💡 Citas agendadas y distancias (fechas recomendadas)</summary>
+                        <div id="suggestions-list" style="margin-top: 8px;"></div>
+                    </details>
                 </div>
 
                 <div class="inline-row-three">
@@ -213,7 +229,6 @@
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const urlParams = new URLSearchParams(window.location.search);
-        // CORRECCIÓN: Por defecto es 'new' a menos que la URL pida explícitamente reprogramar
         let actionType = urlParams.get('action') === 'reschedule' ? 'reschedule' : 'new';
 
         function updateUIModeText() {
@@ -436,7 +451,6 @@
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
 
-            // Por defecto, al seleccionar cliente se prepara para una cita NUEVA
             actionType = 'new';
             selectedAppointmentId = null;
             updateUIModeText();
@@ -477,7 +491,7 @@
 
             if (clientAppointments.length > 0) {
                 appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = '📅 Citas actuales del cliente:';
+                appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (${clientAppointments.length}):`;
 
                 clientAppointments.forEach((appt, index) => {
                     const d = new Date(appt.scheduled_date);
@@ -495,7 +509,6 @@
                         </button>
                     `;
 
-                    // ESTRICTO: Solo se activa la reprogramación si haces clic en este botón específico
                     card.querySelector('.btn-quick-reschedule').addEventListener('click', () => {
                         actionType = 'reschedule';
                         selectedAppointmentId = appt.id;
@@ -523,22 +536,26 @@
                 dateSection.style.display = 'block';
             } else {
                 appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = 'Estado de citas:';
+                appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (0):`;
                 appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.85rem;">Este cliente no tiene ninguna cita programada actualmente.</span>`;
                 dateSection.style.display = 'block';
             }
 
             detailsCard.style.display = 'block';
 
-            // Regenerar sugerencias inteligentes de ruta
+            // Regenerar sugerencias ordenadas de MENOR a MAYOR número de citas
             suggestionsList.innerHTML = '';
 
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
-            activeDates.sort();
+
+            // Ordenar las fechas de menor a mayor cantidad de citas agendadas ese día
+            activeDates.sort((dateA, dateB) => {
+                const countA = allAppointments.filter(a => a.scheduled_date?.startsWith(dateA)).length;
+                const countB = allAppointments.filter(a => a.scheduled_date?.startsWith(dateB)).length;
+                return countA - countB; // Menor cantidad primero
+            });
 
             if (activeDates.length > 0) {
-                let validSuggestionsCount = 0;
-
                 activeDates.forEach(dateStr => {
                     const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr) && a.client_id !== client.id);
 
@@ -555,8 +572,8 @@
                         }
                     });
 
-                    const count = apptsOnThisDate.length;
-                    let badgeText = `${count} cita${count > 1 ? 's' : ''} este día`;
+                    const totalCountOnDay = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr)).length;
+                    let badgeText = `${totalCountOnDay} cita${totalCountOnDay > 1 ? 's' : ''} este día`;
                     const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
 
                     const btn = document.createElement('button');
@@ -573,7 +590,6 @@
                     `;
 
                     btn.addEventListener('click', () => {
-                        // Elegir una sugerencia de fecha mantiene el modo de cita nueva
                         actionType = 'new';
                         selectedAppointmentId = null;
                         updateUIModeText();
@@ -595,7 +611,6 @@
                     });
 
                     suggestionsList.appendChild(btn);
-                    validSuggestionsCount++;
                 });
 
                 suggestionBox.style.display = 'block';
@@ -605,7 +620,6 @@
             }
         }
 
-        // Si se cambia la fecha manualmente, se asegura que sea cita nueva
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
@@ -688,13 +702,15 @@
             }
 
             const btn = document.getElementById('save-btn');
+            const originalBtnText = btn.textContent;
             btn.textContent = 'Guardando...';
             btn.disabled = true;
 
             if (serviceVal) {
                 const exists = allServices.some(s => s.name.toLowerCase() === serviceVal.toLowerCase());
                 if (!exists) {
-                    await supabase.from('services').insert([{ name: serviceVal }]);
+                    const { data: newSrv } = await supabase.from('services').insert([{ name: serviceVal }]).select();
+                    if (newSrv) allServices.push(newSrv[0]);
                 }
             }
 
@@ -717,11 +733,21 @@
 
             if (errorResult) {
                 alert('Error al guardar la cita: ' + errorResult.message);
-                btn.textContent = actionType === 'new' ? 'Confirmar y Crear Nueva Cita' : 'Confirmar y Actualizar Cita';
+                btn.textContent = originalBtnText;
                 btn.disabled = false;
             } else {
-                alert(actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!');
-                window.location.href = './index.html';
+                const { data: refreshedAppts } = await supabase.from('appointments').select('*');
+                allAppointments = refreshedAppts || [];
+
+                const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
+                const formattedDateReadable = new Date(apptVal).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' });
+                
+                alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient.name}`);
+
+                selectClient(activeClient);
+
+                btn.textContent = originalBtnText;
+                btn.disabled = false;
             }
         });
 
