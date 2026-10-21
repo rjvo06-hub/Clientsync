@@ -96,7 +96,6 @@
             box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
         }
 
-        /* Estilo especial destacado para la fecha actual del cliente que se está reprogramando */
         .suggestion-item-btn.reschedule-highlight {
             border: 2px dashed #3182ce !important;
             background-color: #f7fafc !important;
@@ -221,7 +220,6 @@
                     </details>
                 </div>
 
-                <!-- Bloque de Fecha y Hora perfectamente alineado en columnas separadas -->
                 <div class="form-row-group">
                     <div class="datetime-four-grid" style="margin-bottom: 3px;">
                         <div class="datetime-col">
@@ -597,7 +595,6 @@
                             saveBtn.disabled = false;
                             saveBtn.style.opacity = '1';
 
-                            // Marcar y resaltar visualmente la fecha correspondiente en las sugerencias con subrayado/borde especial
                             document.querySelectorAll('.suggestion-item-btn').forEach(b => {
                                 b.classList.remove('selected-suggestion', 'reschedule-highlight');
                                 if (b.dataset.date === datePart) {
@@ -633,7 +630,6 @@
 
             if (activeDates.length > 0) {
                 activeDates.forEach(dateStr => {
-                    // Obtener todas las citas en este día (incluyendo al cliente actual para reflejar el número correcto de citas)
                     const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr));
 
                     let clientsDetailsHtml = '';
@@ -645,8 +641,8 @@
                             const isCurrentClient = (scheduledClient.id === client.id);
 
                             if (isCurrentClient) {
-                                // Mostrar al cliente actual de forma destacada y visible en la lista del día
-                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 4px; border-radius: 4px;">• [Tú / Este Cliente]: ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
+                                // Muestra el nombre, la hora y la etiqueta (Actual) en azul destacada limpiamente
+                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 6px; border-radius: 4px;">• ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
                             } else {
                                 const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(scheduledClient.latitude), Number(scheduledClient.longitude));
                                 const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
