@@ -112,7 +112,6 @@
             margin-top: 10px;
         }
 
-        /* Estilo para los menús desplegables minimizables (details) */
         details summary {
             cursor: pointer;
             font-weight: bold;
@@ -155,7 +154,7 @@
                 
                 <div id="appointments-selection-container" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e0; display: none;">
                     <details>
-                        <summary id="appointments-box-title">📅 Citas actuals del cliente:</summary>
+                        <summary id="appointments-box-title">📅 Citas actuales del cliente:</summary>
                         <div id="client-appointments-list" style="margin-top: 8px;"></div>
                     </details>
                 </div>
@@ -171,6 +170,7 @@
                     </details>
                 </div>
 
+                <!-- Fecha y Hora juntas en la misma línea -->
                 <div class="inline-row-three">
                     <div class="inline-col-three">
                         <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Fecha:</label>
@@ -180,6 +180,9 @@
                         <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Hora de atención:</label>
                         <input type="time" id="appointment-time" required>
                     </div>
+                </div>
+
+                <div class="inline-row-three">
                     <div class="inline-col-three">
                         <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Horas est. (Opc):</label>
                         <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
@@ -543,16 +546,15 @@
 
             detailsCard.style.display = 'block';
 
-            // Regenerar sugerencias ordenadas de MENOR a MAYOR número de citas
+            // Regenerar sugerencias ordenadas de MENOR a MAYOR carga de trabajo (número de citas)
             suggestionsList.innerHTML = '';
 
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
 
-            // Ordenar las fechas de menor a mayor cantidad de citas agendadas ese día
             activeDates.sort((dateA, dateB) => {
                 const countA = allAppointments.filter(a => a.scheduled_date?.startsWith(dateA)).length;
                 const countB = allAppointments.filter(a => a.scheduled_date?.startsWith(dateB)).length;
-                return countA - countB; // Menor cantidad primero
+                return countA - countB;
             });
 
             if (activeDates.length > 0) {
