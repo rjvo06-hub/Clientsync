@@ -96,7 +96,7 @@
             box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
         }
 
-        /* Estilo especial subrayado para destacar la cita actual que se está reprogramando */
+        /* Estilo especial destacado para la fecha actual del cliente que se está reprogramando */
         .suggestion-item-btn.reschedule-highlight {
             border: 2px dashed #3182ce !important;
             background-color: #f7fafc !important;
@@ -633,7 +633,8 @@
 
             if (activeDates.length > 0) {
                 activeDates.forEach(dateStr => {
-                    const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr) && a.client_id !== client.id);
+                    // Obtener todas las citas en este día (incluyendo al cliente actual para reflejar el número correcto de citas)
+                    const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr));
 
                     let clientsDetailsHtml = '';
                     apptsOnThisDate.forEach(appt => {
@@ -641,14 +642,21 @@
                         if (scheduledClient && scheduledClient.latitude && scheduledClient.longitude) {
                             const timeStr = new Date(appt.scheduled_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
                             
-                            const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(scheduledClient.latitude), Number(scheduledClient.longitude));
-                            const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
+                            const isCurrentClient = (scheduledClient.id === client.id);
 
-                            clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #4a5568; margin-top: 2px;">• <strong>${scheduledClient.name}</strong> a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
+                            if (isCurrentClient) {
+                                // Mostrar al cliente actual de forma destacada y visible en la lista del día
+                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 4px; border-radius: 4px;">• [Tú / Este Cliente]: ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
+                            } else {
+                                const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(scheduledClient.latitude), Number(scheduledClient.longitude));
+                                const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
+
+                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #4a5568; margin-top: 2px;">• <strong>${scheduledClient.name}</strong> a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
+                            }
                         }
                     });
 
-                    const totalCountOnDay = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr)).length;
+                    const totalCountOnDay = apptsOnThisDate.length;
                     let badgeText = `${totalCountOnDay} cita${totalCountOnDay > 1 ? 's' : ''}`;
                     const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
 
