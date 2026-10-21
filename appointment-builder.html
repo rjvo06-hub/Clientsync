@@ -8,33 +8,62 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 6px; }
-        .container { max-width: 650px; margin: 8px auto 40px auto; background: white; padding: 12px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding-bottom: 80px; width: 100%; }
-        select, input, button { font-size: 16px; width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; }
-        .info-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.85rem; color: #4a5568; display: none; }
-        .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.85rem; display: none; }
+        .container { max-width: 650px; margin: 8px auto 40px auto; background: white; padding: 14px; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); padding-bottom: 80px; width: 100%; border: 1px solid #e2e8f0; }
+        select, input, button { font-size: 16px; width: 100%; padding: 11px 14px; border: 1px solid #cbd5e0; border-radius: 10px; background: #ffffff; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
+        select:focus, input:focus { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15); }
         
-        /* Contenedor Grid seguro para evitar cualquier desbordamiento en móviles */
-        .datetime-grid {
+        .info-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.85rem; color: #4a5568; display: none; }
+        .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.85rem; display: none; }
+        
+        /* Contenedor Minimalista de Fecha y Hora con separador visual limpio */
+        .datetime-container {
             display: grid;
-            grid-template-columns: 1.8fr 1fr;
-            gap: 8px;
-            margin-bottom: 10px;
-            width: 100%;
+            grid-template-columns: 1.6fr 20px 1fr;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .datetime-container:focus-within {
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
         }
         .datetime-field {
             min-width: 0;
             width: 100%;
         }
+        .datetime-field input {
+            border: none;
+            padding: 4px 0;
+            background: transparent;
+            font-size: 0.95rem;
+            color: #1a202c;
+        }
+        .datetime-field input:focus {
+            box-shadow: none;
+        }
+        .datetime-separator {
+            text-align: center;
+            color: #a0aec0;
+            font-weight: 300;
+            font-size: 1.2rem;
+            user-select: none;
+        }
 
-        .inline-row-three { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-        .inline-col-three { flex: 1; min-width: 140px; }
-        
+        .form-row-group {
+            margin-bottom: 12px;
+            width: 100%;
+        }
+
         .appointment-selection-card {
             background: #fff;
             border: 1px solid #cbd5e0;
-            padding: 8px 10px;
+            padding: 10px 12px;
             border-radius: 8px;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -68,7 +97,7 @@
 
         .client-search-container {
             position: relative;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         .client-results-dropdown, .service-results-dropdown {
             position: absolute;
@@ -77,11 +106,11 @@
             right: 0;
             background: white;
             border: 1px solid #cbd5e0;
-            border-radius: 0 0 8px 8px;
+            border-radius: 0 0 10px 10px;
             max-height: 200px;
             overflow-y: auto;
             z-index: 100;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             display: none;
         }
         .client-result-item, .service-result-item {
@@ -112,15 +141,15 @@
             width: 95%;
             max-width: 700px;
             height: 80vh;
-            padding: 12px;
-            border-radius: 12px;
+            padding: 14px;
+            border-radius: 14px;
             display: flex;
             flex-direction: column;
         }
         #interactive-map {
             width: 100%;
             flex-grow: 1;
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid #cbd5e0;
             margin-top: 8px;
         }
@@ -141,20 +170,20 @@
 <body>
 
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 id="page-title" style="margin: 0; font-size: 1.1rem; color: #2d3748;">📅 Gestión de Citas</h1>
-            <a href="./index.html" style="padding: 6px 10px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.8rem;">← Mapa</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h1 id="page-title" style="margin: 0; font-size: 1.15rem; color: #1a202c; font-weight: 700;">📅 Gestión de Citas</h1>
+            <a href="./index.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600;">← Mapa</a>
         </div>
 
-        <p id="page-subtitle" style="color: #4a5568; font-size: 0.8rem; margin-bottom: 12px;">
+        <p id="page-subtitle" style="color: #64748b; font-size: 0.82rem; margin-bottom: 14px; line-height: 1.4;">
             Gestiona las citas y optimiza tus rutas según las distancias.
         </p>
 
         <form id="appointment-form">
             <div class="client-search-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <label style="font-weight: bold; color: #2d3748; font-size: 0.85rem;">1. Buscar Cliente (por nombre o calle):</label>
-                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 3px 6px; font-size: 0.7rem; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer;">🗺️ Mapa</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <label style="font-weight: 600; color: #2d3748; font-size: 0.85rem;">1. Buscar Cliente (nombre o calle):</label>
+                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 4px 8px; font-size: 0.72rem; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">🗺️ Mapa</button>
                 </div>
                 <input type="text" id="client-search-input" placeholder="Escribe parte del nombre o la calle..." autocomplete="off" required>
                 <input type="hidden" id="client-select" required>
@@ -168,43 +197,43 @@
                 
                 <div id="appointments-selection-container" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e0; display: none;">
                     <details>
-                        <summary id="appointments-box-title">📅 Citas actuales del cliente:</summary>
+                        <summary id="appointments-box-title">📅 Citas actuals del cliente:</summary>
                         <div id="client-appointments-list" style="margin-top: 6px;"></div>
                     </details>
                 </div>
             </div>
 
-            <div id="date-section" style="background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
-                <label id="section-step-label" style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 6px;">2. Seleccionar Fecha, Hora y Servicio:</label>
+            <div id="date-section" style="background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
+                <label id="section-step-label" style="font-size: 0.85rem; font-weight: 700; color: #2d3748; display: block; margin-bottom: 8px;">2. Fecha, Hora y Detalles:</label>
                 
-                <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 10px;">
+                <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 12px;">
                     <details>
-                        <summary style="color: #2b6cb0;">💡 Citas agendadas y distancias (fechas recomendadas)</summary>
+                        <summary style="color: #2b6cb0;">💡 Citas agendadas y distancias (recomendadas)</summary>
                         <div id="suggestions-list" style="margin-top: 6px;"></div>
                     </details>
                 </div>
 
-                <!-- Rejilla CSS para Fecha y Hora adaptada a móviles sin desbordamiento -->
-                <div class="datetime-grid">
-                    <div class="datetime-field">
-                        <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Fecha:</label>
-                        <input type="date" id="free-date-input" required>
-                    </div>
-                    <div class="datetime-field">
-                        <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Hora:</label>
-                        <input type="time" id="appointment-time" required>
+                <!-- Bloque Minimalista Unificado para Fecha y Hora con separador -->
+                <div class="form-row-group">
+                    <label style="font-size: 0.75rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 4px;">Fecha y Hora de Atención:</label>
+                    <div class="datetime-container">
+                        <div class="datetime-field">
+                            <input type="date" id="free-date-input" required title="Seleccionar Fecha">
+                        </div>
+                        <div class="datetime-separator">/</div>
+                        <div class="datetime-field">
+                            <input type="time" id="appointment-time" required title="Seleccionar Hora">
+                        </div>
                     </div>
                 </div>
 
-                <div class="inline-row-three">
-                    <div class="inline-col-three">
-                        <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Horas est. (Opc):</label>
-                        <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
-                    </div>
+                <div class="form-row-group">
+                    <label style="font-size: 0.75rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 4px;">Horas estimadas (Opcional):</label>
+                    <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
                 </div>
 
                 <div class="client-search-container" style="margin-top: 10px; margin-bottom: 0;">
-                    <label style="font-size: 0.75rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 3px;">Trabajo a realizar / Solicitud del cliente:</label>
+                    <label style="font-size: 0.75rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 4px;">Trabajo a realizar / Solicitud:</label>
                     <input type="text" id="service-search-input" placeholder="Ej. Corte de árbol, Poda..." autocomplete="off">
                     <div id="service-results-dropdown" class="service-results-dropdown"></div>
                 </div>
@@ -212,7 +241,7 @@
 
             <input type="hidden" id="selected-appointment-date" required>
 
-            <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 12px; font-size: 0.95rem; opacity: 0.6; margin-bottom: 20px; width: 100%;" disabled>
+            <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 13px; font-size: 0.95rem; opacity: 0.6; margin-bottom: 20px; width: 100%; border-radius: 10px; box-shadow: 0 4px 10px rgba(56, 161, 105, 0.2);" disabled>
                 Confirmar y Agendar Cita
             </button>
         </form>
@@ -222,7 +251,7 @@
         <div class="map-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0; font-size: 0.95rem; color: #2d3748;">🗺️ Selecciona un cliente en el mapa</h3>
-                <button type="button" id="close-map-modal" style="width: auto; padding: 5px 10px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">✕ Cerrar</button>
+                <button type="button" id="close-map-modal" style="width: auto; padding: 5px 10px; background: #e2e8f0; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">✕ Cerrar</button>
             </div>
             <p style="font-size: 0.75rem; color: #666; margin: 4px 0 0 0;">Haz clic en cualquier pin del mapa para seleccionar al cliente.</p>
             <div id="interactive-map"></div>
