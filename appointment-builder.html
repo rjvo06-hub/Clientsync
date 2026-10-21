@@ -19,15 +19,30 @@
             margin-bottom: 12px;
             width: 100%;
         }
-        
-        /* Tamaños específicos y compactos para fecha y hora */
-        .date-input-box {
-            width: 175px !important;
-            max-width: 100%;
+
+        /* Rejilla de 4 elementos en línea: Fecha | Transparente 1 | Hora | Transparente 2 */
+        .datetime-four-grid {
+            display: grid;
+            grid-template-columns: 1fr 18px 110px 18px;
+            align-items: end;
+            gap: 6px;
+            width: 100%;
+            margin-bottom: 12px;
         }
-        .time-input-box {
-            width: 115px !important; /* Campo de hora pequeño ajustado exactamente al texto */
-            max-width: 100%;
+        .datetime-col {
+            min-width: 0;
+            width: 100%;
+        }
+
+        /* Campos transparentes auxiliares para equilibrar y engañar al navegador */
+        .transparent-helper-field {
+            background: transparent !important;
+            border: 1px solid transparent !important;
+            box-shadow: none !important;
+            pointer-events: none;
+            color: transparent;
+            padding: 10px 0;
+            text-align: center;
         }
 
         /* Iconos limpios para fecha y hora */
@@ -38,7 +53,7 @@
         input[type="time"] {
             background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>') no-repeat right 8px center;
             background-size: 14px;
-            padding-right: 26px;
+            padding-right: 24px;
         }
 
         .appointment-selection-card {
@@ -196,16 +211,23 @@
                     </details>
                 </div>
 
-                <!-- Campo de Fecha -->
+                <!-- Rejilla con los 4 campos: Fecha, Transparente 1, Hora, Transparente 2 -->
                 <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">📅 Fecha de la cita:</label>
-                    <input type="date" id="free-date-input" class="date-input-box" required>
-                </div>
-
-                <!-- Campo de Hora más pequeño y adaptado -->
-                <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">⏰ Hora de la cita:</label>
-                    <input type="time" id="appointment-time" class="time-input-box" required>
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">📅 Fecha y ⏰ Hora:</label>
+                    <div class="datetime-four-grid">
+                        <div class="datetime-col">
+                            <input type="date" id="free-date-input" required>
+                        </div>
+                        <div class="datetime-col">
+                            <input type="text" class="transparent-helper-field" value="" readonly tabindex="-1">
+                        </div>
+                        <div class="datetime-col">
+                            <input type="time" id="appointment-time" required>
+                        </div>
+                        <div class="datetime-col">
+                            <input type="text" class="transparent-helper-field" value="" readonly tabindex="-1">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-row-group">
