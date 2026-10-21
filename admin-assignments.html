@@ -41,6 +41,36 @@
         
         .day-load-preview { background: #edf2f7; border: 1px solid #cbd5e0; padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; color: #2d3748; display: block; }
 
+        /* Estilos del Buscador Inteligente Desplegable */
+        .client-search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .client-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 0 0 8px 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .client-result-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 0.9rem;
+        }
+        .client-result-item:hover {
+            background: #ebf8ff;
+            color: #2b6cb0;
+        }
+
         /* Estilos para el Modal Flotante del Día Seleccionado */
         #day-modal {
             display: none;
@@ -108,6 +138,7 @@
         let currentTab = 'day';
         let selectedMonthDate = new Date();
         let searchFilterText = '';
+        let searchedClientObj = null;
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
@@ -366,7 +397,6 @@
                 renderMonthView(container);
             });
 
-            // Evento para abrir las citas del día seleccionado en un Modal flotante
             document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
                 cell.addEventListener('click', () => {
                     const dateStr = cell.getAttribute('data-date');
@@ -398,37 +428,87 @@
 
         function renderSearchView(container) {
             let html = `
-                <div style="margin-bottom: 15px;">
-                    <label style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 5px;">🔍 Buscar por nombre de cliente:</label>
-                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Escribe el nombre del cliente..." style="width: 100%; padding: 10px; font-size: 0.95rem;">
+                <div class="client-search-container">
+                    <label style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 5px;">🔍 Buscar Cliente (por nombre o calle):</label>
+                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Escribe parte del nombre o la calle..." autocomplete="off" style="width: 100%; padding: 12px; font-size: 1rem;">
+                    <div id="client-results-dropdown" class="client-results-dropdown"></div>
                 </div>
-                <div id="search-results-list">
+                <div id="selected-client-result-area">
             `;
 
-            const query = searchFilterText.toLowerCase().trim();
-            const matchedClients = query === '' ? allClients : allClients.filter(c => c.name && c.name.toLowerCase().includes(query));
-
-            if (matchedClients.length === 0) {
-                html += `<p style="text-align: center; color: #718096; padding: 20px;">No se encontraron clientes con ese nombre.</p>`;
-            } else {
-                matchedClients.forEach(client => {
-                    html += buildClientCardHtml(client);
-                });
+            if (searchedClientObj) {
+                html += buildClientCardHtml(searchedClientObj);
             }
 
             html += `</div>`;
             container.innerHTML = html;
+            attachSearchViewEvents();
             attachEventListeners();
+        }
 
+        function attachSearchViewEvents() {
             const searchInput = document.getElementById('client-search-input');
-            if (searchInput) {
-                searchInput.focus();
-                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-                searchInput.addEventListener('input', (e) => {
-                    searchFilterText = e.target.value;
-                    renderSearchView(container);
+            const dropdown = document.getElementById('client-results-dropdown');
+            const resultArea = document.getElementById('selected-client-result-area');
+
+            if (!searchInput || !dropdown) return;
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                searchFilterText = e.target.value;
+
+                if (query.length === 0) {
+                    dropdown.style.display = 'none';
+                    searchedClientObj = null;
+                    resultArea.innerHTML = '';
+                    return;
+                }
+
+                const startsWithMatches = allClients.filter(c => {
+                    const name = (c.name || '').toLowerCase();
+                    const address = (c.address || '').toLowerCase();
+                    const postal = (c.postal_code || '').toLowerCase();
+                    return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
                 });
-            }
+
+                const containsMatches = allClients.filter(c => {
+                    const name = (c.name || '').toLowerCase();
+                    const address = (c.address || '').toLowerCase();
+                    const postal = (c.postal_code || '').toLowerCase();
+                    const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
+                    return hasMatch && !startsWithMatches.includes(c);
+                });
+
+                const filtered = [...startsWithMatches, ...containsMatches];
+
+                dropdown.innerHTML = '';
+                if (filtered.length > 0) {
+                    filtered.forEach(client => {
+                        const item = document.createElement('div');
+                        item.className = 'client-result-item';
+                        item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
+                        item.addEventListener('click', () => {
+                            searchedClientObj = client;
+                            searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
+                            searchFilterText = searchInput.value;
+                            dropdown.style.display = 'none';
+                            resultArea.innerHTML = buildClientCardHtml(client);
+                            attachEventListeners();
+                        });
+                        dropdown.appendChild(item);
+                    });
+                    dropdown.style.display = 'block';
+                } else {
+                    dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontraron clientes</div>`;
+                    dropdown.style.display = 'block';
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
         }
 
         function buildClientCardHtml(client) {
@@ -656,7 +736,8 @@
                     clientObj.appointment_date = fullTimestamp;
                     clientObj.estimated_hours = newHours ? parseFloat(newHours) : null;
                 }
-                document.getElementById('day-modal').style.display = 'none';
+                const modal = document.getElementById('day-modal');
+                if (modal) modal.style.display = 'none';
                 renderCurrentView();
             }
         }
