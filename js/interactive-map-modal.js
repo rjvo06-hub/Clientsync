@@ -73,58 +73,14 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                             zIndex: 9999
                         });
 
-                        // Ventana flotante con la misma estructura idéntica de las tarjetas de clientes
-                        const userWindow = new google.maps.InfoWindow({
-                            maxWidth: 195,
-                            content: `
-                                <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
-                                    
-                                    <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                                        <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                            📍 Mi Ubicación Actual
-                                        </h3>
-                                    </div>
-
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                        <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
-                                            <strong>📌 Coordenadas:</strong> ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}
-                                        </p>
-                                    </div>
-
-                                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
-                                        <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Estado: <strong style="color: #4ade80;">Punto de partida</strong></span>
-                                    </div>
-
-                                </div>
-                            `
-                        });
-
                         userLocationMarker.addListener('click', () => {
-                            userWindow.open(modalMap, userLocationMarker);
-                            
-                            setTimeout(() => {
-                                const iwContainer = document.querySelector('.gm-style-iw-c');
-                                if (iwContainer) {
-                                    iwContainer.style.background = '#0f172a';
-                                    iwContainer.style.padding = '2px 4px 4px 4px';
-                                    iwContainer.style.borderRadius = '8px';
-                                    iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
-                                }
-                                const iwOuter = document.querySelector('.gm-style-iw-d');
-                                if (iwOuter) {
-                                    iwOuter.style.overflow = 'hidden';
-                                    iwOuter.style.padding = '0';
-                                    iwOuter.style.maxHeight = 'none';
-                                }
-                                const closeBtn = document.querySelector('.gm-ui-hover-effect');
-                                if (closeBtn) closeBtn.style.display = 'none';
-                            }, 50);
+                            showUserLocationInfoWindow(pos, userLocationMarker);
                         });
 
                         if (modalMap) {
                             modalMap.setCenter(pos);
                             modalMap.setZoom(16);
-                            google.maps.event.trigger(userLocationMarker, 'click');
+                            showUserLocationInfoWindow(pos, userLocationMarker);
                         }
                     },
                     (error) => {
@@ -195,6 +151,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             maxWidth: 195
         });
 
+        // Cerrar la ventana al hacer clic en cualquier parte vacía del mapa
         modalMap.addListener('click', () => {
             if (modalInfoWindow) {
                 modalInfoWindow.close();
@@ -202,6 +159,62 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         });
 
         await loadAndRenderModalClients();
+    }
+
+    function showUserLocationInfoWindow(pos, markerInstance) {
+        const contentHtml = `
+            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
+                
+                <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
+                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        📍 Mi Ubicación Actual
+                    </h3>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
+                        <strong>📌 Coordenadas:</strong> ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}
+                    </p>
+                </div>
+
+                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
+                    <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Estado: <strong style="color: #4ade80;">Punto de partida</strong></span>
+                </div>
+
+            </div>
+        `;
+
+        modalInfoWindow.setContent(contentHtml);
+        modalInfoWindow.open(modalMap, markerInstance);
+
+        google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
+            const iwContainer = document.querySelector('.gm-style-iw-c');
+            if (iwContainer) {
+                iwContainer.style.background = '#0f172a';
+                iwContainer.style.padding = '2px 4px 4px 4px';
+                iwContainer.style.borderRadius = '8px';
+                iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
+            }
+            const iwOuter = document.querySelector('.gm-style-iw-d');
+            if (iwOuter) {
+                iwOuter.style.overflow = 'hidden';
+                iwOuter.style.padding = '0';
+                iwOuter.style.maxHeight = 'none';
+            }
+            const closeBtn = document.querySelector('.gm-ui-hover-effect');
+            if (closeBtn) closeBtn.style.display = 'none';
+
+            let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
+            if (!styleTag) {
+                styleTag = document.createElement('style');
+                styleTag.id = 'custom-infowindow-dark-style-modal';
+                styleTag.innerHTML = `
+                    .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
+                    .gm-style-iw-tc::after { background: #0f172a !important; }
+                `;
+                document.head.appendChild(styleTag);
+            }
+        });
     }
 
     async function loadAndRenderModalClients() {
