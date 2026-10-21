@@ -15,28 +15,29 @@
         .info-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.82rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.82rem; display: none; }
         
-        /* Contenedor Flex optimizado con tamaño de letra reducido para evitar desbordamientos */
-        .datetime-wrapper {
+        /* Contenedor compacto: los campos ya no se estiran, ocupan solo el espacio exacto de la fecha y hora */
+        .datetime-inline-group {
             display: flex;
-            gap: 8px;
-            width: 100%;
+            gap: 12px;
+            align-items: flex-start;
             margin-bottom: 10px;
+            width: 100%;
         }
-        .datetime-box-date {
-            flex: 1.7;
-            min-width: 0;
+        .datetime-item-date {
+            width: 155px; /* Ancho exacto para DD.MM.YYYY */
+            flex-shrink: 0;
         }
-        .datetime-box-time {
-            flex: 1.1;
-            min-width: 0;
+        .datetime-item-time {
+            width: 105px; /* Ancho exacto para HH:MM */
+            flex-shrink: 0;
         }
 
-        /* Iconos limpios para fecha y hora */
-        input[type="date"] {
+        /* Inputs específicos compactos con iconos limpios */
+        .datetime-item-date input {
             background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>') no-repeat right 8px center;
             background-size: 14px;
         }
-        input[type="time"] {
+        .datetime-item-time input {
             background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>') no-repeat right 8px center;
             background-size: 14px;
         }
@@ -201,13 +202,13 @@
                     </details>
                 </div>
 
-                <!-- Fecha y Hora independientes, en la misma línea, con fuente optimizada para móviles -->
-                <div class="datetime-wrapper">
-                    <div class="datetime-box-date">
+                <!-- Campos compactos y ajustados al tamaño exacto de la fecha y hora -->
+                <div class="datetime-inline-group">
+                    <div class="datetime-item-date">
                         <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">📅 Fecha:</label>
                         <input type="date" id="free-date-input" required>
                     </div>
-                    <div class="datetime-box-time">
+                    <div class="datetime-item-time">
                         <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">⏰ Hora:</label>
                         <input type="time" id="appointment-time" required>
                     </div>
