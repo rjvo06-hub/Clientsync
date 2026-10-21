@@ -213,12 +213,12 @@
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const urlParams = new URLSearchParams(window.location.search);
-        let actionType = urlParams.get('action') || 'new';
+        let actionType = 'new'; // Forzado estrictamente a 'new' por defecto
 
         function updateUIModeText() {
             if (actionType === 'new') {
                 document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
-                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita o selecciona una fecha libre.';
+                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita seleccionando fecha y hora.';
                 document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
             } else {
                 document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
@@ -435,7 +435,7 @@
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
 
-            // Restablecer por defecto a crear cita nueva al cambiar de cliente
+            // ESTRICTO: Por defecto siempre es una cita nueva al seleccionar cliente
             actionType = 'new';
             selectedAppointmentId = null;
             updateUIModeText();
@@ -494,6 +494,7 @@
                         </button>
                     `;
 
+                    // AQUÍ SÍ: Únicamente cuando se pulsa explícitamente el botón de reprogramar
                     card.querySelector('.btn-quick-reschedule').addEventListener('click', () => {
                         actionType = 'reschedule';
                         selectedAppointmentId = appt.id;
@@ -571,11 +572,11 @@
                     `;
 
                     btn.addEventListener('click', () => {
-                        // Si hace clic en una sugerencia y no estaba en modo reprogramar explícito, aseguramos modo nuevo
-                        if (!selectedAppointmentId) {
-                            actionType = 'new';
-                            updateUIModeText();
-                        }
+                        // Elegir una sugerencia de ruta SIEMPRE genera una cita nueva y limpia selecciones de reprogramación
+                        actionType = 'new';
+                        selectedAppointmentId = null;
+                        updateUIModeText();
+                        document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
 
                         selectedDateOnly = dateStr;
                         document.getElementById('free-date-input').value = dateStr;
@@ -603,6 +604,7 @@
             }
         }
 
+        // Si cambia la fecha manualmente en el input, ES OBLIGATORIAMENTE CITA NUEVA
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
@@ -613,11 +615,10 @@
                 return;
             }
 
-            // Si el usuario cambia la fecha manualmente y no seleccionó explícitamente reprogramar una cita anterior, es una cita nueva
-            if (!selectedAppointmentId) {
-                actionType = 'new';
-                updateUIModeText();
-            }
+            actionType = 'new';
+            selectedAppointmentId = null;
+            updateUIModeText();
+            document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
 
             selectedDateOnly = chosenDate;
             
@@ -660,8 +661,10 @@
                 return;
             }
 
+            // VALIDACIÓN ESTRICTA: Si dice que es reprogramación pero no hay ID válido seleccionado, lo bloqueamos tajantemente
             if (actionType === 'reschedule' && !selectedAppointmentId) {
-                actionType = 'new'; // Corrección de seguridad por si acaso
+                alert('Por favor, haz clic en el botón "🔄 Reprogramar" al lado de la cita que deseas modificar.');
+                return;
             }
 
             const chosenDatePart = apptVal.split('T')[0];
