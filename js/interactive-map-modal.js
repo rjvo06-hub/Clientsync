@@ -179,36 +179,47 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
-            // Geocodificación optimizada con idioma y lectura amplia de componentes
+            // Geocodificación inversa avanzada extrayendo componentes directos de calle y número
             geocoder.geocode({ location: clickedLatLng, language: 'es' }, (results, status) => {
-                let addressText = '';
+                let streetName = '';
+                let streetNumber = '';
                 let postalCodeText = '';
-
-                console.log("Geocoding Status:", status, results);
+                let fallbackAddress = '';
 
                 if (status === 'OK' && results && results.length > 0) {
-                    // Tomamos el primer resultado formateado que trae Google por defecto (suele ser el más exacto para la calle)
-                    const primaryResult = results[0];
-                    addressText = primaryResult.formatted_address;
+                    // Guardamos la primera dirección formateada general por si acaso
+                    fallbackAddress = results[0].formatted_address;
 
-                    // Recorremos todos los componentes de la dirección para extraer el código postal y la ciudad si es necesario
+                    // Buscamos de forma inteligente en los resultados el que contenga calle y número específicos
                     for (const result of results) {
                         for (const component of result.address_components) {
+                            if (!streetName && component.types.includes('route')) {
+                                streetName = component.long_name;
+                            }
+                            if (!streetNumber && component.types.includes('street_number')) {
+                                streetNumber = component.long_name;
+                            }
                             if (!postalCodeText && component.types.includes('postal_code')) {
                                 postalCodeText = component.long_name;
                             }
                         }
+                        if (streetName && streetNumber) break; // Si ya tenemos ambos, salimos
                     }
                 }
 
-                // Si aún así no encuentra dirección legible, usamos formato limpio de coordenadas
-                if (!addressText) {
-                    addressText = `Mozartstraße / Cerca de coordenada`;
+                // Construimos la dirección exacta combinando calle y número (ej. "Mozartstraße 99")
+                let finalAddress = '';
+                if (streetName && streetNumber) {
+                    finalAddress = `${streetName} ${streetNumber}`;
+                } else if (streetName) {
+                    finalAddress = streetName;
+                } else {
+                    finalAddress = fallbackAddress || `Ubicación (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
                 }
 
                 const clientDraft = {
-                    address: addressText,
-                    postal_code: postalCodeText || '85521', // Código postal por defecto de la zona si aplica, o vacío
+                    address: finalAddress,
+                    postal_code: postalCodeText || '',
                     latitude: lat,
                     longitude: lng
                 };
@@ -426,7 +437,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         } else {
             appointmentSection = `
                 <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
-                    <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada: <strong style="color: #f87171;">No programada</strong></i>
+                    <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada: <strong style="color: #f87171;">No programada</strong></span>
                 </div>
             `;
         }
@@ -450,7 +461,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                     <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
                         <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
                     </p>
-                    ${phoneActionHtml}
+                    ${phoneActionIdx = clientPhone}
                 </div>
 
                 ${appointmentSection}
