@@ -97,9 +97,6 @@
         </form>
     </div>
 
-    <!-- Script de Google Maps con la API Key necesaria para la geocodificación inversa -->
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY"></script>
-
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -141,60 +138,20 @@
         async function init() {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
-                const latParam = urlParams.get('latitude');
-                const lngParam = urlParams.get('longitude');
+                const mapAddress = urlParams.get('address');
+                const mapPostal = urlParams.get('postal_code');
+                const mapLat = urlParams.get('latitude');
+                const mapLng = urlParams.get('longitude');
 
-                // Si abrimos la página con coordenadas pasadas desde el mapa:
-                if (latParam && lngParam) {
+                // Si venimos del puente geográfico con los datos ya listos:
+                if (mapAddress || mapLat || mapLng) {
                     window.setMode('create');
                     clearForm();
                     
-                    // Colocamos las coordenadas en sus respectivos inputs de inmediato
-                    document.getElementById('client-lat').value = latParam;
-                    document.getElementById('client-lng').value = lngParam;
-
-                    // Consultamos automáticamente a Google Maps usando esas coordenadas (Geocodificación Inversa)
-                    const checkGoogleMaps = setInterval(() => {
-                        if (window.google && window.google.maps) {
-                            clearInterval(checkGoogleMaps);
-                            const geocoder = new google.maps.Geocoder();
-                            const latlng = { lat: parseFloat(latParam), lng: parseFloat(lngParam) };
-
-                            geocoder.geocode({ location: latlng, language: 'es' }, (results, status) => {
-                                if (status === 'OK' && results && results[0]) {
-                                    let street = '';
-                                    let number = '';
-                                    let postalCode = '';
-
-                                    for (const component of results[0].address_components) {
-                                        const types = component.types;
-                                        if (types.includes('route')) {
-                                            street = component.long_name;
-                                        }
-                                        if (types.includes('street_number') || types.includes('premise')) {
-                                            number = component.long_name;
-                                        }
-                                        if (types.includes('postal_code')) {
-                                            postalCode = component.long_name;
-                                        }
-                                    }
-
-                                    // Construimos la dirección limpia (Ej. "Haidgraben 89")
-                                    let fullAddress = street;
-                                    if (number) {
-                                        fullAddress += ` ${number}`;
-                                    }
-
-                                    if (fullAddress && fullAddress !== 'undefined') {
-                                        document.getElementById('client-address').value = fullAddress.trim();
-                                    }
-                                    if (postalCode) {
-                                        document.getElementById('client-postal').value = postalCode;
-                                    }
-                                }
-                            });
-                        }
-                    }, 100);
+                    if (mapAddress) document.getElementById('client-address').value = mapAddress;
+                    if (mapPostal) document.getElementById('client-postal').value = mapPostal;
+                    if (mapLat) document.getElementById('client-lat').value = mapLat;
+                    if (mapLng) document.getElementById('client-lng').value = mapLng;
                 }
 
                 // Carga de clientes para modo consulta/edición
