@@ -177,7 +177,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
-            // Objeto limpio solo con coordenadas
             const clientDraft = {
                 latitude: lat,
                 longitude: lng
@@ -228,13 +227,12 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             const createBtn = document.getElementById('modal-create-client-btn');
             if (createBtn) {
                 createBtn.addEventListener('click', () => {
-                    // Envía únicamente latitud y longitud por URL al programa de creación
                     const params = new URLSearchParams({
                         latitude: clientDraft.latitude,
                         longitude: clientDraft.longitude
                     });
 
-                    window.location.href = `client-builder.html?${params.toString()}`;
+                    window.location.href = `geo-bridge.html?${params.toString()}`;
                 });
             }
         });
