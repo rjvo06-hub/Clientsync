@@ -155,7 +155,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         // Instanciar Geocoder para buscar direcciones al hacer clic en el mapa
         const geocoder = new google.maps.Geocoder();
 
-        // Escuchar clics en cualquier punto vacío del mapa para crear cliente nuevo
+        // Escuchar clics en cualquier punto vacío del mapa con geocodificación inversa tolerante
         modalMap.addListener('click', (event) => {
             const clickedLatLng = event.latLng;
             const lat = clickedLatLng.lat();
@@ -183,22 +183,34 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             });
 
             geocoder.geocode({ location: clickedLatLng }, (results, status) => {
-                let addressText = 'Dirección no encontrada';
+                let addressText = '';
                 let postalCodeText = '';
 
-                if (status === 'OK' && results[0]) {
-                    const place = results[0];
-                    addressText = place.formatted_address;
+                if (status === 'OK' && results && results.length > 0) {
+                    const bestResult = results.find(r => 
+                        r.types.includes('street_address') || 
+                        r.types.includes('premise') || 
+                        r.types.includes('subpremise') ||
+                        r.types.includes('postal_code')
+                    ) || results[0];
 
-                    const postalComponent = place.address_components.find(comp => comp.types.includes('postal_code'));
-                    if (postalComponent) {
-                        postalCodeText = postalComponent.long_name;
+                    addressText = bestResult.formatted_address;
+
+                    for (const component of bestResult.address_components) {
+                        if (component.types.includes('postal_code')) {
+                            postalCodeText = component.long_name;
+                            break;
+                        }
                     }
+                }
+
+                if (!addressText) {
+                    addressText = `Ubicación en mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
                 }
 
                 const clientDraft = {
                     address: addressText,
-                    postal_code: postalCodeText,
+                    postal_code: postalCodeText || '',
                     latitude: lat,
                     longitude: lng
                 };
