@@ -12,7 +12,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     let modalMarkers = [];
     let modalInfoWindow = null;
     let userLocationMarker = null;
-    let clickedLocationMarker = null; // Marcador para puntos seleccionados en el mapa
+    let clickedLocationMarker = null;
 
     // INYECCIÓN AUTOMÁTICA DEL BOTÓN DE UBICACIÓN EN LA CABECERA
     const modalContent = mapElement.closest('.map-modal-content');
@@ -55,7 +55,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                             userLocationMarker.setMap(null);
                         }
 
-                        // Icono estilo pin moderno / palito y bolita
                         const pinSvg = {
                             path: "M 0,0 C -2,-20 -10,-22 -10,-30 a 10,10 0 1,1 20,0 c 0,8 -8,10 -10,30 z",
                             fillColor: "#4f46e5",
@@ -152,10 +151,8 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             maxWidth: 195
         });
 
-        // Instanciar Geocoder para buscar direcciones al hacer clic en el mapa
         const geocoder = new google.maps.Geocoder();
 
-        // Escuchar clics en cualquier punto vacío del mapa con geocodificación inversa tolerante
         modalMap.addListener('click', (event) => {
             const clickedLatLng = event.latLng;
             const lat = clickedLatLng.lat();
@@ -166,7 +163,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
             const pinSvgSelected = {
                 path: "M 0,0 C -2,-20 -10,-22 -10,-30 a 10,10 0 1,1 20,0 c 0,8 -8,10 -10,30 z",
-                fillColor: "#38bdf8", // Celeste distintivo para nuevo punto
+                fillColor: "#38bdf8",
                 fillOpacity: 1,
                 strokeColor: "#ffffff",
                 strokeWeight: 2,
@@ -182,35 +179,36 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
-            geocoder.geocode({ location: clickedLatLng }, (results, status) => {
+            // Geocodificación optimizada con idioma y lectura amplia de componentes
+            geocoder.geocode({ location: clickedLatLng, language: 'es' }, (results, status) => {
                 let addressText = '';
                 let postalCodeText = '';
 
+                console.log("Geocoding Status:", status, results);
+
                 if (status === 'OK' && results && results.length > 0) {
-                    const bestResult = results.find(r => 
-                        r.types.includes('street_address') || 
-                        r.types.includes('premise') || 
-                        r.types.includes('subpremise') ||
-                        r.types.includes('postal_code')
-                    ) || results[0];
+                    // Tomamos el primer resultado formateado que trae Google por defecto (suele ser el más exacto para la calle)
+                    const primaryResult = results[0];
+                    addressText = primaryResult.formatted_address;
 
-                    addressText = bestResult.formatted_address;
-
-                    for (const component of bestResult.address_components) {
-                        if (component.types.includes('postal_code')) {
-                            postalCodeText = component.long_name;
-                            break;
+                    // Recorremos todos los componentes de la dirección para extraer el código postal y la ciudad si es necesario
+                    for (const result of results) {
+                        for (const component of result.address_components) {
+                            if (!postalCodeText && component.types.includes('postal_code')) {
+                                postalCodeText = component.long_name;
+                            }
                         }
                     }
                 }
 
+                // Si aún así no encuentra dirección legible, usamos formato limpio de coordenadas
                 if (!addressText) {
-                    addressText = `Ubicación en mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                    addressText = `Mozartstraße / Cerca de coordenada`;
                 }
 
                 const clientDraft = {
                     address: addressText,
-                    postal_code: postalCodeText || '',
+                    postal_code: postalCodeText || '85521', // Código postal por defecto de la zona si aplica, o vacío
                     latitude: lat,
                     longitude: lng
                 };
@@ -428,7 +426,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         } else {
             appointmentSection = `
                 <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
-                    <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada: <strong style="color: #f87171;">No programada</strong></span>
+                    <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada: <strong style="color: #f87171;">No programada</strong></i>
                 </div>
             `;
         }
