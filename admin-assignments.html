@@ -123,7 +123,7 @@
         </div>
     </div>
 
-    <!-- Modal para Modificar Cita con la lógica exacta de distancias y horas -->
+    <!-- Modal para Modificar Cita con zona horaria corregida -->
     <div id="reschedule-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
@@ -154,7 +154,6 @@
                     </div>
                 </div>
 
-                <!-- Caja de distancias y citas ya programadas ese día (Lógica idéntica al agendador) -->
                 <div class="day-load-preview" id="res-load-preview"></div>
 
                 <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
@@ -208,9 +207,9 @@
 
         function suggestNextTimeForDate(dateStr, excludeApptId) {
             const apptsOnDate = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr) && a.id !== excludeApptId);
-            if (apptsOnDate.length === 0) return "09:00";
+            if (apptsOnDate.length === 0) return "08:00";
 
-            let latestHour = 9;
+            let latestHour = 8;
             let latestMinute = 0;
 
             apptsOnDate.forEach(a => {
@@ -219,7 +218,7 @@
                 const m = dateObj.getMinutes();
                 const totalMins = h * 60 + m;
                 
-                const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 60;
+                const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 120;
                 const endMins = totalMins + durationMins;
 
                 const currentLatestMins = latestHour * 60 + latestMinute;
@@ -647,7 +646,7 @@
             document.getElementById('res-client-address').textContent = `📍 ${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}`;
 
             const datePart = appt.scheduled_date ? appt.scheduled_date.split('T')[0] : todayStrSystem;
-            const timePart = appt.scheduled_date && appt.scheduled_date.split('T')[1] ? appt.scheduled_date.split('T')[1].substring(0, 5) : '09:00';
+            const timePart = appt.scheduled_date && appt.scheduled_date.split('T')[1] ? appt.scheduled_date.split('T')[1].substring(0, 5) : '08:00';
 
             const dateInput = document.getElementById('res-date-input');
             const timeInput = document.getElementById('res-time-input');
@@ -731,7 +730,7 @@
 
             const apptId = document.getElementById('reschedule-appt-id').value;
             const newDate = document.getElementById('res-date-input').value;
-            const newTime = document.getElementById('res-time-input').value || '09:00';
+            const newTime = document.getElementById('res-time-input').value || '08:00';
             const newHours = document.getElementById('res-hours-input').value;
 
             if (!newDate) {
@@ -744,7 +743,8 @@
                 return;
             }
 
-            const fullTimestamp = `${newDate}T${newTime}:00.000Z`;
+            // CORRECCIÓN DE ZONA HORARIA: Eliminada la 'Z' para guardar la hora de forma local exacta
+            const fullTimestamp = `${newDate}T${newTime}:00`;
 
             const updatePayload = {
                 scheduled_date: fullTimestamp,
