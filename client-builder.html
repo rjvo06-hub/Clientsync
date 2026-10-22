@@ -97,6 +97,9 @@
         </form>
     </div>
 
+    <!-- Carga de la API de Google Maps para el buscador por coordenadas -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY"></script>
+
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -138,28 +141,55 @@
         async function init() {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
-                
-                // Primero revisamos si venimos del mapa con datos precargados
-                const mapAddress = urlParams.get('address');
-                const mapPostal = urlParams.get('postal_code');
-                const mapLat = urlParams.get('latitude');
-                const mapLng = urlParams.get('longitude');
+                const latParam = urlParams.get('latitude');
+                const lngParam = urlParams.get('longitude');
 
-                if (mapAddress || mapLat || mapLng) {
+                // Si venimos con coordenadas desde el mapa, activamos el modo creación y consultamos a Google Maps
+                if (latParam && lngParam) {
                     window.setMode('create');
                     clearForm();
-                    const addrEl = document.getElementById('client-address');
-                    const postEl = document.getElementById('client-postal');
-                    const latEl = document.getElementById('client-lat');
-                    const lngEl = document.getElementById('client-lng');
+                    
+                    document.getElementById('client-lat').value = latParam;
+                    document.getElementById('client-lng').value = lngParam;
 
-                    if (addrEl) addrEl.value = mapAddress || '';
-                    if (postEl) postEl.value = mapPostal || '';
-                    if (latEl) latEl.value = mapLat || '';
-                    if (lngEl) lngEl.value = mapLng || '';
+                    // Usamos la misma lógica infalible del buscador de coordenadas para obtener la dirección exacta
+                    if (window.google && window.google.maps) {
+                        const geocoder = new google.maps.Geocoder();
+                        const latLng = { lat: parseFloat(latParam), lng: parseFloat(lngParam) };
+
+                        geocoder.geocode({ location: latLng, language: 'es' }, (results, status) => {
+                            if (status === 'OK' && results && results.length > 0) {
+                                let street = '';
+                                let number = '';
+                                let postalCode = '';
+
+                                const place = results[0];
+                                for (const component of place.address_components) {
+                                    const types = component.types;
+                                    if (types.includes('route')) {
+                                        street = component.long_name;
+                                    }
+                                    if (types.includes('street_number') || types.includes('premise')) {
+                                        number = component.long_name;
+                                    }
+                                    if (types.includes('postal_code')) {
+                                        postalCode = component.long_name;
+                                    }
+                                }
+
+                                let finalAddress = street;
+                                if (number) {
+                                    finalAddress += ` ${number}`;
+                                }
+
+                                if (finalAddress) document.getElementById('client-address').value = finalAddress.trim();
+                                if (postalCode) document.getElementById('client-postal').value = postalCode;
+                            }
+                        });
+                    }
                 }
 
-                // Cargar clientes de Supabase de manera segura
+                // Cargar clientes de Supabase para la edición
                 const { data, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
                 if (!error && data) {
                     allClients = data;
