@@ -18,9 +18,6 @@
         .client-row { background: #ffffff; border: 1px solid #cbd5e0; border-left: 5px solid #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
         .client-row-content { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
 
-        .opportunity-trigger-btn { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; padding: 12px 15px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; box-sizing: border-box; }
-        .opportunity-list-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 20px; display: none; }
-
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
         .cal-header { text-align: center; font-weight: bold; font-size: 0.8rem; color: #718096; padding: 6px 0; }
         .cal-day { min-height: 50px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 6px 4px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
@@ -34,7 +31,6 @@
 
         .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
         .custom-modal-content { background: white; width: 100%; max-width: 650px; max-height: 85vh; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .day-load-preview { background: #edf2f7; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 0.85rem; color: #2d3748; display: block; }
     </style>
 </head>
 <body>
@@ -71,12 +67,11 @@
     <div id="reschedule-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 style="margin: 0; font-size: 1.05rem; color: #2b6cb0;">🔄 Modificar Cita y Optimizar Ruta</h3>
+                <h3 style="margin: 0; font-size: 1.05rem; color: #2b6cb0;">🔄 Modificar Cita y Horario</h3>
                 <button type="button" id="close-reschedule-modal" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
             </div>
             <form id="reschedule-form">
                 <input type="hidden" id="reschedule-appt-id">
-                <input type="hidden" id="reschedule-client-id">
                 
                 <div style="margin-bottom: 12px;">
                     <strong id="res-client-name" style="font-size: 1rem; color: #2d3748; display: block;">Cliente: -</strong>
@@ -98,8 +93,6 @@
                     </div>
                 </div>
 
-                <div class="day-load-preview" id="res-load-preview"></div>
-
                 <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" id="cancel-reschedule-btn" style="background: #e2e8f0; color: #4a5568; border: none; padding: 10px 16px; font-weight: bold; cursor: pointer; border-radius: 6px;">Cancelar</button>
                     <button type="submit" style="background: #38a169; color: white; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 6px;">Guardar y Actualizar Cita</button>
@@ -117,56 +110,13 @@
         let currentTab = 'day';
         let selectedMonthDate = new Date();
         let searchFilterText = '';
-        let searchedClientObj = null;
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
-
-        function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * (Math.PI / 180);
-            const dLon = (lon2 - lon1) * (Math.PI / 180);
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-        }
-
-        function getSeasonByDate(dateObj) {
-            const month = dateObj.getMonth() + 1;
-            if ([12, 1, 2].includes(month)) return { name: 'Invierno' };
-            if ([3, 4, 5].includes(month)) return { name: 'Primavera' };
-            if ([6, 7, 8].includes(month)) return { name: 'Verano' };
-            return { name: 'Otoño' };
-        }
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
             return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
-        }
-
-        function suggestNextTimeForDate(dateStr, excludeApptId) {
-            const apptsOnDate = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr) && a.id !== excludeApptId);
-            if (apptsOnDate.length === 0) return "08:00";
-
-            let latestHour = 8;
-            let latestMinute = 0;
-
-            apptsOnDate.forEach(a => {
-                const dateObj = new Date(a.scheduled_date);
-                const h = dateObj.getHours();
-                const m = dateObj.getMinutes();
-                const totalMins = h * 60 + m;
-                const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 120;
-                const endMins = totalMins + durationMins;
-
-                const currentLatestMins = latestHour * 60 + latestMinute;
-                if (endMins > currentLatestMins) {
-                    latestHour = Math.floor(endMins / 60);
-                    latestMinute = endMins % 60;
-                }
-            });
-
-            if (latestHour > 20) latestHour = 20;
-            return `${String(latestHour).padStart(2, '0')}:${String(latestMinute).padStart(2, '0')}`;
         }
 
         async function initAdminPanel() {
@@ -203,7 +153,7 @@
         }
 
         function renderDayViewContainer(container, dateStr, titleText) {
-            const dayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
+            const dayAppts = allAppointments.filter(a => a.scheduled_date === dateStr);
             if (dayAppts.length === 0) {
                 container.innerHTML = `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;"><strong>No hay citas programadas para el ${dateStr}.</strong></div>`;
                 return;
@@ -241,7 +191,7 @@
 
             for (let day = 1; day <= totalDays; day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const count = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr)).length;
+                const count = allAppointments.filter(a => a.scheduled_date === dateStr).length;
                 let classes = 'cal-day';
                 if (count >= 1 && count <= 2) classes += ' status-green';
                 else if (count > 2 && count <= 4) classes += ' status-yellow';
@@ -292,7 +242,6 @@
                     item.style.cursor = 'pointer';
                     item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || ''}</span>`;
                     item.addEventListener('click', () => {
-                        searchedClientObj = client;
                         searchInput.value = client.name;
                         dropdown.style.display = 'none';
                         const appts = allAppointments.filter(a => a.client_id === client.id);
@@ -306,8 +255,9 @@
         }
 
         function buildAppointmentCardHtml(client, appt) {
-            const dateObj = appt.scheduled_date ? new Date(appt.scheduled_date) : null;
-            const dateStrFormatted = dateObj ? dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Pendiente';
+            const dateStr = appt.scheduled_date || '';
+            const timeStr = appt.time_slot || '09:00';
+            const dateStrFormatted = dateStr ? `${dateStr.split('-').reverse().join('/')} a las ${timeStr}h` : 'Pendiente';
             const currentEmp = client.assigned_employee || 'General';
             const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h est.)` : '';
 
@@ -329,7 +279,7 @@
                             <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">${employeeOptions}</select>
                         </div>
                         <div style="display: flex; align-items: flex-end;">
-                            <button type="button" class="open-reschedule-modal-btn" data-appt-id="${appt.id}" data-client-id="${client.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Modificar</button>
+                            <button type="button" class="open-reschedule-modal-btn" data-appt-id="${appt.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Modificar</button>
                         </div>
                     </div>
                 </div>
@@ -348,17 +298,15 @@
             document.querySelectorAll('.open-reschedule-modal-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const appt = allAppointments.find(a => a.id === e.target.getAttribute('data-appt-id'));
-                    const client = allClients.find(c => c.id === e.target.getAttribute('data-client-id'));
+                    const client = allClients.find(c => c.id === appt.client_id);
                     if (!appt || !client) return;
 
                     document.getElementById('reschedule-appt-id').value = appt.id;
-                    document.getElementById('reschedule-client-id').value = client.id;
                     document.getElementById('res-client-name').textContent = `Cliente: ${client.name}`;
                     document.getElementById('res-client-address').textContent = `📍 ${client.address || 'Sin dirección'}`;
 
-                    const [datePart, timePart] = appt.scheduled_date ? appt.scheduled_date.split('T') : [todayStrSystem, '08:00'];
-                    document.getElementById('res-date-input').value = datePart;
-                    document.getElementById('res-time-input').value = timePart ? timePart.substring(0, 5) : '08:00';
+                    document.getElementById('res-date-input').value = appt.scheduled_date || todayStrSystem;
+                    document.getElementById('res-time-input').value = appt.time_slot || '09:00';
                     document.getElementById('res-hours-input').value = appt.estimated_hours || '';
 
                     document.getElementById('reschedule-modal').style.display = 'flex';
@@ -373,15 +321,12 @@
             e.preventDefault();
             const apptId = document.getElementById('reschedule-appt-id').value;
             const newDate = document.getElementById('res-date-input').value;
-            const newTime = document.getElementById('res-time-input').value || '08:00';
+            const newTime = document.getElementById('res-time-input').value || '09:00';
             const newHours = document.getElementById('res-hours-input').value;
 
-            // ZONA HORARIA LOCAL LIMPIA SIN 'Z'
-            const fullTimestamp = `${newDate}T${newTime}:00`;
-
             const { error } = await supabase.from('appointments').update({
-                scheduled_date: fullTimestamp,
-                appointment_date: fullTimestamp,
+                scheduled_date: newDate,
+                time_slot: newTime,
                 estimated_hours: newHours ? parseFloat(newHours) : null
             }).eq('id', apptId);
 
