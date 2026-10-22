@@ -151,8 +151,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             maxWidth: 195
         });
 
-        const geocoder = new google.maps.Geocoder();
-
         modalMap.addListener('click', (event) => {
             const clickedLatLng = event.latLng;
             const lat = clickedLatLng.lat();
@@ -179,43 +177,13 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
-            // Geocodificación inversa aplicando la misma estructura precisa del buscador de referencia
-            geocoder.geocode({ location: clickedLatLng, language: 'es' }, (results, status) => {
-                let street = '';
-                let number = '';
-                let postalCode = '';
+            // Objeto limpio solo con coordenadas
+            const clientDraft = {
+                latitude: lat,
+                longitude: lng
+            };
 
-                if (status === 'OK' && results && results.length > 0) {
-                    const place = results[0];
-                    for (const component of place.address_components) {
-                        const types = component.types;
-                        if (types.includes('route')) {
-                            street = component.long_name;
-                        }
-                        if (types.includes('street_number') || types.includes('premise')) {
-                            number = component.long_name;
-                        }
-                        if (types.includes('postal_code')) {
-                            postalCode = component.long_name;
-                        }
-                    }
-                }
-
-                // Construcción limpia de la dirección
-                let finalAddress = street;
-                if (number) {
-                    finalAddress += ` ${number}`;
-                }
-
-                const clientDraft = {
-                    address: finalAddress.trim(),
-                    postal_code: postalCode || '',
-                    latitude: lat,
-                    longitude: lng
-                };
-
-                showSelectedPointInfoWindow(clickedLatLng, clickedLocationMarker, clientDraft);
-            });
+            showSelectedPointInfoWindow(clickedLatLng, clickedLocationMarker, clientDraft);
         });
 
         await loadAndRenderModalClients();
@@ -224,26 +192,12 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     function showUserLocationInfoWindow(pos, markerInstance) {
         const contentHtml = `
             <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
-                
                 <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        📍 Mi Ubicación Actual
-                    </h3>
+                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700;">📍 Mi Ubicación Actual</h3>
                 </div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
-                        <strong>📌 Coordenadas:</strong> ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}
-                    </p>
-                </div>
-
-                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
-                    <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Estado: <strong style="color: #4ade80;">Punto de partida</strong></span>
-                </div>
-
+                <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1;">Coordenadas: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}</p>
             </div>
         `;
-
         modalInfoWindow.setContent(contentHtml);
         modalInfoWindow.open(modalMap, markerInstance);
         setupInfoWindowStyles();
@@ -252,43 +206,30 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     function showSelectedPointInfoWindow(pos, markerInstance, clientDraft) {
         const contentHtml = `
             <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
-                
                 <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        📍 Nuevo Punto
-                    </h3>
+                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700;">📍 Nuevo Punto</h3>
                 </div>
-
                 <div style="margin-bottom: 4px;">
-                    <p style="margin: 0 0 3px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; word-break: break-word;">
-                        <strong>Dirección:</strong> ${clientDraft.address || 'Calle no detectada'}
-                    </p>
-                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;">
-                        <strong>CP:</strong> ${clientDraft.postal_code || 'No detectado'}
-                    </p>
+                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1;">Lat/Lng: ${clientDraft.latitude.toFixed(4)}, ${clientDraft.longitude.toFixed(4)}</p>
                 </div>
-
                 <div style="margin-top: 6px; border-top: 1px dashed #1e293b; padding-top: 4px;">
                     <button type="button" id="modal-create-client-btn" style="background: #10b981; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
                         ➕ Crear cliente aquí
                     </button>
                 </div>
-
             </div>
         `;
 
         modalInfoWindow.setContent(contentHtml);
         modalInfoWindow.open(modalMap, markerInstance);
-
         setupInfoWindowStyles();
 
         google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
             const createBtn = document.getElementById('modal-create-client-btn');
             if (createBtn) {
                 createBtn.addEventListener('click', () => {
+                    // Envía únicamente latitud y longitud por URL al programa de creación
                     const params = new URLSearchParams({
-                        address: clientDraft.address,
-                        postal_code: clientDraft.postal_code,
                         latitude: clientDraft.latitude,
                         longitude: clientDraft.longitude
                     });
@@ -439,34 +380,24 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
         const contentHtml = `
             <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
-                
                 <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                    <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${hasAppointment ? '🔵' : '🔴'} ${client.name}
-                    </h3>
+                    <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">${hasAppointment ? '🔵' : '🔴'} ${client.name}</h3>
                 </div>
-
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
-                        <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
-                    </p>
+                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; flex: 1;">📍 ${client.address || 'Sin dirección'}, ${client.postal_code || ''}</p>
                     ${phoneActionHtml}
                 </div>
-
                 ${appointmentSection}
-
                 <div style="margin-top: 6px;">
                     <button type="button" id="modal-select-client-btn" style="background: #2563eb; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
                         ✔ Seleccionar este cliente
                     </button>
                 </div>
-
             </div>
         `;
 
         modalInfoWindow.setContent(contentHtml);
         modalInfoWindow.open(modalMap, markerInstance);
-
         setupInfoWindowStyles();
 
         google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
