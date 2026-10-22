@@ -731,18 +731,18 @@
             }
         });
 
-        // CORREGIDO: Calcula y añade el offset local exacto (ej. +02:00) para evitar desfases en la base de datos
+        // CORREGIDO: Calcula el offset basado en la FECHA SELECCIONADA de la cita (respetando el cambio de hora estacional)
         function updateFinalTimestamp() {
             const timeVal = document.getElementById('appointment-time').value || '09:00';
             if (selectedDateOnly) {
-                const now = new Date();
-                const tzOffsetMin = -now.getTimezoneOffset();
+                // Creamos el objeto Date con la fecha exacta seleccionada para obtener su offset real (ej. +01:00 en invierno vs +02:00 en verano)
+                const targetDate = new Date(`${selectedDateOnly}T${timeVal}:00`);
+                const tzOffsetMin = -targetDate.getTimezoneOffset();
                 const sign = tzOffsetMin >= 0 ? '+' : '-';
                 const absMins = Math.abs(tzOffsetMin);
                 const offsetHours = String(Math.floor(absMins / 60)).padStart(2, '0');
                 const offsetMins = String(absMins % 60).padStart(2, '0');
 
-                // Formato ISO completo con la zona horaria local exacta (ej. 2026-10-22T09:00:00+02:00)
                 document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00${sign}${offsetHours}:${offsetMins}`;
             }
         }
@@ -772,15 +772,6 @@
             if (chosenDatePart < todayStrSystem) {
                 alert('No se pueden programar citas en fechas pasadas.');
                 return;
-            }
-
-            if (chosenDatePart === todayStrSystem) {
-                const now = new Date();
-                const currentHours = String(now.getHours()).padStart(2, '0');
-                const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-                const currentTimeStr = `${currentHours}:${currentTimeStr}`;
-
-                // validación de hora actual si aplica
             }
 
             const btn = document.getElementById('save-btn');
