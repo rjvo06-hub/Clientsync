@@ -211,11 +211,12 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                     }
                 }
 
+                // Construcción inteligente: si hay número se une, si no, se queda solo el nombre de la calle para que lo edites
                 let finalAddress = '';
                 if (streetName && streetNumber) {
                     finalAddress = `${streetName} ${streetNumber}`;
                 } else if (streetName) {
-                    finalAddress = streetName;
+                    finalAddress = streetName; // Solo calle para que agregues el número fácilmente
                 } else if (formattedAddress) {
                     finalAddress = formattedAddress.split(',')[0];
                 } else {
@@ -224,6 +225,8 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
                 const clientDraft = {
                     address: finalAddress,
+                    street: streetName || '',
+                    street_number: streetNumber || '',
                     postal_code: postalCodeText || '85521',
                     latitude: lat,
                     longitude: lng
@@ -301,9 +304,11 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             const createBtn = document.getElementById('modal-create-client-btn');
             if (createBtn) {
                 createBtn.addEventListener('click', () => {
-                    // REDIRECCIÓN DIRECTA A CLIENT-BUILDER.HTML CON LOS DATOS EN LA URL
+                    // REDIRECCIÓN A CLIENT-BUILDER.HTML CON TODOS LOS DATOS PRECISOS EN LA URL
                     const params = new URLSearchParams({
                         address: clientDraft.address,
+                        street: clientDraft.street,
+                        street_number: clientDraft.street_number,
                         postal_code: clientDraft.postal_code,
                         latitude: clientDraft.latitude,
                         longitude: clientDraft.longitude
