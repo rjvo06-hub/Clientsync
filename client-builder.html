@@ -65,8 +65,8 @@
             </div>
 
             <div>
-                <label>Dirección:</label>
-                <input type="text" id="client-address" placeholder="Ej. Mozartstraße 101" required>
+                <label>Dirección (Calle y Número):</label>
+                <input type="text" id="client-address" placeholder="Ej. Haidgraben 89" required>
             </div>
 
             <div style="display: flex; gap: 10px;">
@@ -83,11 +83,11 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label>Latitud:</label>
-                    <input type="text" id="client-lat" placeholder="Ej. 48.0664">
+                    <input type="text" id="client-lat" placeholder="Ej. 48.0585">
                 </div>
                 <div style="flex: 1;">
                     <label>Longitud:</label>
-                    <input type="text" id="client-lng" placeholder="Ej. 11.6611">
+                    <input type="text" id="client-lng" placeholder="Ej. 11.6525">
                 </div>
             </div>
 
@@ -97,7 +97,7 @@
         </form>
     </div>
 
-    <!-- Carga de la API de Google Maps para el buscador por coordenadas -->
+    <!-- Script de Google Maps con la API Key para realizar la geocodificación inversa -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY"></script>
 
     <script type="module">
@@ -144,7 +144,7 @@
                 const latParam = urlParams.get('latitude');
                 const lngParam = urlParams.get('longitude');
 
-                // Si venimos con coordenadas desde el mapa, activamos el modo creación y consultamos a Google Maps
+                // Si recibimos coordenadas, activamos modo creación y consultamos a Google con el código que sí funciona
                 if (latParam && lngParam) {
                     window.setMode('create');
                     clearForm();
@@ -152,44 +152,47 @@
                     document.getElementById('client-lat').value = latParam;
                     document.getElementById('client-lng').value = lngParam;
 
-                    // Usamos la misma lógica infalible del buscador de coordenadas para obtener la dirección exacta
-                    if (window.google && window.google.maps) {
-                        const geocoder = new google.maps.Geocoder();
-                        const latLng = { lat: parseFloat(latParam), lng: parseFloat(lngParam) };
+                    // Esperamos a que cargue Google Maps y ejecutamos la consulta exacta
+                    const checkGoogleMaps = setInterval(() => {
+                        if (window.google && window.google.maps) {
+                            clearInterval(checkGoogleMaps);
+                            const geocoder = new google.maps.Geocoder();
+                            const latlng = { lat: parseFloat(latParam), lng: parseFloat(lngParam) };
 
-                        geocoder.geocode({ location: latLng, language: 'es' }, (results, status) => {
-                            if (status === 'OK' && results && results.length > 0) {
-                                let street = '';
-                                let number = '';
-                                let postalCode = '';
+                            geocoder.geocode({ location: latlng, language: 'es' }, (results, status) => {
+                                if (status === 'OK' && results && results[0]) {
+                                    let street = '';
+                                    let number = '';
+                                    let postalCode = '';
 
-                                const place = results[0];
-                                for (const component of place.address_components) {
-                                    const types = component.types;
-                                    if (types.includes('route')) {
-                                        street = component.long_name;
+                                    for (const component of results[0].address_components) {
+                                        const types = component.types;
+                                        if (types.includes('route')) {
+                                            street = component.long_name;
+                                        }
+                                        if (types.includes('street_number') || types.includes('premise')) {
+                                            number = component.long_name;
+                                        }
+                                        if (types.includes('postal_code')) {
+                                            postalCode = component.long_name;
+                                        }
                                     }
-                                    if (types.includes('street_number') || types.includes('premise')) {
-                                        number = component.long_name;
+
+                                    // Construimos la dirección limpia (ej. "Haidgraben 89")
+                                    let fullAddress = street;
+                                    if (number) {
+                                        fullAddress += ` ${number}`;
                                     }
-                                    if (types.includes('postal_code')) {
-                                        postalCode = component.long_name;
-                                    }
+
+                                    if (fullAddress) document.getElementById('client-address').value = fullAddress.trim();
+                                    if (postalCode) document.getElementById('client-postal').value = postalCode;
                                 }
-
-                                let finalAddress = street;
-                                if (number) {
-                                    finalAddress += ` ${number}`;
-                                }
-
-                                if (finalAddress) document.getElementById('client-address').value = finalAddress.trim();
-                                if (postalCode) document.getElementById('client-postal').value = postalCode;
-                            }
-                        });
-                    }
+                            });
+                        }
+                    }, 100);
                 }
 
-                // Cargar clientes de Supabase para la edición
+                // Cargar clientes de Supabase para el modo consulta/edición
                 const { data, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
                 if (!error && data) {
                     allClients = data;
