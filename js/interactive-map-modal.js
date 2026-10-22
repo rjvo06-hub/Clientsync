@@ -179,63 +179,53 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
-            // Geocodificación estricta priorizando el resultado más cercano (results[0])
+            // Geocodificación inversa estricta enfocada en la calle exacta del punto
             geocoder.geocode({ location: clickedLatLng, language: 'es' }, (results, status) => {
                 let streetName = '';
                 let streetNumber = '';
                 let postalCodeText = '';
-                let formattedAddress = '';
 
                 if (status === 'OK' && results && results.length > 0) {
-                    // Nos enfocamos estrictamente en results[0] que es el punto más exacto y cercano a la coordenada
-                    const bestResult = results[0];
-                    formattedAddress = bestResult.formatted_address || '';
-
-                    for (const component of bestResult.address_components) {
+                    // Recorremos los componentes del resultado más cercano
+                    for (const component of results[0].address_components) {
                         if (!streetName && component.types.includes('route')) {
-                            streetName = component.long_name;
+                            streetName = component.long_name; // Nombre real de la calle
                         }
                         if (!streetNumber && (component.types.includes('street_number') || component.types.includes('premise'))) {
-                            streetNumber = component.long_name;
+                            streetNumber = component.long_name; // Número si está disponible
                         }
                         if (!postalCodeText && component.types.includes('postal_code')) {
-                            postalCodeText = component.long_name;
+                            postalCodeText = component.long_name; // Código postal
                         }
                     }
 
-                    // Si en results[0] no apareció la calle pero está en results[1] o en el texto formateado, respaldamos
+                    // Búsqueda de respaldo en el siguiente resultado si no se halló en el primero
                     if (!streetName && results.length > 1) {
-                        for (const comp of results[1].address_components) {
-                            if (comp.types.includes('route')) {
-                                streetName = comp.long_name;
-                                break;
+                        for (const res of results) {
+                            for (const component of res.address_components) {
+                                if (component.types.includes('route')) {
+                                    streetName = component.long_name;
+                                    break;
+                                }
                             }
+                            if (streetName) break;
                         }
                     }
                 }
 
-                // Extracción segura por expresión regular si el número viene dentro del texto formateado
-                if (streetName && !streetNumber && formattedAddress) {
-                    const match = formattedAddress.match(new RegExp(`${streetName}\\s+(\\d+[a-zA-Z]*)`, 'i'));
-                    if (match && match[1]) {
-                        streetNumber = match[1];
-                    }
-                }
-
+                // Construcción de la dirección final
                 let finalAddress = '';
                 if (streetName && streetNumber) {
                     finalAddress = `${streetName} ${streetNumber}`;
                 } else if (streetName) {
-                    finalAddress = streetName; // Solo nombre de la calle estricto y limpio
-                } else if (formattedAddress) {
-                    finalAddress = formattedAddress.split(',')[0];
+                    finalAddress = streetName; // Solo el nombre de la calle exacto para que agregues el número
                 } else {
-                    finalAddress = `Ubicación mapa`;
+                    finalAddress = '';
                 }
 
                 const clientDraft = {
                     address: finalAddress,
-                    postal_code: postalCodeText || '85521',
+                    postal_code: postalCodeText || '',
                     latitude: lat,
                     longitude: lng
                 };
@@ -287,7 +277,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
                 <div style="margin-bottom: 4px;">
                     <p style="margin: 0 0 3px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; word-break: break-word;">
-                        <strong>Dirección:</strong> ${clientDraft.address}
+                        <strong>Dirección:</strong> ${clientDraft.address || 'Calle no detectada'}
                     </p>
                     <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;">
                         <strong>CP:</strong> ${clientDraft.postal_code || 'No detectado'}
