@@ -179,53 +179,37 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
-            // Geocodificación inversa estricta enfocada en la calle exacta del punto
+            // Geocodificación inversa aplicando la misma estructura precisa del buscador de referencia
             geocoder.geocode({ location: clickedLatLng, language: 'es' }, (results, status) => {
-                let streetName = '';
-                let streetNumber = '';
-                let postalCodeText = '';
+                let street = '';
+                let number = '';
+                let postalCode = '';
 
                 if (status === 'OK' && results && results.length > 0) {
-                    // Recorremos los componentes del resultado más cercano
-                    for (const component of results[0].address_components) {
-                        if (!streetName && component.types.includes('route')) {
-                            streetName = component.long_name; // Nombre real de la calle
+                    const place = results[0];
+                    for (const component of place.address_components) {
+                        const types = component.types;
+                        if (types.includes('route')) {
+                            street = component.long_name;
                         }
-                        if (!streetNumber && (component.types.includes('street_number') || component.types.includes('premise'))) {
-                            streetNumber = component.long_name; // Número si está disponible
+                        if (types.includes('street_number') || types.includes('premise')) {
+                            number = component.long_name;
                         }
-                        if (!postalCodeText && component.types.includes('postal_code')) {
-                            postalCodeText = component.long_name; // Código postal
-                        }
-                    }
-
-                    // Búsqueda de respaldo en el siguiente resultado si no se halló en el primero
-                    if (!streetName && results.length > 1) {
-                        for (const res of results) {
-                            for (const component of res.address_components) {
-                                if (component.types.includes('route')) {
-                                    streetName = component.long_name;
-                                    break;
-                                }
-                            }
-                            if (streetName) break;
+                        if (types.includes('postal_code')) {
+                            postalCode = component.long_name;
                         }
                     }
                 }
 
-                // Construcción de la dirección final
-                let finalAddress = '';
-                if (streetName && streetNumber) {
-                    finalAddress = `${streetName} ${streetNumber}`;
-                } else if (streetName) {
-                    finalAddress = streetName; // Solo el nombre de la calle exacto para que agregues el número
-                } else {
-                    finalAddress = '';
+                // Construcción limpia de la dirección
+                let finalAddress = street;
+                if (number) {
+                    finalAddress += ` ${number}`;
                 }
 
                 const clientDraft = {
-                    address: finalAddress,
-                    postal_code: postalCodeText || '',
+                    address: finalAddress.trim(),
+                    postal_code: postalCode || '',
                     latitude: lat,
                     longitude: lng
                 };
