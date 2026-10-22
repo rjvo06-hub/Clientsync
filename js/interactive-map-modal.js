@@ -38,10 +38,8 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
             return;
         }
 
-        // Centro por defecto
         const defaultCenter = { lat: 48.1351, lng: 11.5820 };
 
-        // CORREGIDO: Map con la 'M' mayúscula
         map = new google.maps.Map(mapDiv, {
             center: defaultCenter,
             zoom: 17,
@@ -52,7 +50,7 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
 
         infoWindow = new google.maps.InfoWindow();
 
-        // Evento de clic en el mapa para crear un cliente nuevo en campo
+        // Clic en cualquier punto del mapa para capturar datos y crear cliente en campo
         map.addListener('click', (event) => {
             const clickedLat = event.latLng.lat();
             const clickedLng = event.latLng.lng();
@@ -86,37 +84,33 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
             });
         });
 
-        // Botón de "Mi Ubicación"
-        const locationBtn = document.createElement('button');
-        locationBtn.type = 'button';
-        locationBtn.textContent = '📍 Mi Ubicación';
-        locationBtn.style.cssText = 'background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: pointer; font-size: 13px; font-weight: bold; margin: 10px; padding: 8px 12px; color: #2d3748;';
-        
-        map.controls[google.maps.ControlPosition.TOP_RIGHT].push(locationBtn);
+        // Conectar el botón de "Mi Ubicación" existente en tu HTML si lo tienes con ID o clase
+        const myLocationBtn = document.getElementById('btn-my-location') || document.querySelector('[id*="location"]');
+        if (myLocationBtn) {
+            myLocationBtn.addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const pos = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude,
+                            };
+                            map.setCenter(pos);
+                            map.setZoom(19);
 
-        locationBtn.addEventListener('click', () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const pos = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude,
-                        };
-                        map.setCenter(pos);
-                        map.setZoom(19);
-
-                        google.maps.event.trigger(map, 'click', {
-                            latLng: new google.maps.LatLng(pos.lat, pos.lng)
-                        });
-                    },
-                    () => {
-                        alert('Error al obtener tu ubicación actual.');
-                    }
-                );
-            } else {
-                alert('Tu navegador no soporta geolocalización.');
-            }
-        });
+                            google.maps.event.trigger(map, 'click', {
+                                latLng: new google.maps.LatLng(pos.lat, pos.lng)
+                            });
+                        },
+                        () => {
+                            alert('Error al obtener tu ubicación actual.');
+                        }
+                    );
+                } else {
+                    alert('Tu navegador no soporta geolocalización.');
+                }
+            });
+        }
 
         updateMarkers();
     }
