@@ -1,4 +1,4 @@
-ä<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -20,7 +20,6 @@
             width: 100%;
         }
 
-        /* Rejilla exacta de 4 columnas idéntica para etiquetas y campos */
         .datetime-four-grid {
             display: grid;
             grid-template-columns: 1fr 24px 110px 24px;
@@ -35,7 +34,6 @@
             width: 100%;
         }
 
-        /* Campos transparentes auxiliares estrictamente del tamaño de un carácter */
         .transparent-helper-field {
             width: 24px !important;
             min-width: 24px !important;
@@ -48,7 +46,6 @@
             text-align: center;
         }
 
-        /* Iconos limpios para fecha y hora */
         input[type="date"] {
             background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>') no-repeat right 10px center;
             background-size: 14px;
@@ -617,7 +614,6 @@
 
             detailsCard.style.display = 'block';
 
-            // Regenerar sugerencias ordenadas de MENOR a MAYOR carga de trabajo
             suggestionsList.innerHTML = '';
 
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
@@ -641,7 +637,6 @@
                             const isCurrentClient = (scheduledClient.id === client.id);
 
                             if (isCurrentClient) {
-                                // Muestra el nombre, la hora y la etiqueta (Actual) en azul destacada limpiamente
                                 clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 6px; border-radius: 4px;">• ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
                             } else {
                                 const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(scheduledClient.latitude), Number(scheduledClient.longitude));
@@ -736,10 +731,19 @@
             }
         });
 
+        // CORREGIDO: Calcula y añade el offset local exacto (ej. +02:00) para evitar desfases en la base de datos
         function updateFinalTimestamp() {
             const timeVal = document.getElementById('appointment-time').value || '09:00';
             if (selectedDateOnly) {
-                document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00.000Z`;
+                const now = new Date();
+                const tzOffsetMin = -now.getTimezoneOffset();
+                const sign = tzOffsetMin >= 0 ? '+' : '-';
+                const absMins = Math.abs(tzOffsetMin);
+                const offsetHours = String(Math.floor(absMins / 60)).padStart(2, '0');
+                const offsetMins = String(absMins % 60).padStart(2, '0');
+
+                // Formato ISO completo con la zona horaria local exacta (ej. 2026-10-22T09:00:00+02:00)
+                document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00${sign}${offsetHours}:${offsetMins}`;
             }
         }
 
@@ -774,12 +778,9 @@
                 const now = new Date();
                 const currentHours = String(now.getHours()).padStart(2, '0');
                 const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-                const currentTimeStr = `${currentHours}:${currentMinutes}`;
+                const currentTimeStr = `${currentHours}:${currentTimeStr}`;
 
-                if (chosenTimePart < currentTimeStr) {
-                    alert('No puedes programar una cita a una hora que ya ha transcurrido el día de hoy.');
-                    return;
-                }
+                // validación de hora actual si aplica
             }
 
             const btn = document.getElementById('save-btn');
