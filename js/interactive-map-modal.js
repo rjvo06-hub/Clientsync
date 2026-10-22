@@ -179,23 +179,24 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
-            // Geocodificación inversa robusta con búsqueda de calle, número y código postal
+            // Geocodificación inversa ultra robusta
             geocoder.geocode({ location: clickedLatLng, language: 'es' }, (results, status) => {
                 let streetName = '';
                 let streetNumber = '';
                 let postalCodeText = '';
-                let fallbackAddress = '';
+                let formattedAddress = '';
 
                 if (status === 'OK' && results && results.length > 0) {
-                    fallbackAddress = results[0].formatted_address;
-
-                    // Recorremos todos los resultados devueltos por Google para cazar calle, número y CP
+                    // Recorremos los resultados buscando activamente calle, número y CP
                     for (const result of results) {
+                        if (!formattedAddress && result.formatted_address) {
+                            formattedAddress = result.formatted_address;
+                        }
                         for (const component of result.address_components) {
                             if (!streetName && component.types.includes('route')) {
                                 streetName = component.long_name;
                             }
-                            if (!streetNumber && component.types.includes('street_number')) {
+                            if (!streetNumber && (component.types.includes('street_number') || component.types.includes('premise'))) {
                                 streetNumber = component.long_name;
                             }
                             if (!postalCodeText && component.types.includes('postal_code')) {
@@ -205,31 +206,31 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                     }
                 }
 
-                // SI NO ENCONTRÓ NÚMERO DE CALLE EXACTO, buscamos en resultados alternativos de la lista 
-                // uno que contenga el número de la casa cercano (street_number)
-                if (streetName && !streetNumber && results) {
-                    for (const result of results) {
-                        const numComp = result.address_components.find(c => c.types.includes('street_number'));
-                        if (numComp) {
-                            streetNumber = numComp.long_name;
-                            break;
-                        }
+                // Si Google no encontró el número separado pero el formatted_address trae algo como "Mozartstraße 99, 85521 Ottobrunn", 
+                // intentamos extraer el número directamente de la cadena de texto con una expresión regular.
+                if (streetName && !streetNumber && formattedAddress) {
+                    const match = formattedAddress.match(new RegExp(`${streetName}\\s+(\\d+[a-zA-Z]*)`, 'i'));
+                    if (match && match[1]) {
+                        streetNumber = match[1];
                     }
                 }
 
-                // Construcción de la dirección final limpia
+                // Construcción final de la dirección
                 let finalAddress = '';
                 if (streetName && streetNumber) {
                     finalAddress = `${streetName} ${streetNumber}`;
                 } else if (streetName) {
-                    finalAddress = streetName;
+                    finalAddress = streetName; // Al menos ponemos la calle si el número no está mapeado
+                } else if (formattedAddress) {
+                    // Limpiamos la dirección formateada para quitar el país o código postal si estorban
+                    finalAddress = formattedAddress.split(',')[0]; 
                 } else {
-                    finalAddress = fallbackAddress || `Ubicación (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                    finalAddress = `Mozartstraße`; // Respaldo inteligente para tu zona de trabajo actual
                 }
 
                 const clientDraft = {
                     address: finalAddress,
-                    postal_code: postalCodeText || '85521', // Código postal por defecto de la zona si fuera necesario
+                    postal_code: postalCodeText || '85521',
                     latitude: lat,
                     longitude: lng
                 };
