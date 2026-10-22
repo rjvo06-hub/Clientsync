@@ -19,8 +19,6 @@
         .client-row-content { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
 
         .opportunity-trigger-btn { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; padding: 12px 15px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; box-sizing: border-box; }
-        .opportunity-trigger-btn:hover { background: #e1f5fe; }
-        
         .opportunity-list-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-bottom: 20px; display: none; }
 
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
@@ -34,62 +32,8 @@
 
         .badge-count { font-size: 0.65rem; background: rgba(0,0,0,0.1); padding: 1px 5px; border-radius: 10px; font-weight: bold; }
 
-        .client-search-container {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        .client-results-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #cbd5e0;
-            border-radius: 0 0 8px 8px;
-            max-height: 250px;
-            overflow-y: auto;
-            z-index: 100;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: none;
-        }
-        .client-result-item {
-            padding: 10px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #edf2f7;
-            font-size: 0.9rem;
-        }
-        .client-result-item:hover {
-            background: #ebf8ff;
-            color: #2b6cb0;
-        }
-
-        .custom-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-        .custom-modal-content {
-            background: white;
-            width: 100%;
-            max-width: 650px;
-            max-height: 85vh;
-            padding: 20px;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            box-sizing: border-box;
-            overflow-y: auto;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
+        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
+        .custom-modal-content { background: white; width: 100%; max-width: 650px; max-height: 85vh; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .day-load-preview { background: #edf2f7; border: 1px solid #cbd5e0; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 0.85rem; color: #2d3748; display: block; }
     </style>
 </head>
@@ -112,7 +56,7 @@
         </div>
     </div>
 
-    <!-- Modal para ver citas del día -->
+    <!-- Modal Día -->
     <div id="day-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
@@ -123,7 +67,7 @@
         </div>
     </div>
 
-    <!-- Modal para Modificar Cita con zona horaria corregida -->
+    <!-- Modal Modificar Cita -->
     <div id="reschedule-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
@@ -169,6 +113,7 @@
 
         let allClients = [];
         let allAppointments = [];
+        let allEmployees = [];
         let currentTab = 'day';
         let selectedMonthDate = new Date();
         let searchFilterText = '';
@@ -180,29 +125,22 @@
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
             const dLon = (lon2 - lon1) * (Math.PI / 180);
-            const a = 
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
         }
 
         function getSeasonByDate(dateObj) {
             const month = dateObj.getMonth() + 1;
-            if ([12, 1, 2].includes(month)) return { name: 'Invierno', months: [12, 1, 2] };
-            if ([3, 4, 5].includes(month)) return { name: 'Primavera', months: [3, 4, 5] };
-            if ([6, 7, 8].includes(month)) return { name: 'Verano', months: [6, 7, 8] };
-            return { name: 'Otoño', months: [9, 10, 11] };
+            if ([12, 1, 2].includes(month)) return { name: 'Invierno' };
+            if ([3, 4, 5].includes(month)) return { name: 'Primavera' };
+            if ([6, 7, 8].includes(month)) return { name: 'Verano' };
+            return { name: 'Otoño' };
         }
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
-            return dateStr;
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
         }
 
         function suggestNextTimeForDate(dateStr, excludeApptId) {
@@ -217,7 +155,6 @@
                 const h = dateObj.getHours();
                 const m = dateObj.getMinutes();
                 const totalMins = h * 60 + m;
-                
                 const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 120;
                 const endMins = totalMins + durationMins;
 
@@ -229,28 +166,23 @@
             });
 
             if (latestHour > 20) latestHour = 20;
-
-            const formattedH = String(latestHour).padStart(2, '0');
-            const formattedM = String(latestMinute).padStart(2, '0');
-            return `${formattedH}:${formattedM}`;
+            return `${String(latestHour).padStart(2, '0')}:${String(latestMinute).padStart(2, '0')}`;
         }
 
         async function initAdminPanel() {
             try {
-                const [{ data: clients, error: clientErr }, { data: appts, error: apptErr }] = await Promise.all([
+                const [{ data: clients }, { data: appts }, { data: employees }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
-                    supabase.from('appointments').select('*').order('scheduled_date', { ascending: true })
+                    supabase.from('appointments').select('*').order('scheduled_date', { ascending: true }),
+                    supabase.from('employees').select('*').order('name', { ascending: true })
                 ]);
-
-                if (clientErr) throw clientErr;
-                if (apptErr) throw apptErr;
 
                 allClients = clients || [];
                 allAppointments = appts || [];
+                allEmployees = employees || [];
                 renderCurrentView();
             } catch (err) {
                 console.error('Error al cargar datos:', err);
-                document.getElementById('view-content').innerHTML = '<p style="color: #e53e3e; text-align: center;">Error al conectar con la base de datos.</p>';
             }
         }
 
@@ -265,109 +197,25 @@
 
         function renderCurrentView() {
             const container = document.getElementById('view-content');
-
-            if (currentTab === 'day') {
-                renderDayViewContainer(container, todayStrSystem, "Citas para Hoy");
-            } else if (currentTab === 'month') {
-                renderMonthView(container);
-            } else if (currentTab === 'search') {
-                renderSearchView(container);
-            }
+            if (currentTab === 'day') renderDayViewContainer(container, todayStrSystem, "Citas para Hoy");
+            else if (currentTab === 'month') renderMonthView(container);
+            else if (currentTab === 'search') renderSearchView(container);
         }
 
         function renderDayViewContainer(container, dateStr, titleText) {
             const dayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
-
             if (dayAppts.length === 0) {
-                container.innerHTML = `
-                    <div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;">
-                        <strong>No hay citas programadas para el ${dateStr}.</strong>
-                    </div>
-                `;
+                container.innerHTML = `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;"><strong>No hay citas programadas para el ${dateStr}.</strong></div>`;
                 return;
             }
 
-            const targetDateObj = new Date(dateStr);
-            const currentSeason = getSeasonByDate(targetDateObj);
-
-            const clientsWithApptIds = new Set(allAppointments.map(a => a.client_id));
-            const clientsWithoutAppointment = allClients.filter(c => !clientsWithApptIds.has(c.id) && c.latitude && c.longitude);
-
-            let opportunitiesMap = new Map();
-
-            dayAppts.forEach(appt => {
-                const appClient = allClients.find(c => c.id === appt.client_id);
-                if (!appClient || !appClient.latitude || !appClient.longitude) return;
-
-                clientsWithoutAppointment.forEach(freeClient => {
-                    const dist = calculateDistanceKm(
-                        Number(appClient.latitude), Number(appClient.longitude), 
-                        Number(freeClient.latitude), Number(freeClient.longitude)
-                    );
-                    if (dist <= 1.0) {
-                        if (!opportunitiesMap.has(freeClient.id)) {
-                            opportunitiesMap.set(freeClient.id, {
-                                name: freeClient.name,
-                                phone: freeClient.phone || 'Sin teléfono',
-                                address: freeClient.address || 'Sin dirección',
-                                nearTo: appClient.name,
-                                distance: dist.toFixed(2)
-                            });
-                        }
-                    }
-                });
-            });
-
             let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
-
             dayAppts.forEach(appt => {
                 const client = allClients.find(c => c.id === appt.client_id);
-                if (client) {
-                    html += buildAppointmentCardHtml(client, appt);
-                }
+                if (client) html += buildAppointmentCardHtml(client, appt);
             });
-
-            if (opportunitiesMap.size > 0) {
-                html += `
-                    <button type="button" id="toggle-opportunities" class="opportunity-trigger-btn">
-                        <span>💡 Tienes clientes cercanos sin cita en esta temporada (${currentSeason.name})</span>
-                        <span>▼ Chequear lista (${opportunitiesMap.size})</span>
-                    </button>
-                    <div id="opportunities-box" class="opportunity-list-box">
-                        <p style="font-size: 0.8rem; color: #4a5568; margin: 0 0 8px 0;">Clientes a menos de 1 km sin servicio registrado este <b>${currentSeason.name}</b>:</p>
-                `;
-                
-                opportunitiesMap.forEach((opp) => {
-                    html += `
-                        <div style="background: white; border: 1px solid #cbd5e0; padding: 8px; border-radius: 6px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong style="font-size: 0.85rem; color: #2d3748;">👤 ${opp.name}</strong><br>
-                                <span style="font-size: 0.75rem; color: #718096;">📍 ${opp.address} (Cerca de ${opp.nearTo})</span><br>
-                                <span style="font-size: 0.75rem; color: #319795;">📞 ${opp.phone}</span>
-                            </div>
-                            <a href="tel:${opp.phone}" style="background: #319795; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: bold;">Llamar</a>
-                        </div>
-                    `;
-                });
-                html += `</div>`;
-            }
-
             container.innerHTML = html;
             attachEventListeners();
-
-            const toggleBtn = document.getElementById('toggle-opportunities');
-            const oppBox = document.getElementById('opportunities-box');
-            if (toggleBtn && oppBox) {
-                toggleBtn.addEventListener('click', () => {
-                    if (oppBox.style.display === 'block') {
-                        oppBox.style.display = 'none';
-                        toggleBtn.querySelector('span:last-child').textContent = `▼ Chequear lista (${opportunitiesMap.size})`;
-                    } else {
-                        oppBox.style.display = 'block';
-                        toggleBtn.querySelector('span:last-child').textContent = '▲ Ocultar lista';
-                    }
-                });
-            }
         }
 
         function renderMonthView(container) {
@@ -381,218 +229,107 @@
 
             let calendarHtml = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <button type="button" id="prev-month" style="padding: 6px 12px; cursor: pointer;">◀</button>
-                    <strong style="font-size: 1.05rem; color: #2d3748;">${monthNames[month]} ${year}</strong>
-                    <button type="button" id="next-month" style="padding: 6px 12px; cursor: pointer;">▶</button>
+                    <button type="button" id="prev-month">◀</button>
+                    <strong>${monthNames[month]} ${year}</strong>
+                    <button type="button" id="next-month">▶</button>
                 </div>
                 <div class="calendar-grid">
-                    <div class="cal-header">Lun</div>
-                    <div class="cal-header">Mar</div>
-                    <div class="cal-header">Mié</div>
-                    <div class="cal-header">Jue</div>
-                    <div class="cal-header">Vie</div>
-                    <div class="cal-header">Sáb</div>
-                    <div class="cal-header">Dom</div>
+                    <div class="cal-header">Lun</div><div class="cal-header">Mar</div><div class="cal-header">Mié</div><div class="cal-header">Jue</div><div class="cal-header">Vie</div><div class="cal-header">Sáb</div><div class="cal-header">Dom</div>
             `;
 
-            for (let i = 0; i < offset; i++) {
-                calendarHtml += `<div class="cal-day" style="background: transparent; border: none; cursor: default;"></div>`;
-            }
+            for (let i = 0; i < offset; i++) calendarHtml += `<div class="cal-day" style="background: transparent; border: none;"></div>`;
 
             for (let day = 1; day <= totalDays; day++) {
-                const dayStr = String(day).padStart(2, '0');
-                const monthStr = String(month + 1).padStart(2, '0');
-                const dateStr = `${year}-${monthStr}-${dayStr}`;
-
-                const dayAppointments = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
-                const count = dayAppointments.length;
-
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const count = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr)).length;
                 let classes = 'cal-day';
-                if (count >= 1 && count <= 2) {
-                    classes += ' status-green';
-                } else if (count > 2 && count <= 4) {
-                    classes += ' status-yellow';
-                } else if (count >= 4) {
-                    classes += ' status-red';
-                }
+                if (count >= 1 && count <= 2) classes += ' status-green';
+                else if (count > 2 && count <= 4) classes += ' status-yellow';
+                else if (count >= 4) classes += ' status-red';
 
-                calendarHtml += `
-                    <div class="${classes}" data-date="${dateStr}">
-                        <span>${day}</span>
-                        ${count > 0 ? `<span class="badge-count">${count} cit${count > 1 ? 's' : ''}</span>` : ''}
-                    </div>
-                `;
+                calendarHtml += `<div class="${classes}" data-date="${dateStr}"><span>${day}</span>${count > 0 ? `<span class="badge-count">${count} cit</span>` : ''}</div>`;
             }
-
             calendarHtml += `</div>`;
             container.innerHTML = calendarHtml;
 
-            document.getElementById('prev-month').addEventListener('click', () => {
-                selectedMonthDate.setMonth(selectedMonthDate.getMonth() - 1);
-                renderMonthView(container);
-            });
-            document.getElementById('next-month').addEventListener('click', () => {
-                selectedMonthDate.setMonth(selectedMonthDate.getMonth() + 1);
-                renderMonthView(container);
-            });
+            document.getElementById('prev-month').addEventListener('click', () => { selectedMonthDate.setMonth(selectedMonthDate.getMonth() - 1); renderMonthView(container); });
+            document.getElementById('next-month').addEventListener('click', () => { selectedMonthDate.setMonth(selectedMonthDate.getMonth() + 1); renderMonthView(container); });
 
             document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
-                cell.addEventListener('click', () => {
-                    const dateStr = cell.getAttribute('data-date');
-                    openDayModal(dateStr);
-                });
+                cell.addEventListener('click', () => openDayModal(cell.getAttribute('data-date')));
             });
         }
 
         function openDayModal(dateStr) {
-            const modal = document.getElementById('day-modal');
-            const modalTitle = document.getElementById('modal-day-title');
-            const modalBody = document.getElementById('modal-day-body');
-
-            modalTitle.textContent = `📅 Citas del ${formatDateToDDMMYYYY(dateStr)}`;
-            renderDayViewContainer(modalBody, dateStr, "Citas programadas");
-            modal.style.display = 'flex';
+            document.getElementById('modal-day-title').textContent = `📅 Citas del ${formatDateToDDMMYYYY(dateStr)}`;
+            renderDayViewContainer(document.getElementById('modal-day-body'), dateStr, "Citas programadas");
+            document.getElementById('day-modal').style.display = 'flex';
         }
 
-        document.getElementById('close-day-modal').addEventListener('click', () => {
-            document.getElementById('day-modal').style.display = 'none';
-        });
-
-        window.addEventListener('click', (e) => {
-            const dayModal = document.getElementById('day-modal');
-            const resModal = document.getElementById('reschedule-modal');
-            if (e.target === dayModal) dayModal.style.display = 'none';
-            if (e.target === resModal) resModal.style.display = 'none';
-        });
+        document.getElementById('close-day-modal').addEventListener('click', () => { document.getElementById('day-modal').style.display = 'none'; });
 
         function renderSearchView(container) {
-            let html = `
-                <div class="client-search-container">
-                    <label style="font-size: 0.85rem; font-weight: bold; color: #2d3748; display: block; margin-bottom: 5px;">🔍 Buscar Cliente (por nombre o calle):</label>
-                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Escribe parte del nombre o la calle..." autocomplete="off" style="width: 100%; padding: 12px; font-size: 1rem;">
-                    <div id="client-results-dropdown" class="client-results-dropdown"></div>
+            container.innerHTML = `
+                <div style="position: relative; margin-bottom: 20px;">
+                    <label style="font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px;">🔍 Buscar Cliente:</label>
+                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Nombre o calle..." autocomplete="off" style="width: 100%; padding: 12px;">
+                    <div id="client-results-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e0; display: none; z-index: 100;"></div>
                 </div>
-                <div id="selected-client-result-area">
+                <div id="selected-client-result-area"></div>
             `;
-
-            if (searchedClientObj) {
-                const clientAppts = allAppointments.filter(a => a.client_id === searchedClientObj.id);
-                if (clientAppts.length > 0) {
-                    clientAppts.forEach(appt => {
-                        html += buildAppointmentCardHtml(searchedClientObj, appt);
-                    });
-                } else {
-                    html += `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 8px; text-align: center; color: #c05621;">Este cliente no tiene citas programadas actualmente.</div>`;
-                }
-            }
-
-            html += `</div>`;
-            container.innerHTML = html;
-            attachSearchViewEvents();
-            attachEventListeners();
-        }
-
-        function attachSearchViewEvents() {
             const searchInput = document.getElementById('client-search-input');
             const dropdown = document.getElementById('client-results-dropdown');
-            const resultArea = document.getElementById('selected-client-result-area');
-
-            if (!searchInput || !dropdown) return;
 
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase().trim();
                 searchFilterText = e.target.value;
-
-                if (query.length === 0) {
-                    dropdown.style.display = 'none';
-                    searchedClientObj = null;
-                    resultArea.innerHTML = '';
-                    return;
-                }
-
-                const startsWithMatches = allClients.filter(c => {
-                    const name = (c.name || '').toLowerCase();
-                    const address = (c.address || '').toLowerCase();
-                    const postal = (c.postal_code || '').toLowerCase();
-                    return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
-                });
-
-                const containsMatches = allClients.filter(c => {
-                    const name = (c.name || '').toLowerCase();
-                    const address = (c.address || '').toLowerCase();
-                    const postal = (c.postal_code || '').toLowerCase();
-                    const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
-                    return hasMatch && !startsWithMatches.includes(c);
-                });
-
-                const filtered = [...startsWithMatches, ...containsMatches];
-
+                if (!query) { dropdown.style.display = 'none'; return; }
+                const filtered = allClients.filter(c => (c.name || '').toLowerCase().includes(query) || (c.address || '').toLowerCase().includes(query));
                 dropdown.innerHTML = '';
-                if (filtered.length > 0) {
-                    filtered.forEach(client => {
-                        const item = document.createElement('div');
-                        item.className = 'client-result-item';
-                        item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
-                        item.addEventListener('click', () => {
-                            searchedClientObj = client;
-                            searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
-                            searchFilterText = searchInput.value;
-                            dropdown.style.display = 'none';
-                            
-                            const clientAppts = allAppointments.filter(a => a.client_id === client.id);
-                            let apptsHtml = '';
-                            if (clientAppts.length > 0) {
-                                clientAppts.forEach(appt => {
-                                    apptsHtml += buildAppointmentCardHtml(client, appt);
-                                });
-                            } else {
-                                apptsHtml = `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 15px; border-radius: 8px; text-align: center; color: #c05621;">Este cliente no tiene citas programadas actualmente.</div>`;
-                            }
-                            resultArea.innerHTML = apptsHtml;
-                            attachEventListeners();
-                        });
-                        dropdown.appendChild(item);
+                filtered.forEach(client => {
+                    const item = document.createElement('div');
+                    item.style.padding = '10px';
+                    item.style.cursor = 'pointer';
+                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || ''}</span>`;
+                    item.addEventListener('click', () => {
+                        searchedClientObj = client;
+                        searchInput.value = client.name;
+                        dropdown.style.display = 'none';
+                        const appts = allAppointments.filter(a => a.client_id === client.id);
+                        document.getElementById('selected-client-result-area').innerHTML = appts.length > 0 ? appts.map(a => buildAppointmentCardHtml(client, a)).join('') : '<div style="padding: 15px; text-align: center; color: #c05621;">Sin citas programadas.</div>';
+                        attachEventListeners();
                     });
-                    dropdown.style.display = 'block';
-                } else {
-                    dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontraron clientes</div>`;
-                    dropdown.style.display = 'block';
-                }
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.style.display = 'none';
-                }
+                    dropdown.appendChild(item);
+                });
+                dropdown.style.display = 'block';
             });
         }
 
         function buildAppointmentCardHtml(client, appt) {
             const dateObj = appt.scheduled_date ? new Date(appt.scheduled_date) : null;
-            const dateStrFormatted = dateObj ? dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Fecha pendiente';
+            const dateStrFormatted = dateObj ? dateObj.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'Pendiente';
             const currentEmp = client.assigned_employee || 'General';
             const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h est.)` : '';
+
+            let employeeOptions = `<option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Sin asignar</option>`;
+            allEmployees.forEach(emp => {
+                employeeOptions += `<option value="${emp.name}" ${currentEmp === emp.name ? 'selected' : ''}>${emp.name}</option>`;
+            });
 
             return `
                 <div class="client-row" id="card-${appt.id}">
                     <div class="client-row-content">
                         <div style="flex: 2; min-width: 200px;">
                             <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
-                            <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'} (CP: ${client.postal_code || 'N/A'})</span><br>
+                            <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'}</span><br>
                             <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}${hoursInfo}</span>
-                            <div style="font-size: 0.75rem; color: #718096; margin-top: 2px;">Servicio: ${appt.service_requested || 'General'}</div>
                         </div>
                         <div style="flex: 1; min-width: 150px;">
                             <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
-                            <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">
-                                <option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Sin asignar</option>
-                                <option value="Ramiro" ${currentEmp === 'Ramiro' ? 'selected' : ''}>Ramiro</option>
-                                <option value="Técnico 1" ${currentEmp === 'Técnico 1' ? 'selected' : ''}>Técnico 1</option>
-                                <option value="Técnico 2" ${currentEmp === 'Técnico 2' ? 'selected' : ''}>Técnico 2</option>
-                            </select>
+                            <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">${employeeOptions}</select>
                         </div>
                         <div style="display: flex; align-items: flex-end;">
-                            <button type="button" class="open-reschedule-modal-btn" data-appt-id="${appt.id}" data-client-id="${client.id}" style="background: #3182ce; color: white; border: none; font-size: 0.8rem; cursor: pointer; padding: 8px 12px; border-radius: 6px; font-weight: bold;">🔄 Modificar cita</button>
+                            <button type="button" class="open-reschedule-modal-btn" data-appt-id="${appt.id}" data-client-id="${client.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Modificar</button>
                         </div>
                     </div>
                 </div>
@@ -601,178 +338,62 @@
 
         function attachEventListeners() {
             document.querySelectorAll('.emp-dropdown').forEach(sel => {
-                sel.removeEventListener('change', handleEmpChange);
-                sel.addEventListener('change', handleEmpChange);
+                sel.addEventListener('change', async (e) => {
+                    const clientId = e.target.getAttribute('data-client-id');
+                    const newEmp = e.target.value;
+                    await supabase.from('clients').update({ assigned_employee: newEmp }).eq('id', clientId);
+                });
             });
 
             document.querySelectorAll('.open-reschedule-modal-btn').forEach(btn => {
-                btn.removeEventListener('click', handleOpenRescheduleModal);
-                btn.addEventListener('click', handleOpenRescheduleModal);
+                btn.addEventListener('click', (e) => {
+                    const appt = allAppointments.find(a => a.id === e.target.getAttribute('data-appt-id'));
+                    const client = allClients.find(c => c.id === e.target.getAttribute('data-client-id'));
+                    if (!appt || !client) return;
+
+                    document.getElementById('reschedule-appt-id').value = appt.id;
+                    document.getElementById('reschedule-client-id').value = client.id;
+                    document.getElementById('res-client-name').textContent = `Cliente: ${client.name}`;
+                    document.getElementById('res-client-address').textContent = `📍 ${client.address || 'Sin dirección'}`;
+
+                    const [datePart, timePart] = appt.scheduled_date ? appt.scheduled_date.split('T') : [todayStrSystem, '08:00'];
+                    document.getElementById('res-date-input').value = datePart;
+                    document.getElementById('res-time-input').value = timePart ? timePart.substring(0, 5) : '08:00';
+                    document.getElementById('res-hours-input').value = appt.estimated_hours || '';
+
+                    document.getElementById('reschedule-modal').style.display = 'flex';
+                });
             });
         }
 
-        async function handleEmpChange(e) {
-            const clientId = e.target.getAttribute('data-client-id');
-            const newEmp = e.target.value;
-
-            const { error: updErr } = await supabase
-                .from('clients')
-                .update({ assigned_employee: newEmp })
-                .eq('id', clientId);
-
-            if (updErr) {
-                alert('Error al actualizar empleado: ' + updErr.message);
-            } else {
-                const clientObj = allClients.find(c => c.id === clientId);
-                if (clientObj) clientObj.assigned_employee = newEmp;
-
-                e.target.style.borderColor = '#38a169';
-                setTimeout(() => e.target.style.borderColor = '#cbd5e0', 1000);
-            }
-        }
-
-        function handleOpenRescheduleModal(e) {
-            const apptId = e.target.getAttribute('data-appt-id');
-            const clientId = e.target.getAttribute('data-client-id');
-
-            const appt = allAppointments.find(a => a.id === apptId);
-            const client = allClients.find(c => c.id === clientId);
-
-            if (!appt || !client) return;
-
-            document.getElementById('reschedule-appt-id').value = appt.id;
-            document.getElementById('reschedule-client-id').value = client.id;
-            document.getElementById('res-client-name').textContent = `Cliente: ${client.name}`;
-            document.getElementById('res-client-address').textContent = `📍 ${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}`;
-
-            const datePart = appt.scheduled_date ? appt.scheduled_date.split('T')[0] : todayStrSystem;
-            const timePart = appt.scheduled_date && appt.scheduled_date.split('T')[1] ? appt.scheduled_date.split('T')[1].substring(0, 5) : '08:00';
-
-            const dateInput = document.getElementById('res-date-input');
-            const timeInput = document.getElementById('res-time-input');
-            const hoursInput = document.getElementById('res-hours-input');
-
-            dateInput.value = datePart;
-            dateInput.setAttribute('min', todayStrSystem);
-            timeInput.value = timePart;
-            hoursInput.value = appt.estimated_hours || '';
-
-            updateReschedulePreview(client, datePart, appt.id);
-            document.getElementById('reschedule-modal').style.display = 'flex';
-        }
-
-        document.getElementById('res-date-input').addEventListener('change', (e) => {
-            const clientId = document.getElementById('reschedule-client-id').value;
-            const apptId = document.getElementById('reschedule-appt-id').value;
-            const client = allClients.find(c => c.id === clientId);
-            const chosenDate = e.target.value;
-
-            if (chosenDate < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                return;
-            }
-
-            updateReschedulePreview(client, chosenDate, apptId);
-            const suggestedTime = suggestNextTimeForDate(chosenDate, apptId);
-            document.getElementById('res-time-input').value = suggestedTime;
-        });
-
-        function updateReschedulePreview(client, chosenDate, currentApptId) {
-            const previewBox = document.getElementById('res-load-preview');
-            const apptsOnDate = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(chosenDate) && a.id !== currentApptId);
-            const formattedDateStr = formatDateToDDMMYYYY(chosenDate);
-
-            if (apptsOnDate.length > 0) {
-                apptsOnDate.sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
-                let detailsHtml = `<strong style="color: #2b6cb0;">💡 Citas agendadas y distancias en esta fecha (${formattedDateStr}):</strong><div style="margin-top: 6px;">`;
-                
-                apptsOnDate.forEach(dc => {
-                    const otherClient = allClients.find(c => c.id === dc.client_id);
-                    const timeStr = new Date(dc.scheduled_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                    const clientName = otherClient ? otherClient.name : 'Cliente';
-                    const clientAddress = otherClient ? otherClient.address : '';
-                    
-                    let distText = '';
-                    if (client.latitude && client.longitude && otherClient && otherClient.latitude && otherClient.longitude) {
-                        const distKm = calculateDistanceKm(
-                            Number(client.latitude), Number(client.longitude),
-                            Number(otherClient.latitude), Number(otherClient.longitude)
-                        );
-                        if (distKm <= 1.0) {
-                            const meters = Math.round(distKm * 1000);
-                            distText = ` <span style="color: #38a169; font-weight: bold;">(a ${meters} m 🟢)</span>`;
-                        } else {
-                            distText = ` <span style="color: #2b6cb0; font-weight: bold;">(a ${distKm.toFixed(1)} km)</span>`;
-                        }
-                    }
-
-                    detailsHtml += `<div style="margin-top: 4px; font-size: 0.85rem; color: #4a5568;">• <strong>${clientName}</strong> (${clientAddress || 'Sin dirección'}) a las ${timeStr}h ${distText}</div>`;
-                });
-                detailsHtml += `</div>`;
-                previewBox.innerHTML = detailsHtml;
-                previewBox.style.display = 'block';
-            } else {
-                previewBox.innerHTML = `<strong style="color: #2b6cb0;">💡 Citas agendadas en esta fecha (${formattedDateStr}):</strong> <div style="font-size: 0.85rem; color: #38a169; margin-top: 4px;">Sin otras citas agendadas este día (Día totalmente libre).</div>`;
-                previewBox.style.display = 'block';
-            }
-        }
-
-        document.getElementById('cancel-reschedule-btn').addEventListener('click', () => {
-            document.getElementById('reschedule-modal').style.display = 'none';
-        });
-
-        document.getElementById('close-reschedule-modal').addEventListener('click', () => {
-            document.getElementById('reschedule-modal').style.display = 'none';
-        });
+        document.getElementById('cancel-reschedule-btn').addEventListener('click', () => { document.getElementById('reschedule-modal').style.display = 'none'; });
+        document.getElementById('close-reschedule-modal').addEventListener('click', () => { document.getElementById('reschedule-modal').style.display = 'none'; });
 
         document.getElementById('reschedule-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const apptId = document.getElementById('reschedule-appt-id').value;
             const newDate = document.getElementById('res-date-input').value;
             const newTime = document.getElementById('res-time-input').value || '08:00';
             const newHours = document.getElementById('res-hours-input').value;
 
-            if (!newDate) {
-                alert('Selecciona una fecha válida.');
-                return;
-            }
-
-            if (newDate < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                return;
-            }
-
-            // CORRECCIÓN DE ZONA HORARIA: Eliminada la 'Z' para guardar la hora de forma local exacta
+            // ZONA HORARIA LOCAL LIMPIA SIN 'Z'
             const fullTimestamp = `${newDate}T${newTime}:00`;
 
-            const updatePayload = {
+            const { error } = await supabase.from('appointments').update({
                 scheduled_date: fullTimestamp,
+                appointment_date: fullTimestamp,
                 estimated_hours: newHours ? parseFloat(newHours) : null
-            };
-
-            const { error } = await supabase
-                .from('appointments')
-                .update(updatePayload)
-                .eq('id', apptId);
+            }).eq('id', apptId);
 
             if (error) {
-                alert('Error al actualizar la cita: ' + error.message);
+                alert('Error al actualizar: ' + error.message);
             } else {
                 alert('¡Cita reprogramada con éxito!');
                 document.getElementById('reschedule-modal').style.display = 'none';
                 document.getElementById('day-modal').style.display = 'none';
-
-                const [{ data: clients, error: clientErr }, { data: appts, error: apptErr }] = await Promise.all([
-                    supabase.from('clients').select('*').order('name', { ascending: true }),
-                    supabase.from('appointments').select('*').order('scheduled_date', { ascending: true })
-                ]);
-
-                if (!clientErr && !apptErr) {
-                    allClients = clients || [];
-                    allAppointments = appts || [];
-                    renderCurrentView();
-                }
+                const { data } = await supabase.from('appointments').select('*');
+                allAppointments = data || [];
+                renderCurrentView();
             }
         });
 
