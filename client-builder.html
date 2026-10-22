@@ -97,7 +97,7 @@
         </form>
     </div>
 
-    <!-- Script de Google Maps con la API Key para realizar la geocodificación inversa -->
+    <!-- Script de Google Maps con la API Key para realizar la geocodificación automática al abrir -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY"></script>
 
     <script type="module">
@@ -144,7 +144,7 @@
                 const latParam = urlParams.get('latitude');
                 const lngParam = urlParams.get('longitude');
 
-                // Si recibimos coordenadas, activamos modo creación y consultamos a Google con el código que sí funciona
+                // Si abrimos la página con coordenadas, activamos modo creación automáticamente
                 if (latParam && lngParam) {
                     window.setMode('create');
                     clearForm();
@@ -152,7 +152,7 @@
                     document.getElementById('client-lat').value = latParam;
                     document.getElementById('client-lng').value = lngParam;
 
-                    // Esperamos a que cargue Google Maps y ejecutamos la consulta exacta
+                    // Consulta automática a Google Maps apenas abre el programa
                     const checkGoogleMaps = setInterval(() => {
                         if (window.google && window.google.maps) {
                             clearInterval(checkGoogleMaps);
@@ -184,15 +184,19 @@
                                         fullAddress += ` ${number}`;
                                     }
 
-                                    if (fullAddress) document.getElementById('client-address').value = fullAddress.trim();
-                                    if (postalCode) document.getElementById('client-postal').value = postalCode;
+                                    if (fullAddress && fullAddress !== 'undefined') {
+                                        document.getElementById('client-address').value = fullAddress.trim();
+                                    }
+                                    if (postalCode) {
+                                        document.getElementById('client-postal').value = postalCode;
+                                    }
                                 }
                             });
                         }
                     }, 100);
                 }
 
-                // Cargar clientes de Supabase para el modo consulta/edición
+                // Carga de clientes para modo consulta/edición
                 const { data, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
                 if (!error && data) {
                     allClients = data;
