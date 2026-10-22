@@ -12,7 +12,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     let modalMarkers = [];
     let modalInfoWindow = null;
     let userLocationMarker = null;
-    let selectedPointData = null; // Para guardar temporalmente las coordenadas y dirección del clic en campo
 
     // INYECCIÓN AUTOMÁTICA DEL BOTÓN DE UBICACIÓN EN LA CABECERA
     const modalContent = mapElement.closest('.map-modal-content');
@@ -80,7 +79,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
                         if (modalMap) {
                             modalMap.setCenter(pos);
-                            modalMap.setZoom(17);
+                            modalMap.setZoom(16);
                             showUserLocationInfoWindow(pos, userLocationMarker);
                         }
                     },
@@ -152,38 +151,11 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             maxWidth: 195
         });
 
-        // INTEGRACIÓN NUEVA: Clic en cualquier punto vacío del mapa para crear un nuevo cliente en campo
-        modalMap.addListener('click', (event) => {
-            const clickedLat = event.latLng.lat();
-            const clickedLng = event.latLng.lng();
-
-            selectedPointData = {
-                latitude: clickedLat,
-                longitude: clickedLng,
-                address: '',
-                postal_code: ''
-            };
-
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: { lat: clickedLat, lng: clickedLng } }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    const addressComponents = results[0].address_components;
-                    let route = '';
-                    let streetNumber = '';
-                    let postalCode = '';
-
-                    addressComponents.forEach(component => {
-                        if (component.types.includes('route')) route = component.long_name;
-                        if (component.types.includes('street_number')) streetNumber = component.long_name;
-                        if (component.types.includes('postal_code')) postalCode = component.long_name;
-                    });
-
-                    selectedPointData.address = `${route} ${streetNumber}`.trim() || results[0].formatted_address;
-                    selectedPointData.postal_code = postalCode;
-                }
-
-                showFieldCreationInfoWindow(event.latLng);
-            });
+        // Cerrar la ventana al hacer clic en cualquier parte vacía del mapa
+        modalMap.addListener('click', () => {
+            if (modalInfoWindow) {
+                modalInfoWindow.close();
+            }
         });
 
         await loadAndRenderModalClients();
@@ -215,54 +187,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         modalInfoWindow.setContent(contentHtml);
         modalInfoWindow.open(modalMap, markerInstance);
 
-        setupInfoWindowStyles();
-    }
-
-    // VENTANA FLOTANTE NUEVA PARA CREAR CLIENTE DESDE EL MAPA EN CAMPO
-    function showFieldCreationInfoWindow(latLng) {
-        const contentHtml = `
-            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
-                
-                <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        📍 Ubicación Seleccionada
-                    </h3>
-                </div>
-
-                <div style="margin-bottom: 4px;">
-                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; word-break: break-word;">
-                        <strong>Dirección:</strong> ${selectedPointData.address || 'Sin dirección exacta'}
-                    </p>
-                </div>
-
-                <div style="margin-top: 6px;">
-                    <button type="button" id="modal-create-client-btn" style="background: #38a169; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
-                        ➕ Crear cliente aquí
-                    </button>
-                </div>
-
-            </div>
-        `;
-
-        modalInfoWindow.setContent(contentHtml);
-        modalInfoWindow.open(modalMap, new google.maps.Marker({ position: latLng, map: modalMap, visible: false }));
-
-        setupInfoWindowStyles();
-
-        setTimeout(() => {
-            const createBtn = document.getElementById('modal-create-client-btn');
-            if (createBtn) {
-                createBtn.addEventListener('click', () => {
-                    sessionStorage.setItem('pending_client_data', JSON.stringify(selectedPointData));
-                    modal.style.display = 'none';
-                    modalInfoWindow.close();
-                    window.location.href = `./client-builder.html?lat=${selectedPointData.latitude}&lng=${selectedPointData.longitude}&address=${encodeURIComponent(selectedPointData.address)}&postal=${encodeURIComponent(selectedPointData.postal_code)}`;
-                });
-            }
-        }, 100);
-    }
-
-    function setupInfoWindowStyles() {
         google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
             const iwContainer = document.querySelector('.gm-style-iw-c');
             if (iwContainer) {
@@ -430,9 +354,34 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         modalInfoWindow.setContent(contentHtml);
         modalInfoWindow.open(modalMap, markerInstance);
 
-        setupInfoWindowStyles();
+        google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
+            const iwContainer = document.querySelector('.gm-style-iw-c');
+            if (iwContainer) {
+                iwContainer.style.background = '#0f172a';
+                iwContainer.style.padding = '2px 4px 4px 4px';
+                iwContainer.style.borderRadius = '8px';
+                iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
+            }
+            const iwOuter = document.querySelector('.gm-style-iw-d');
+            if (iwOuter) {
+                iwOuter.style.overflow = 'hidden';
+                iwOuter.style.padding = '0';
+                iwOuter.style.maxHeight = 'none';
+            }
+            const closeBtn = document.querySelector('.gm-ui-hover-effect');
+            if (closeBtn) closeBtn.style.display = 'none';
 
-        setTimeout(() => {
+            let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
+            if (!styleTag) {
+                styleTag = document.createElement('style');
+                styleTag.id = 'custom-infowindow-dark-style-modal';
+                styleTag.innerHTML = `
+                    .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
+                    .gm-style-iw-tc::after { background: #0f172a !important; }
+                `;
+                document.head.appendChild(styleTag);
+            }
+
             const selectBtn = document.getElementById('modal-select-client-btn');
             if (selectBtn) {
                 selectBtn.addEventListener('click', () => {
@@ -441,6 +390,6 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                     modalInfoWindow.close();
                 });
             }
-        }, 100);
+        });
     }
 }
