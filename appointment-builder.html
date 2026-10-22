@@ -15,10 +15,7 @@
         .info-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.82rem; color: #4a5568; display: none; }
         .suggestion-box { background: #f0f4f8; border: 1px solid #cbd5e0; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.82rem; display: none; }
         
-        .form-row-group {
-            margin-bottom: 12px;
-            width: 100%;
-        }
+        .form-row-group { margin-bottom: 12px; width: 100%; }
 
         .datetime-four-grid {
             display: grid;
@@ -27,12 +24,8 @@
             gap: 4px;
             width: 100%;
         }
-        .datetime-col {
-            min-width: 0;
-        }
-        .datetime-col input {
-            width: 100%;
-        }
+        .datetime-col { min-width: 0; }
+        .datetime-col input { width: 100%; }
 
         .transparent-helper-field {
             width: 24px !important;
@@ -86,89 +79,29 @@
             color: #2d3748 !important;
             transition: all 0.2s;
         }
-        
         .suggestion-item-btn.selected-suggestion {
             background-color: #ebf8ff !important;
             border: 2px solid #2b6cb0 !important;
             box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
         }
-
         .suggestion-item-btn.reschedule-highlight {
             border: 2px dashed #3182ce !important;
             background-color: #f7fafc !important;
         }
 
-        .client-search-container {
-            position: relative;
-            margin-bottom: 12px;
-            width: 100%;
-        }
+        .client-search-container { position: relative; margin-bottom: 12px; width: 100%; }
         .client-results-dropdown, .service-results-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #cbd5e0;
-            border-radius: 0 0 8px 8px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 100;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            display: none;
+            position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e0; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none;
         }
-        .client-result-item, .service-result-item {
-            padding: 10px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #edf2f7;
-            font-size: 0.82rem;
-        }
-        .client-result-item:hover, .service-result-item:hover {
-            background: #ebf8ff;
-            color: #2b6cb0;
-        }
+        .client-result-item, .service-result-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #edf2f7; font-size: 0.82rem; }
+        .client-result-item:hover, .service-result-item:hover { background: #ebf8ff; color: #2b6cb0; }
 
-        #map-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .map-modal-content {
-            background: white;
-            width: 95%;
-            max-width: 700px;
-            height: 80vh;
-            padding: 14px;
-            border-radius: 14px;
-            display: flex;
-            flex-direction: column;
-        }
-        #interactive-map {
-            width: 100%;
-            flex-grow: 1;
-            border-radius: 10px;
-            border: 1px solid #cbd5e0;
-            margin-top: 8px;
-        }
+        #map-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .map-modal-content { background: white; width: 95%; max-width: 700px; height: 80vh; padding: 14px; border-radius: 14px; display: flex; flex-direction: column; }
+        #interactive-map { width: 100%; flex-grow: 1; border-radius: 10px; border: 1px solid #cbd5e0; margin-top: 8px; }
 
-        details summary {
-            cursor: pointer;
-            font-weight: bold;
-            color: #2d3748;
-            padding: 4px 0;
-            user-select: none;
-            font-size: 0.82rem;
-        }
-        details summary:hover {
-            color: #2b6cb0;
-        }
+        details summary { cursor: pointer; font-weight: bold; color: #2d3748; padding: 4px 0; user-select: none; font-size: 0.82rem; }
+        details summary:hover { color: #2b6cb0; }
     </style>
 </head>
 <body>
@@ -180,7 +113,7 @@
         </div>
 
         <p id="page-subtitle" style="color: #64748b; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.4;">
-            Gestiona las citas y optimiza tus rutas según las distancias.
+            Gestiona las citas con fecha y hora estáticas.
         </p>
 
         <form id="appointment-form">
@@ -219,29 +152,17 @@
 
                 <div class="form-row-group">
                     <div class="datetime-four-grid" style="margin-bottom: 3px;">
-                        <div class="datetime-col">
-                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">📅 Fecha:</label>
-                        </div>
+                        <div class="datetime-col"><label style="font-size: 0.72rem; font-weight: 600; color: #4a5568;">📅 Fecha:</label></div>
                         <div class="datetime-col"></div>
-                        <div class="datetime-col">
-                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">⏰ Hora:</label>
-                        </div>
+                        <div class="datetime-col"><label style="font-size: 0.72rem; font-weight: 600; color: #4a5568;">⏰ Hora:</label></div>
                         <div class="datetime-col"></div>
                     </div>
 
                     <div class="datetime-four-grid">
-                        <div class="datetime-col">
-                            <input type="date" id="free-date-input" required>
-                        </div>
-                        <div class="datetime-col">
-                            <input type="text" class="transparent-helper-field" value="" readonly tabindex="-1">
-                        </div>
-                        <div class="datetime-col">
-                            <input type="time" id="appointment-time" required>
-                        </div>
-                        <div class="datetime-col">
-                            <input type="text" class="transparent-helper-field" value="" readonly tabindex="-1">
-                        </div>
+                        <div class="datetime-col"><input type="date" id="free-date-input" required></div>
+                        <div class="datetime-col"><input type="text" class="transparent-helper-field" readonly tabindex="-1"></div>
+                        <div class="datetime-col"><input type="time" id="appointment-time" required></div>
+                        <div class="datetime-col"><input type="text" class="transparent-helper-field" readonly tabindex="-1"></div>
                     </div>
                 </div>
 
@@ -256,8 +177,6 @@
                     <div id="service-results-dropdown" class="service-results-dropdown"></div>
                 </div>
             </div>
-
-            <input type="hidden" id="selected-appointment-date" required>
 
             <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 12px; font-size: 0.9rem; opacity: 0.6; margin-bottom: 20px; width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(56, 161, 105, 0.2);" disabled>
                 Confirmar y Agendar Cita
@@ -283,13 +202,11 @@
         import { initInteractiveMapModal } from './js/interactive-map-modal.js';
 
         let activeClient = null;
-        window.activeClient = null;
         let allClients = [];
         let allAppointments = [];
         let allServices = [];
         let clientAppointments = [];
         let selectedAppointmentId = null;
-        let selectedDateOnly = '';
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -302,61 +219,40 @@
                 document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
             } else {
                 document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
-                document.getElementById('page-subtitle').textContent = 'Modificando la fecha de la cita seleccionada.';
+                document.getElementById('page-subtitle').textContent = 'Modificando la fecha y hora de la cita.';
                 document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
             }
         }
         updateUIModeText();
 
         const freeDateInput = document.getElementById('free-date-input');
-        if (freeDateInput) {
-            freeDateInput.setAttribute('min', todayStrSystem);
-        }
+        if (freeDateInput) freeDateInput.setAttribute('min', todayStrSystem);
 
         function calculateDistanceKm(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
             const dLon = (lon2 - lon1) * (Math.PI / 180);
-            const a = 
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
         }
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
-            return dateStr;
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
         }
 
         function suggestNextTimeForDate(dateStr) {
-            const apptsOnDate = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
-            if (apptsOnDate.length === 0) {
-                if (dateStr === todayStrSystem) {
-                    const now = new Date();
-                    const currentH = now.getHours();
-                    const currentM = now.getMinutes();
-                    const formattedH = String(currentH).padStart(2, '0');
-                    const formattedM = currentM > 0 ? String(Math.min(currentM + 15, 59)).padStart(2, '0') : '00';
-                    return `${formattedH}:${formattedM}`;
-                }
-                return "09:00";
-            }
+            const apptsOnDate = allAppointments.filter(a => a.scheduled_date === dateStr);
+            if (apptsOnDate.length === 0) return "09:00";
 
             let latestHour = 9;
             let latestMinute = 0;
 
             apptsOnDate.forEach(a => {
-                const dateObj = new Date(a.scheduled_date);
-                const h = dateObj.getHours();
-                const m = dateObj.getMinutes();
-                const totalMins = h * 60 + m;
-                
+                if (!a.time_slot) return;
+                const [h, m] = a.time_slot.split(':').map(Number);
+                const totalMins = (h || 9) * 60 + (m || 0);
                 const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 60;
                 const endMins = totalMins + durationMins;
 
@@ -368,10 +264,7 @@
             });
 
             if (latestHour > 20) latestHour = 20;
-
-            const formattedH = String(latestHour).padStart(2, '0');
-            const formattedM = String(latestMinute).padStart(2, '0');
-            return `${formattedH}:${formattedM}`;
+            return `${String(latestHour).padStart(2, '0')}:${String(latestMinute).padStart(2, '0')}`;
         }
 
         async function initForm() {
@@ -389,25 +282,12 @@
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
                     const found = allClients.find(c => c.id === targetClientId);
-                    if (found) {
-                        selectClient(found);
-                    }
+                    if (found) selectClient(found);
                 }
 
-                initInteractiveMapModal(
-                    'map-modal',
-                    'interactive-map',
-                    'btn-open-map-selector',
-                    'close-map-modal',
-                    () => allClients,
-                    (selectedClient) => {
-                        selectClient(selectedClient);
-                    }
-                );
-
+                initInteractiveMapModal('map-modal', 'interactive-map', 'btn-open-map-selector', 'close-map-modal', () => allClients, (c) => selectClient(c));
             } catch (err) {
                 console.error('Error al inicializar:', err);
-                alert('Hubo un error al cargar la información.');
             }
         }
 
@@ -416,54 +296,17 @@
 
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
-            if (query.length === 0) {
-                dropdown.style.display = 'none';
-                return;
-            }
-
-            const startsWithMatches = allClients.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const address = (c.address || '').toLowerCase();
-                const postal = (c.postal_code || '').toLowerCase();
-                return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
-            });
-
-            const containsMatches = allClients.filter(c => {
-                const name = (c.name || '').toLowerCase();
-                const address = (c.address || '').toLowerCase();
-                const postal = (c.postal_code || '').toLowerCase();
-                
-                const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
-                const alreadyAdded = startsWithMatches.includes(c);
-
-                return hasMatch && !alreadyAdded;
-            });
-
-            const filtered = [...startsWithMatches, ...containsMatches];
-
+            if (query.length === 0) { dropdown.style.display = 'none'; return; }
+            const filtered = allClients.filter(c => (c.name || '').toLowerCase().includes(query) || (c.address || '').toLowerCase().includes(query));
             dropdown.innerHTML = '';
-            if (filtered.length > 0) {
-                filtered.forEach(client => {
-                    const item = document.createElement('div');
-                    item.className = 'client-result-item';
-                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
-                    item.addEventListener('click', () => {
-                        selectClient(client);
-                        dropdown.style.display = 'none';
-                    });
-                    dropdown.appendChild(item);
-                });
-                dropdown.style.display = 'block';
-            } else {
-                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">No se encontraron clientes</div>`;
-                dropdown.style.display = 'block';
-            }
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
+            filtered.forEach(client => {
+                const item = document.createElement('div');
+                item.className = 'client-result-item';
+                item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#666;">${client.address || 'Sin dirección'}</span>`;
+                item.addEventListener('click', () => { selectClient(client); dropdown.style.display = 'none'; });
+                dropdown.appendChild(item);
+            });
+            dropdown.style.display = 'block';
         });
 
         const serviceSearchInput = document.getElementById('service-search-input');
@@ -471,356 +314,164 @@
 
         serviceSearchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
-            if (query.length === 0) {
-                serviceDropdown.style.display = 'none';
-                return;
-            }
-
-            const startsWithMatches = allServices.filter(s => (s.name || '').toLowerCase().startsWith(query));
-            const containsMatches = allServices.filter(s => {
-                const name = (s.name || '').toLowerCase();
-                return name.includes(query) && !startsWithMatches.includes(s);
-            });
-
-            const filtered = [...startsWithMatches, ...containsMatches];
-
+            if (query.length === 0) { serviceDropdown.style.display = 'none'; return; }
+            const filtered = allServices.filter(s => (s.name || '').toLowerCase().includes(query));
             serviceDropdown.innerHTML = '';
-            if (filtered.length > 0) {
-                filtered.forEach(srv => {
-                    const item = document.createElement('div');
-                    item.className = 'service-result-item';
-                    item.textContent = srv.name;
-                    item.addEventListener('click', () => {
-                        serviceSearchInput.value = srv.name;
-                        serviceDropdown.style.display = 'none';
-                    });
-                    serviceDropdown.appendChild(item);
-                });
-                serviceDropdown.style.display = 'block';
-            } else {
-                serviceDropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">Se guardará como un nuevo servicio</div>`;
-                serviceDropdown.style.display = 'block';
-            }
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!serviceSearchInput.contains(e.target) && !serviceDropdown.contains(e.target)) {
-                serviceDropdown.style.display = 'none';
-            }
+            filtered.forEach(srv => {
+                const item = document.createElement('div');
+                item.className = 'service-result-item';
+                item.textContent = srv.name;
+                item.addEventListener('click', () => { serviceSearchInput.value = srv.name; serviceDropdown.style.display = 'none'; });
+                serviceDropdown.appendChild(item);
+            });
+            serviceDropdown.style.display = 'block';
         });
 
         function selectClient(client) {
             activeClient = client;
-            window.activeClient = client;
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
-
             actionType = 'new';
             selectedAppointmentId = null;
             updateUIModeText();
 
-            if (client.service_requested) {
-                serviceSearchInput.value = client.service_requested;
-            }
+            if (client.service_requested) serviceSearchInput.value = client.service_requested;
 
-            const detailsCard = document.getElementById('client-details');
-            const dateSection = document.getElementById('date-section');
-            const suggestionBox = document.getElementById('route-suggestions');
-            const suggestionsList = document.getElementById('suggestions-list');
-            const saveBtn = document.getElementById('save-btn');
-            
-            selectedDateOnly = '';
-            document.getElementById('selected-appointment-date').value = '';
-            document.getElementById('free-date-input').value = '';
-            document.getElementById('appointment-time').value = '';
-            document.getElementById('estimated-hours').value = '';
-            
-            saveBtn.disabled = true;
-            saveBtn.style.opacity = '0.6';
-
-            if (!client.latitude || !client.longitude) {
-                alert('Este cliente no tiene coordenadas geográficas registradas.');
-                return;
-            }
-
+            document.getElementById('client-details').style.display = 'block';
             document.getElementById('det-name').textContent = client.name;
             document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
 
             clientAppointments = allAppointments.filter(a => a.client_id === client.id);
             const appointmentsContainer = document.getElementById('appointments-selection-container');
-            const appointmentsBoxTitle = document.getElementById('appointments-box-title');
             const appointmentsListDiv = document.getElementById('client-appointments-list');
             appointmentsListDiv.innerHTML = '';
 
+            const saveBtn = document.getElementById('save-btn');
+
             if (clientAppointments.length > 0) {
                 appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (${clientAppointments.length}):`;
-
                 clientAppointments.forEach((appt, index) => {
-                    const d = new Date(appt.scheduled_date);
-                    const formatted = !isNaN(d) ? d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : 'Fecha no válida';
-                    
+                    const formatted = `${formatDateToDDMMYYYY(appt.scheduled_date)} a las ${appt.time_slot || '09:00'}h`;
                     const card = document.createElement('div');
                     card.className = 'appointment-selection-card';
                     card.innerHTML = `
-                        <div style="flex: 1;">
-                            <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
-                            <div style="font-size: 0.72rem; color: #666;">Servicio: ${appt.service_requested || 'General'}</div>
-                        </div>
-                        <button type="button" class="btn-quick-reschedule" data-id="${appt.id}" style="width: auto; padding: 4px 8px; background: #3182ce; color: white; border: none; border-radius: 6px; font-size: 0.68rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
-                            🔄 Reprogramar
-                        </button>
+                        <div style="flex: 1;"><strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}</div>
+                        <button type="button" class="btn-quick-reschedule" style="background: #3182ce; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.68rem; cursor: pointer;">🔄 Reprogramar</button>
                     `;
-
                     card.querySelector('.btn-quick-reschedule').addEventListener('click', () => {
                         actionType = 'reschedule';
                         selectedAppointmentId = appt.id;
                         updateUIModeText();
-                        
                         document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
                         card.classList.add('selected');
-                        dateSection.style.display = 'block';
+                        document.getElementById('date-section').style.display = 'block';
                         
-                        if (appt.scheduled_date) {
-                            const datePart = appt.scheduled_date.split('T')[0];
-                            const timePart = appt.scheduled_date.split('T')[1].substring(0, 5);
-                            document.getElementById('free-date-input').value = datePart;
-                            document.getElementById('appointment-time').value = timePart;
-                            selectedDateOnly = datePart;
-                            updateFinalTimestamp();
-                            saveBtn.disabled = false;
-                            saveBtn.style.opacity = '1';
-
-                            document.querySelectorAll('.suggestion-item-btn').forEach(b => {
-                                b.classList.remove('selected-suggestion', 'reschedule-highlight');
-                                if (b.dataset.date === datePart) {
-                                    b.classList.add('reschedule-highlight');
-                                }
-                            });
-                        }
-                    });
-
-                    appointmentsListDiv.appendChild(card);
-                });
-
-                dateSection.style.display = 'block';
-            } else {
-                appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (0):`;
-                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.78rem;">Este cliente no tiene ninguna cita programada actualmente.</span>`;
-                dateSection.style.display = 'block';
-            }
-
-            detailsCard.style.display = 'block';
-
-            suggestionsList.innerHTML = '';
-
-            const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
-
-            activeDates.sort((dateA, dateB) => {
-                const countA = allAppointments.filter(a => a.scheduled_date?.startsWith(dateA)).length;
-                const countB = allAppointments.filter(a => a.scheduled_date?.startsWith(dateB)).length;
-                return countA - countB;
-            });
-
-            if (activeDates.length > 0) {
-                activeDates.forEach(dateStr => {
-                    const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr));
-
-                    let clientsDetailsHtml = '';
-                    apptsOnThisDate.forEach(appt => {
-                        const scheduledClient = allClients.find(c => c.id === appt.client_id);
-                        if (scheduledClient && scheduledClient.latitude && scheduledClient.longitude) {
-                            const timeStr = new Date(appt.scheduled_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                            
-                            const isCurrentClient = (scheduledClient.id === client.id);
-
-                            if (isCurrentClient) {
-                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 6px; border-radius: 4px;">• ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
-                            } else {
-                                const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(scheduledClient.latitude), Number(scheduledClient.longitude));
-                                const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
-
-                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #4a5568; margin-top: 2px;">• <strong>${scheduledClient.name}</strong> a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
-                            }
-                        }
-                    });
-
-                    const totalCountOnDay = apptsOnThisDate.length;
-                    let badgeText = `${totalCountOnDay} cita${totalCountOnDay > 1 ? 's' : ''}`;
-                    const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
-
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = `suggestion-item-btn`;
-                    btn.dataset.date = dateStr;
-                    btn.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 3px;">
-                            <strong style="font-size: 0.8rem; color: #2b6cb0; text-decoration: underline;">📅 ${formattedDateDDMMYYYY}</strong>
-                            <span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
-                        </div>
-                        <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 2px;">
-                            ${clientsDetailsHtml || '<span style="font-size: 0.72rem; color: #666;">Sin otras citas este día</span>'}
-                        </div>
-                    `;
-
-                    btn.addEventListener('click', () => {
-                        actionType = 'new';
-                        selectedAppointmentId = null;
-                        updateUIModeText();
-                        document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
-
-                        selectedDateOnly = dateStr;
-                        document.getElementById('free-date-input').value = dateStr;
+                        document.getElementById('free-date-input').value = appt.scheduled_date || '';
+                        document.getElementById('appointment-time').value = appt.time_slot || '09:00';
+                        document.getElementById('estimated-hours').value = appt.estimated_hours || '';
                         
-                        const suggestedTime = suggestNextTimeForDate(dateStr);
-                        document.getElementById('appointment-time').value = suggestedTime;
-
-                        updateFinalTimestamp();
-
-                        document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion', 'reschedule-highlight'));
-                        btn.classList.add('selected-suggestion');
-
                         saveBtn.disabled = false;
                         saveBtn.style.opacity = '1';
                     });
-
-                    suggestionsList.appendChild(btn);
+                    appointmentsListDiv.appendChild(card);
                 });
-
-                suggestionBox.style.display = 'block';
             } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.78rem; color: #718096; margin: 2px 0;">No hay citas registradas. Selecciona la fecha en el calendario.</p>`;
-                suggestionBox.style.display = 'block';
+                appointmentsContainer.style.display = 'block';
+                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.78rem;">Sin citas programadas.</span>`;
             }
+
+            document.getElementById('date-section').style.display = 'block';
+            const suggestionsList = document.getElementById('suggestions-list');
+            suggestionsList.innerHTML = '';
+            const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date))].filter(d => d >= todayStrSystem);
+
+            activeDates.forEach(dateStr => {
+                const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date === dateStr);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'suggestion-item-btn';
+                btn.innerHTML = `<strong>📅 ${formatDateToDDMMYYYY(dateStr)}</strong> (${apptsOnThisDate.length} citas)`;
+                btn.addEventListener('click', () => {
+                    actionType = 'new';
+                    selectedAppointmentId = null;
+                    updateUIModeText();
+                    document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
+                    
+                    document.getElementById('free-date-input').value = dateStr;
+                    document.getElementById('appointment-time').value = suggestNextTimeForDate(dateStr);
+                    
+                    document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion'));
+                    btn.classList.add('selected-suggestion');
+                    
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
+                });
+                suggestionsList.appendChild(btn);
+            });
+            document.getElementById('route-suggestions').style.display = 'block';
         }
 
         document.getElementById('free-date-input').addEventListener('change', (e) => {
             const chosenDate = e.target.value;
             if (!chosenDate) return;
-
-            if (chosenDate < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                e.target.value = '';
-                return;
-            }
-
-            actionType = 'new';
-            selectedAppointmentId = null;
-            updateUIModeText();
-            document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
-
-            selectedDateOnly = chosenDate;
-            
-            const suggestedTime = suggestNextTimeForDate(chosenDate);
-            document.getElementById('appointment-time').value = suggestedTime;
-
-            updateFinalTimestamp();
-
-            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion', 'reschedule-highlight'));
-
+            document.getElementById('appointment-time').value = suggestNextTimeForDate(chosenDate);
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = false;
             saveBtn.style.opacity = '1';
         });
 
-        document.getElementById('appointment-time').addEventListener('change', () => {
-            if (selectedDateOnly) {
-                updateFinalTimestamp();
-            }
-        });
-
-        // CORREGIDO: Calcula el offset basado en la FECHA SELECCIONADA de la cita (respetando el cambio de hora estacional)
-        function updateFinalTimestamp() {
-            const timeVal = document.getElementById('appointment-time').value || '09:00';
-            if (selectedDateOnly) {
-                // Creamos el objeto Date con la fecha exacta seleccionada para obtener su offset real (ej. +01:00 en invierno vs +02:00 en verano)
-                const targetDate = new Date(`${selectedDateOnly}T${timeVal}:00`);
-                const tzOffsetMin = -targetDate.getTimezoneOffset();
-                const sign = tzOffsetMin >= 0 ? '+' : '-';
-                const absMins = Math.abs(tzOffsetMin);
-                const offsetHours = String(Math.floor(absMins / 60)).padStart(2, '0');
-                const offsetMins = String(absMins % 60).padStart(2, '0');
-
-                document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00${sign}${offsetHours}:${offsetMins}`;
-            }
-        }
-
         document.getElementById('appointment-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const clientId = document.getElementById('client-select').value;
-            updateFinalTimestamp();
-            const apptVal = document.getElementById('selected-appointment-date').value;
+            const dateVal = document.getElementById('free-date-input').value;
+            const timeVal = document.getElementById('appointment-time').value || '09:00';
             const hoursVal = document.getElementById('estimated-hours').value;
             const serviceVal = document.getElementById('service-search-input').value.trim();
 
-            if (!clientId || !apptVal) {
-                alert('Selecciona un cliente y una fecha/hora válida.');
-                return;
-            }
-
-            if (actionType === 'reschedule' && !selectedAppointmentId) {
-                alert('Por favor, haz clic en el botón "🔄 Reprogramar" al lado de la cita que deseas modificar.');
-                return;
-            }
-
-            const chosenDatePart = apptVal.split('T')[0];
-            const chosenTimePart = apptVal.split('T')[1].substring(0, 5);
-
-            if (chosenDatePart < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                return;
-            }
+            if (!clientId || !dateVal || !timeVal) return;
 
             const btn = document.getElementById('save-btn');
-            const originalBtnText = btn.textContent;
             btn.textContent = 'Guardando...';
             btn.disabled = true;
 
-            if (serviceVal) {
-                const exists = allServices.some(s => s.name.toLowerCase() === serviceVal.toLowerCase());
-                if (!exists) {
-                    const { data: newSrv } = await supabase.from('services').insert([{ name: serviceVal }]).select();
-                    if (newSrv) allServices.push(newSrv[0]);
-                }
+            if (serviceVal && !allServices.some(s => s.name.toLowerCase() === serviceVal.toLowerCase())) {
+                await supabase.from('services').insert([{ name: serviceVal }]);
             }
 
             const payload = {
                 client_id: clientId,
-                scheduled_date: apptVal,
+                scheduled_date: dateVal,       // Fecha estática (YYYY-MM-DD)
+                time_slot: timeVal,            // Hora estática (HH:MM)
                 estimated_hours: hoursVal ? parseFloat(hoursVal) : null,
                 service_requested: serviceVal || null
             };
 
-            let errorResult = null;
-
-            if (actionType === 'new') {
-                const { error } = await supabase.from('appointments').insert([payload]);
-                errorResult = error;
-            } else {
-                const { error } = await supabase.from('appointments').update(payload).eq('id', selectedAppointmentId);
-                errorResult = error;
-            }
+            const errorResult = actionType === 'new' 
+                ? (await supabase.from('appointments').insert([payload])).error
+                : (await supabase.from('appointments').update(payload).eq('id', selectedAppointmentId)).error;
 
             if (errorResult) {
-                alert('Error al guardar la cita: ' + errorResult.message);
-                btn.textContent = originalBtnText;
+                alert('Error al guardar: ' + errorResult.message);
+                btn.textContent = 'Confirmar';
                 btn.disabled = false;
             } else {
-                const { data: refreshedAppts } = await supabase.from('appointments').select('*');
-                allAppointments = refreshedAppts || [];
-
-                const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
-                const formattedDateReadable = new Date(apptVal).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' });
+                alert(actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!');
                 
-                alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient.name}`);
+                document.getElementById('appointment-form').reset();
+                document.getElementById('client-details').style.display = 'none';
+                document.getElementById('date-section').style.display = 'none';
+                document.getElementById('route-suggestions').style.display = 'none';
+                activeClient = null;
+                actionType = 'new';
+                selectedAppointmentId = null;
+                updateUIModeText();
+                btn.textContent = 'Confirmar y Agendar Cita';
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
 
-                selectClient(activeClient);
-
-                btn.textContent = originalBtnText;
-                btn.disabled = false;
+                const { data } = await supabase.from('appointments').select('*');
+                allAppointments = data || [];
             }
         });
 
