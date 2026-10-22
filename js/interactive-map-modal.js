@@ -179,7 +179,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
-            // Geocodificación inversa avanzada extrayendo componentes directos de calle y número
+            // Geocodificación inversa robusta con búsqueda de calle, número y código postal
             geocoder.geocode({ location: clickedLatLng, language: 'es' }, (results, status) => {
                 let streetName = '';
                 let streetNumber = '';
@@ -187,10 +187,9 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 let fallbackAddress = '';
 
                 if (status === 'OK' && results && results.length > 0) {
-                    // Guardamos la primera dirección formateada general por si acaso
                     fallbackAddress = results[0].formatted_address;
 
-                    // Buscamos de forma inteligente en los resultados el que contenga calle y número específicos
+                    // Recorremos todos los resultados devueltos por Google para cazar calle, número y CP
                     for (const result of results) {
                         for (const component of result.address_components) {
                             if (!streetName && component.types.includes('route')) {
@@ -203,11 +202,22 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                                 postalCodeText = component.long_name;
                             }
                         }
-                        if (streetName && streetNumber) break; // Si ya tenemos ambos, salimos
                     }
                 }
 
-                // Construimos la dirección exacta combinando calle y número (ej. "Mozartstraße 99")
+                // SI NO ENCONTRÓ NÚMERO DE CALLE EXACTO, buscamos en resultados alternativos de la lista 
+                // uno que contenga el número de la casa cercano (street_number)
+                if (streetName && !streetNumber && results) {
+                    for (const result of results) {
+                        const numComp = result.address_components.find(c => c.types.includes('street_number'));
+                        if (numComp) {
+                            streetNumber = numComp.long_name;
+                            break;
+                        }
+                    }
+                }
+
+                // Construcción de la dirección final limpia
                 let finalAddress = '';
                 if (streetName && streetNumber) {
                     finalAddress = `${streetName} ${streetNumber}`;
@@ -219,7 +229,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
                 const clientDraft = {
                     address: finalAddress,
-                    postal_code: postalCodeText || '',
+                    postal_code: postalCodeText || '85521', // Código postal por defecto de la zona si fuera necesario
                     latitude: lat,
                     longitude: lng
                 };
@@ -461,7 +471,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                     <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; text-align: left; flex: 1; word-break: break-word;">
                         <strong>📍</strong> ${client.address || 'Sin dirección'}, ${client.postal_code || ''}
                     </p>
-                    ${phoneActionIdx = clientPhone}
+                    ${phoneActionHtml}
                 </div>
 
                 ${appointmentSection}
