@@ -179,6 +179,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 zIndex: 9998
             });
 
+            // Geocodificación estricta priorizando el resultado más cercano (results[0])
             geocoder.geocode({ location: clickedLatLng, language: 'es' }, (results, status) => {
                 let streetName = '';
                 let streetNumber = '';
@@ -186,24 +187,34 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 let formattedAddress = '';
 
                 if (status === 'OK' && results && results.length > 0) {
-                    for (const result of results) {
-                        if (!formattedAddress && result.formatted_address) {
-                            formattedAddress = result.formatted_address;
+                    // Nos enfocamos estrictamente en results[0] que es el punto más exacto y cercano a la coordenada
+                    const bestResult = results[0];
+                    formattedAddress = bestResult.formatted_address || '';
+
+                    for (const component of bestResult.address_components) {
+                        if (!streetName && component.types.includes('route')) {
+                            streetName = component.long_name;
                         }
-                        for (const component of result.address_components) {
-                            if (!streetName && component.types.includes('route')) {
-                                streetName = component.long_name;
-                            }
-                            if (!streetNumber && (component.types.includes('street_number') || component.types.includes('premise'))) {
-                                streetNumber = component.long_name;
-                            }
-                            if (!postalCodeText && component.types.includes('postal_code')) {
-                                postalCodeText = component.long_name;
+                        if (!streetNumber && (component.types.includes('street_number') || component.types.includes('premise'))) {
+                            streetNumber = component.long_name;
+                        }
+                        if (!postalCodeText && component.types.includes('postal_code')) {
+                            postalCodeText = component.long_name;
+                        }
+                    }
+
+                    // Si en results[0] no apareció la calle pero está en results[1] o en el texto formateado, respaldamos
+                    if (!streetName && results.length > 1) {
+                        for (const comp of results[1].address_components) {
+                            if (comp.types.includes('route')) {
+                                streetName = comp.long_name;
+                                break;
                             }
                         }
                     }
                 }
 
+                // Extracción segura por expresión regular si el número viene dentro del texto formateado
                 if (streetName && !streetNumber && formattedAddress) {
                     const match = formattedAddress.match(new RegExp(`${streetName}\\s+(\\d+[a-zA-Z]*)`, 'i'));
                     if (match && match[1]) {
@@ -211,22 +222,19 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                     }
                 }
 
-                // Construcción inteligente: si hay número se une, si no, se queda solo el nombre de la calle para que lo edites
                 let finalAddress = '';
                 if (streetName && streetNumber) {
                     finalAddress = `${streetName} ${streetNumber}`;
                 } else if (streetName) {
-                    finalAddress = streetName; // Solo calle para que agregues el número fácilmente
+                    finalAddress = streetName; // Solo nombre de la calle estricto y limpio
                 } else if (formattedAddress) {
                     finalAddress = formattedAddress.split(',')[0];
                 } else {
-                    finalAddress = `Mozartstraße`;
+                    finalAddress = `Ubicación mapa`;
                 }
 
                 const clientDraft = {
                     address: finalAddress,
-                    street: streetName || '',
-                    street_number: streetNumber || '',
                     postal_code: postalCodeText || '85521',
                     latitude: lat,
                     longitude: lng
@@ -304,11 +312,8 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             const createBtn = document.getElementById('modal-create-client-btn');
             if (createBtn) {
                 createBtn.addEventListener('click', () => {
-                    // REDIRECCIÓN A CLIENT-BUILDER.HTML CON TODOS LOS DATOS PRECISOS EN LA URL
                     const params = new URLSearchParams({
                         address: clientDraft.address,
-                        street: clientDraft.street,
-                        street_number: clientDraft.street_number,
                         postal_code: clientDraft.postal_code,
                         latitude: clientDraft.latitude,
                         longitude: clientDraft.longitude
