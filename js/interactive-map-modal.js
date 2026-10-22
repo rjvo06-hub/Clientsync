@@ -222,11 +222,8 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                     finalAddress = `Mozartstraße`;
                 }
 
-                // Objeto estructurado con los datos listos para precargar en tu plantilla de cliente
                 const clientDraft = {
                     address: finalAddress,
-                    street: streetName || finalAddress,
-                    street_number: streetNumber || '',
                     postal_code: postalCodeText || '85521',
                     latitude: lat,
                     longitude: lng
@@ -304,31 +301,15 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             const createBtn = document.getElementById('modal-create-client-btn');
             if (createBtn) {
                 createBtn.addEventListener('click', () => {
-                    // AQUÍ CONECTAMOS CON TU PLANTILLA / FORMULARIO DE CREACIÓN DE CLIENTES:
-                    // Verificamos si existe una función global en tu aplicación para abrir el formulario con estos datos.
-                    if (typeof window.openClientFormWithData === 'function') {
-                        window.openClientFormWithData(clientDraft);
-                    } else {
-                        // Si manejas tu formulario rellenando IDs directamente en el DOM, puedes precargarlos así:
-                        const addressInput = document.getElementById('client-address-input') || document.getElementById('address');
-                        const postalInput = document.getElementById('client-postal-input') || document.getElementById('postal_code');
-                        const latInput = document.getElementById('client-lat-input') || document.getElementById('latitude');
-                        const lngInput = document.getElementById('client-lng-input') || document.getElementById('longitude');
+                    // REDIRECCIÓN DIRECTA A CLIENT-BUILDER.HTML CON LOS DATOS EN LA URL
+                    const params = new URLSearchParams({
+                        address: clientDraft.address,
+                        postal_code: clientDraft.postal_code,
+                        latitude: clientDraft.latitude,
+                        longitude: clientDraft.longitude
+                    });
 
-                        if (addressInput) addressInput.value = clientDraft.address;
-                        if (postalInput) postalInput.value = clientDraft.postal_code;
-                        if (latInput) latInput.value = clientDraft.latitude;
-                        if (lngInput) lngInput.value = clientDraft.longitude;
-
-                        // Opcional: abrir el modal o sección del formulario de clientes si está oculto
-                        const clientModal = document.getElementById('client-form-modal') || document.getElementById('clientModal');
-                        if (clientModal) clientModal.style.display = 'block';
-
-                        console.log("Datos precargados en formulario:", clientDraft);
-                    }
-
-                    modal.style.display = 'none';
-                    modalInfoWindow.close();
+                    window.location.href = `client-builder.html?${params.toString()}`;
                 });
             }
         });
