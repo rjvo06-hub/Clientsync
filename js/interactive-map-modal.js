@@ -38,10 +38,11 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
             return;
         }
 
-        // Centro por defecto (ej. Múnich / Alemania o coordenadas genéricas)
+        // Centro por defecto
         const defaultCenter = { lat: 48.1351, lng: 11.5820 };
 
-        map = new google.maps.map(mapDiv, {
+        // CORREGIDO: Map con la 'M' mayúscula
+        map = new google.maps.Map(mapDiv, {
             center: defaultCenter,
             zoom: 17,
             mapTypeId: 'roadmap',
@@ -51,7 +52,7 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
 
         infoWindow = new google.maps.InfoWindow();
 
-        // Evento de clic en cualquier parte del mapa (casas, calles, etc.) para crear un cliente nuevo en campo
+        // Evento de clic en el mapa para crear un cliente nuevo en campo
         map.addListener('click', (event) => {
             const clickedLat = event.latLng.lat();
             const clickedLng = event.latLng.lng();
@@ -63,7 +64,6 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
                 postal_code: ''
             };
 
-            // Usar Geocoding inversos para obtener la calle y código postal automáticamente
             const geocoder = new google.maps.Geocoder();
             geocoder.geocode({ location: { lat: clickedLat, lng: clickedLng } }, (results, status) => {
                 if (status === 'OK' && results[0]) {
@@ -86,7 +86,7 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
             });
         });
 
-        // Botón de "Mi Ubicación" dentro del modal
+        // Botón de "Mi Ubicación"
         const locationBtn = document.createElement('button');
         locationBtn.type = 'button';
         locationBtn.textContent = '📍 Mi Ubicación';
@@ -105,7 +105,6 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
                         map.setCenter(pos);
                         map.setZoom(19);
 
-                        // Simular clic en la ubicación actual
                         google.maps.event.trigger(map, 'click', {
                             latLng: new google.maps.LatLng(pos.lat, pos.lng)
                         });
@@ -141,11 +140,8 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
             const createBtn = document.getElementById('btn-create-client-popup');
             if (createBtn) {
                 createBtn.onclick = () => {
-                    // Guardar datos temporales en sessionStorage para que el formulario de creación los lea
                     sessionStorage.setItem('pending_client_data', JSON.stringify(selectedPointData));
                     modal.style.display = 'none';
-                    
-                    // Redirigir a la página de creación de clientes (ajusta la ruta si es necesario, ej. ./client-builder.html o index.html)
                     window.location.href = `./client-builder.html?lat=${selectedPointData.latitude}&lng=${selectedPointData.longitude}&address=${encodeURIComponent(selectedPointData.address)}&postal=${encodeURIComponent(selectedPointData.postal_code)}`;
                 };
             }
@@ -155,12 +151,10 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
     function updateMarkers() {
         if (!map) return;
 
-        // Limpiar pines anteriores
         markers.forEach(m => m.setMap(null));
         markers = [];
 
         const clients = getClientsCallback ? getClientsCallback() : [];
-
         let bounds = new google.maps.LatLngBounds();
         let hasValidCoords = false;
 
@@ -182,7 +176,6 @@ export function initInteractiveMapModal(modalId, mapElementId, openBtnId, closeB
                         title: client.name
                     });
 
-                // Clic en un cliente existente para seleccionarlo
                 google.maps.event.addListener(marker, 'click', () => {
                     modal.style.display = 'none';
                     if (onClientSelectedCallback) {
