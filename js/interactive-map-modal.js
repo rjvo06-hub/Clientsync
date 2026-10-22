@@ -12,6 +12,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
     let modalMarkers = [];
     let modalInfoWindow = null;
     let userLocationMarker = null;
+    let clickedLocationMarker = null; // Marcador para puntos seleccionados en el mapa
 
     // INYECCIÓN AUTOMÁTICA DEL BOTÓN DE UBICACIÓN EN LA CABECERA
     const modalContent = mapElement.closest('.map-modal-content');
@@ -151,11 +152,59 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             maxWidth: 195
         });
 
-        // Cerrar la ventana al hacer clic en cualquier parte vacía del mapa
-        modalMap.addListener('click', () => {
-            if (modalInfoWindow) {
-                modalInfoWindow.close();
-            }
+        // Instanciar Geocoder para buscar direcciones al hacer clic en el mapa
+        const geocoder = new google.maps.Geocoder();
+
+        // Escuchar clics en cualquier punto vacío del mapa para crear cliente nuevo
+        modalMap.addListener('click', (event) => {
+            const clickedLatLng = event.latLng;
+            const lat = clickedLatLng.lat();
+            const lng = clickedLatLng.lng();
+
+            if (modalInfoWindow) modalInfoWindow.close();
+            if (clickedLocationMarker) clickedLocationMarker.setMap(null);
+
+            const pinSvgSelected = {
+                path: "M 0,0 C -2,-20 -10,-22 -10,-30 a 10,10 0 1,1 20,0 c 0,8 -8,10 -10,30 z",
+                fillColor: "#38bdf8", // Celeste distintivo para nuevo punto
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2,
+                scale: 1.1,
+                anchor: new google.maps.Point(0, 0)
+            };
+
+            clickedLocationMarker = new google.maps.Marker({
+                position: clickedLatLng,
+                map: modalMap,
+                title: 'Punto seleccionado',
+                icon: pinSvgSelected,
+                zIndex: 9998
+            });
+
+            geocoder.geocode({ location: clickedLatLng }, (results, status) => {
+                let addressText = 'Dirección no encontrada';
+                let postalCodeText = '';
+
+                if (status === 'OK' && results[0]) {
+                    const place = results[0];
+                    addressText = place.formatted_address;
+
+                    const postalComponent = place.address_components.find(comp => comp.types.includes('postal_code'));
+                    if (postalComponent) {
+                        postalCodeText = postalComponent.long_name;
+                    }
+                }
+
+                const clientDraft = {
+                    address: addressText,
+                    postal_code: postalCodeText,
+                    latitude: lat,
+                    longitude: lng
+                };
+
+                showSelectedPointInfoWindow(clickedLatLng, clickedLocationMarker, clientDraft);
+            });
         });
 
         await loadAndRenderModalClients();
@@ -186,7 +235,61 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
         modalInfoWindow.setContent(contentHtml);
         modalInfoWindow.open(modalMap, markerInstance);
+        setupInfoWindowStyles();
+    }
 
+    function showSelectedPointInfoWindow(pos, markerInstance, clientDraft) {
+        const contentHtml = `
+            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
+                
+                <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
+                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        📍 Nuevo Punto
+                    </h3>
+                </div>
+
+                <div style="margin-bottom: 4px;">
+                    <p style="margin: 0 0 3px 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2; word-break: break-word;">
+                        <strong>Dirección:</strong> ${clientDraft.address}
+                    </p>
+                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; line-height: 1.2;">
+                        <strong>CP:</strong> ${clientDraft.postal_code || 'No detectado'}
+                    </p>
+                </div>
+
+                <div style="margin-top: 6px; border-top: 1px dashed #1e293b; padding-top: 4px;">
+                    <button type="button" id="modal-create-client-btn" style="background: #10b981; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
+                        ➕ Crear cliente aquí
+                    </button>
+                </div>
+
+            </div>
+        `;
+
+        modalInfoWindow.setContent(contentHtml);
+        modalInfoWindow.open(modalMap, markerInstance);
+
+        setupInfoWindowStyles();
+
+        google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
+            const createBtn = document.getElementById('modal-create-client-btn');
+            if (createBtn) {
+                createBtn.addEventListener('click', () => {
+                    if (typeof window.openClientFormWithData === 'function') {
+                        window.openClientFormWithData(clientDraft);
+                    } else {
+                        console.log("Datos para nuevo cliente:", clientDraft);
+                        alert(`Datos listos para crear cliente:\nDirección: ${clientDraft.address}\nCP: ${clientDraft.postal_code}\nLat/Lng: ${clientDraft.latitude}, ${clientDraft.longitude}`);
+                    }
+
+                    modal.style.display = 'none';
+                    modalInfoWindow.close();
+                });
+            }
+        });
+    }
+
+    function setupInfoWindowStyles() {
         google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
             const iwContainer = document.querySelector('.gm-style-iw-c');
             if (iwContainer) {
@@ -354,34 +457,9 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         modalInfoWindow.setContent(contentHtml);
         modalInfoWindow.open(modalMap, markerInstance);
 
+        setupInfoWindowStyles();
+
         google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
-            const iwContainer = document.querySelector('.gm-style-iw-c');
-            if (iwContainer) {
-                iwContainer.style.background = '#0f172a';
-                iwContainer.style.padding = '2px 4px 4px 4px';
-                iwContainer.style.borderRadius = '8px';
-                iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
-            }
-            const iwOuter = document.querySelector('.gm-style-iw-d');
-            if (iwOuter) {
-                iwOuter.style.overflow = 'hidden';
-                iwOuter.style.padding = '0';
-                iwOuter.style.maxHeight = 'none';
-            }
-            const closeBtn = document.querySelector('.gm-ui-hover-effect');
-            if (closeBtn) closeBtn.style.display = 'none';
-
-            let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
-            if (!styleTag) {
-                styleTag = document.createElement('style');
-                styleTag.id = 'custom-infowindow-dark-style-modal';
-                styleTag.innerHTML = `
-                    .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
-                    .gm-style-iw-tc::after { background: #0f172a !important; }
-                `;
-                document.head.appendChild(styleTag);
-            }
-
             const selectBtn = document.getElementById('modal-select-client-btn');
             if (selectBtn) {
                 selectBtn.addEventListener('click', () => {
