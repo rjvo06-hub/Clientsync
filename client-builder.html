@@ -1,28 +1,28 @@
-window.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(window.location.search);
-    
-    const address = params.get('address');
-    const postalCode = params.get('postal_code');
-    const lat = params.get('latitude');
-    const lng = params.get('longitude');
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const address = params.get('address');
+            const postalCode = params.get('postal_code');
+            const lat = params.get('latitude');
+            const lng = params.get('longitude');
 
-    if (address) {
-        const addressField = document.getElementById('address');
-        if (addressField) addressField.value = address;
-    }
-
-    if (postalCode) {
-        const postalField = document.getElementById('postal_code');
-        if (postalField) postalField.value = postalCode;
-    }
-
-    if (lat) {
-        const latField = document.getElementById('latitude');
-        if (latField) latField.value = lat;
-    }
-
-    if (lng) {
-        const lngField = document.getElementById('longitude');
-        if (lngField) lngField.value = lng;
-    }
-});
+            if (address) {
+                const addressField = document.getElementById('client-address');
+                if (addressField) addressField.value = address;
+            }
+            if (postalCode) {
+                const postalField = document.getElementById('client-postal');
+                if (postalField) postalField.value = postalCode;
+            }
+            if (lat) {
+                const latField = document.getElementById('client-lat');
+                if (latField) latField.value = lat;
+            }
+            if (lng) {
+                const lngField = document.getElementById('client-lng');
+                if (lngField) lngField.value = lng;
+            }
+        });
+    </script>
+</body>
+</html>
