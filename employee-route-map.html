@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ClientSync | Ruta Real de Empleados</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CARGA OFICIAL DE GOOGLE MAPS -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ"></script>
+
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-secondary: #64748b;
+            --border-subtle: #e2e8f0;
+            --radius-xl: 16px;
+            --radius-md: 10px;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 12px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-sizing: border-box;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 2px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .app-header h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0;
+            color: #0f172a;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            font-size: 0.95rem;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            background: white;
+            box-sizing: border-box;
+            outline: none;
+            font-weight: 600;
+        }
+
+        .stop-card {
+            background: #f8fafc;
+            border-left: 5px solid #2563eb;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            border: 1px solid var(--border-subtle);
+            border-left-width: 5px;
+        }
+
+        #map {
+            width: 100% !important;
+            height: 450px !important;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+            margin-top: 10px;
+            display: block;
+        }
+
+        .btn-nav {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        .btn-nav:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="app-header">
+            <a href="./index.html" class="btn-back">← Menú Principal</a>
+            <h1>👷‍♂️ Ruta del Día por Carretera</h1>
+        </header>
+
+        <div class="card">
+            <label style="display: block; font-weight: 700; margin-bottom: 6px; font-size: 0.9rem;">Selecciona tu nombre (Técnico):</label>
+            <select id="employee-selector">
+                <option value="">-- Elige quién eres --</option>
+                <option value="Ramiro">Ramiro</option>
+                <option value="Técnico 1">Técnico 1</option>
+                <option value="Técnico 2">Técnico 2</option>
+            </select>
+        </div>
+
+        <div class="card" id="route-panel" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 id="route-title" style="margin: 0; font-size: 1rem; font-weight: 700;">📍 Secuencia de Paradas</h2>
+                <span id="route-stats" style="font-size: 0.8rem; background: #eff6ff; color: #1d4ed8; padding: 4px 8px; border-radius: 20px; font-weight: 600;">-</span>
+            </div>
+            
+            <div id="stops-list" style="max-height: 220px; overflow-y: auto; margin-bottom: 10px;"></div>
+
+            <div style="font-weight: 600; font-size: 0.85rem; margin-top: 10px; color: var(--text-secondary);">Trayecto real por carretera (Google Maps):</div>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        let mapInstance = null;
+        let directionsService = null;
+        let directionsRenderer = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const mapElement = document.getElementById('map');
+            mapInstance = new google.maps.Map(mapElement, {
+                center: { lat: 48.0679, lng: 11.6585 },
+                zoom: 13,
+                mapTypeControl: true,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: mapInstance,
+                suppressMarkers: false,
+                polylineOptions: {
+                    strokeColor: "#2563eb",
+                    strokeWeight: 5,
+                    strokeOpacity: 0.8
+                }
+            });
+        });
+
+        document.getElementById('employee-selector').addEventListener('change', async (e) => {
+            const employeeName = e.target.value;
+            const routePanel = document.getElementById('route-panel');
+            const stopsList = document.getElementById('stops-list');
+            const routeStats = document.getElementById('route-stats');
+
+            if (!employeeName) {
+                routePanel.style.display = 'none';
+                return;
+            }
+
+            stopsList.innerHTML = '<p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem;">Buscando tus citas de hoy...</p>';
+            routePanel.style.display = 'block';
+
+            try {
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                // Consultar en paralelo Clientes y Citas
+                const [{ data: clients }, { data: appointments }] = await Promise.all([
+                    supabase.from('clients').select('*'),
+                    supabase.from('appointments').select('*').order('time_slot', { ascending: true })
+                ]);
+
+                const clientsMap = new Map((clients || []).map(c => [c.id, c]));
+
+                // Filtrar citas de hoy del técnico seleccionado usando la fecha estática y la asignación del cliente
+                const todayStops = (appointments || []).filter(appt => {
+                    if (appt.scheduled_date !== todayStr) return false;
+                    const client = clientsMap.get(appt.client_id);
+                    return client && (client.assigned_employee === employeeName);
+                });
+
+                if (todayStops.length === 0) {
+                    stopsList.innerHTML = `<div style="background: #fffbeb; border: 1px solid #fde68a; padding: 12px; border-radius: 8px; text-align: center; color: #b45309; font-size: 0.85rem;">No tienes citas programadas para hoy (${todayStr}).</div>`;
+                    routeStats.textContent = '0 paradas';
+                    directionsRenderer.set('directions', null);
+                    return;
+                }
+
+                // Ordenar por hora estática (time_slot)
+                todayStops.sort((a, b) => (a.time_slot || '00:00').localeCompare(b.time_slot || '00:00'));
+
+                let stopsHtml = '';
+                const waypoints = [];
+                let origin = null;
+                let destination = null;
+
+                todayStops.forEach((appt, index) => {
+                    const client = clientsMap.get(appt.client_id);
+                    if (!client || !client.latitude || !client.longitude) return;
+
+                    const latLng = { lat: Number(client.latitude), lng: Number(client.longitude) };
+
+                    if (index === 0) {
+                        origin = latLng;
+                    } else if (index === todayStops.length - 1) {
+                        destination = latLng;
+                    } else {
+                        waypoints.push({ location: latLng, stopover: true });
+                    }
+
+                    const timeStr = appt.time_slot ? `⏰ ${appt.time_slot}h` : '⏰ Hora flexible';
+                    const serviceStr = appt.service_requested ? `🛠️ ${appt.service_requested}` : '';
+                    const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${client.latitude},${client.longitude}&travelmode=driving`;
+
+                    stopsHtml += `
+                        <div class="stop-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="color: #2563eb; font-size: 0.9rem;">Parada #${index + 1} - ${client.name}</strong>
+                                <span style="font-size: 0.75rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${timeStr}</span>
+                            </div>
+                            <p style="margin: 4px 0; font-size: 0.8rem; color: var(--text-main);">📍 ${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</p>
+                            ${serviceStr ? `<p style="margin: 2px 0; font-size: 0.80rem; color: #1d4ed8; font-weight: 600;">${serviceStr}</p>` : ''}
+                            <a href="${mapsNavUrl}" target="_blank" class="btn-nav">🧭 Iniciar Navegación GPS</a>
+                        </div>
+                    `;
+                });
+
+                stopsList.innerHTML = stopsHtml;
+                routeStats.textContent = `${todayStops.length} parada${todayStops.length > 1 ? 's' : ''}`;
+
+                // Trazar ruta real por carretera con Google Directions
+                if (todayStops.length === 1) {
+                    const client = clientsMap.get(todayStops[0].client_id);
+                    const singlePos = { lat: Number(client.latitude), lng: Number(client.longitude) };
+                    mapInstance.setCenter(singlePos);
+                    mapInstance.setZoom(15);
+                    directionsRenderer.set('directions', null);
+                } else if (origin && destination) {
+                    const request = {
+                        origin: origin,
+                        destination: destination,
+                        waypoints: waypoints,
+                        optimizeWaypoints: false,
+                        travelMode: google.maps.TravelMode.DRIVING
+                    };
+
+                    directionsService.route(request, (result, status) => {
+                        if (status === google.maps.DirectionsStatus.OK) {
+                            directionsRenderer.setDirections(result);
+                        } else {
+                            console.error('Error al calcular la ruta por carretera:', status);
+                        }
+                    });
+                }
+
+            } catch (err) {
+                console.error('Error al cargar la ruta:', err);
+                stopsList.innerHTML = '<p style="color: #ef4444; text-align: center; font-size: 0.85rem;">Error al cargar los datos del servidor.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
