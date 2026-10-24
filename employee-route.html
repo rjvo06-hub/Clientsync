@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Mapa de Ruta por Fecha</title>
+    <title>ClientSync | Mapa de Ruta del Día</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
@@ -47,33 +47,22 @@
 
         #daily-map {
             width: 100%;
-            height: 380px;
+            height: 500px; /* Mapa más grande y cómodo sin la lista debajo */
             border-radius: 12px;
             border: 1px solid #cbd5e0;
-            margin-bottom: 16px;
         }
 
-        .client-card { 
-            background: #ffffff; 
-            border: 1px solid #e2e8f0;
-            border-left: 5px solid #2563eb; 
-            padding: 14px; 
-            border-radius: 12px; 
-            margin-bottom: 10px; 
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03); 
-        }
-
-        .btn-nav {
-            display: flex;
+        .btn-nav-popup {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             background: #2563eb;
             color: white;
             border: none;
-            padding: 9px;
-            border-radius: 8px;
-            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
             font-weight: bold;
             cursor: pointer;
             text-decoration: none;
@@ -82,7 +71,7 @@
             box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
             transition: background 0.2s;
         }
-        .btn-nav:hover { background: #1d4ed8; }
+        .btn-nav-popup:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
@@ -108,13 +97,8 @@
             </div>
         </div>
 
-        <!-- Contenedor del Mapa Interactivo -->
+        <!-- Contenedor del Mapa Interactivo (Ocupa todo el espacio visual principal) -->
         <div id="daily-map"></div>
-
-        <!-- Lista de tareas / clientes correspondientes a ese día -->
-        <div id="daily-schedule-list">
-            <p style="color: #94a3b8; text-align: center; font-size: 0.85rem;">Cargando citas del día...</p>
-        </div>
     </div>
 
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
@@ -134,18 +118,11 @@
         const dateInput = document.getElementById('route-date-input');
         const employeeFilter = document.getElementById('employee-filter');
 
-        // Capturar parámetros de la URL enviados desde el menú
         const urlParams = new URLSearchParams(window.location.search);
         const preselectedEmployee = urlParams.get('employee');
         const preselectedDate = urlParams.get('date');
 
         dateInput.value = preselectedDate || todayStrSystem;
-
-        function formatDateToDDMMYYYY(dateStr) {
-            if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
-        }
 
         async function initEmployeeRouteMap() {
             try {
@@ -184,7 +161,7 @@
                 streetViewControl: false
             });
 
-            infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
+            infoWindow = new google.maps.InfoWindow({ maxWidth: 240 });
         }
 
         function renderSelectedDayData() {
@@ -203,21 +180,14 @@
             markers.forEach(m => m.setMap(null));
             markers = [];
 
-            const listContainer = document.getElementById('daily-schedule-list');
-
             if (dayAppointments.length === 0) {
-                listContainer.innerHTML = `
-                    <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 10px; text-align: center; color: #b45309;">
-                        <strong>No hay citas programadas para el ${formatDateToDDMMYYYY(selectedDate)}.</strong>
-                    </div>
-                `;
+                alert('No hay citas programadas para esta fecha y empleado.');
                 map.setCenter({ lat: 48.0664, lng: 11.6611 });
                 map.setZoom(13);
                 return;
             }
 
             const bounds = new google.maps.LatLngBounds();
-            let listHtml = `<h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 10px;">📅 Ruta del ${formatDateToDDMMYYYY(selectedDate)} (${dayAppointments.length} paradas):</h3>`;
 
             dayAppointments.forEach((appt, index) => {
                 const client = clientsMap.get(appt.client_id);
@@ -226,7 +196,7 @@
                 const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
                 bounds.extend(pos);
 
-                // Pin con número secuencial (1, 2, 3, 4...)
+                // Pin con número secuencial exacto (1, 2, 3, 4...)
                 const marker = new google.maps.Marker({
                     position: pos,
                     map: map,
@@ -235,20 +205,25 @@
                         color: "white",
                         fontWeight: "bold"
                     },
-                    title: `${index + 1}. ${client.name} (${appt.time_slot || '09:00'})`
+                    title: `Parada #${index + 1}: ${client.name}`
                 });
 
-                const clientPhone = client.phone || client.telefono || '';
-                const phoneHtml = clientPhone ? `<br>📞 Tel: ${clientPhone}` : '';
+                const clientPhone = client.phone || client.telefono || 'No registrado';
                 const techAssigned = appt.assigned_employee ? `<br>👷‍♂️ Técnico: <strong>${appt.assigned_employee}</strong>` : '';
+                const serviceStr = appt.service_requested ? `<br>🛠️ Servicio: <strong>${appt.service_requested}</strong>` : '';
+                
+                const mapsQuery = `${client.latitude},${client.longitude}`;
+                const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}&travelmode=driving`;
 
                 const windowContent = `
-                    <div style="font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 6px; border-radius: 6px;">
-                        <strong style="color: #38bdf8; font-size: 0.8rem;">#${index + 1}: ${client.name}</strong><br>
-                        <span style="font-size: 0.72rem;">⏰ Hora: ${appt.time_slot || '09:00'}h</span><br>
-                        <span style="font-size: 0.72rem;">📍 ${client.address || 'Sin dirección'}</span>
+                    <div style="font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 8px; border-radius: 8px;">
+                        <strong style="color: #38bdf8; font-size: 0.85rem;">Parada #${index + 1} - ⏰ ${appt.time_slot || '09:00'}h</strong><br>
+                        <h4 style="margin: 4px 0; font-size: 0.9rem; color: #ffffff;">${client.name}</h4>
+                        <span style="font-size: 0.75rem; color: #cbd5e1;">📍 ${client.address || 'Sin dirección'}</span>
+                        ${serviceStr}
                         ${techAssigned}
-                        ${phoneHtml}
+                        <br><span style="font-size: 0.75rem; color: #cbd5e1;">📞 Tel: ${clientPhone}</span>
+                        <a href="${mapsNavUrl}" target="_blank" class="btn-nav-popup">🧭 Iniciar Navegación GPS</a>
                     </div>
                 `;
 
@@ -258,26 +233,7 @@
                 });
 
                 markers.push(marker);
-
-                const mapsQuery = `${client.latitude},${client.longitude}`;
-                const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}&travelmode=driving`;
-                const serviceStr = appt.service_requested ? `<span style="color: #2563eb; font-weight: 700;">🛠️ ${appt.service_requested}</span><br>` : '';
-
-                listHtml += `
-                    <div class="client-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong style="font-size: 0.95rem; color: #1e293b;">Parada #${index + 1} - ⏰ ${appt.time_slot || '09:00'}h</strong>
-                            <span style="font-size: 0.72rem; background: #e2e8f0; padding: 2px 6px; border-radius: 6px; font-weight: 700; color: #475569;">${appt.assigned_employee || 'Sin asignar'}</span>
-                        </div>
-                        <h4 style="margin: 6px 0 2px 0; font-size: 0.95rem; color: #0f172a;">${client.name}</h4>
-                        <p style="margin: 0 0 3px 0; font-size: 0.82rem; color: #475569;">📍 ${client.address || 'Sin dirección'}</p>
-                        <p style="margin: 0 0 6px 0; font-size: 0.82rem;">${serviceStr}</p>
-                        <a href="${mapsNavUrl}" target="_blank" class="btn-nav">🧭 Iniciar Navegación GPS (Parada #${index + 1})</a>
-                    </div>
-                `;
             });
-
-            listContainer.innerHTML = listHtml;
 
             if (dayAppointments.length > 0) {
                 map.fitBounds(bounds);
