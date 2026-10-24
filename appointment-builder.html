@@ -200,7 +200,7 @@
                 <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
                 
                 <div id="appointments-selection-container" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e0; display: none;">
-                    <details>
+                    <details open>
                         <summary id="appointments-box-title">📅 Citas actuales del cliente:</summary>
                         <div id="client-appointments-list" style="margin-top: 6px;"></div>
                     </details>
@@ -247,7 +247,6 @@
 
                 <div class="form-row-group">
                     <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Horas estimadas (Opcional):</label>
-                    <!-- Cambiado a type="text" con inputmode="decimal" para permitir escribir números libremente con el teclado -->
                     <input type="text" id="estimated-hours" inputmode="decimal" placeholder="Ej. 4 o 1.5">
                 </div>
 
@@ -295,6 +294,7 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         let actionType = urlParams.get('action') === 'reschedule' ? 'reschedule' : 'new';
+        const targetAppointmentId = urlParams.get('appointment_id');
 
         function updateUIModeText() {
             if (actionType === 'new') {
@@ -408,7 +408,7 @@
                 if (targetClientId) {
                     const found = allClients.find(c => c.id === targetClientId);
                     if (found) {
-                        selectClient(found);
+                        selectClient(found, targetAppointmentId);
                     }
                 }
 
@@ -419,7 +419,7 @@
                     'close-map-modal',
                     () => allClients,
                     (selectedClient) => {
-                        selectClient(selectedClient);
+                        selectClient(selectedClient, null);
                     }
                 );
 
@@ -466,7 +466,7 @@
                     item.className = 'client-result-item';
                     item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
                     item.addEventListener('click', () => {
-                        selectClient(client);
+                        selectClient(client, null);
                         dropdown.style.display = 'none';
                     });
                     dropdown.appendChild(item);
@@ -527,7 +527,6 @@
             }
         });
 
-        // Función para limpiar el formulario y refrescar los datos del mapa automáticamente
         async function resetFormAndReloadMap() {
             activeClient = null;
             window.activeClient = null;
@@ -552,7 +551,6 @@
 
             updateUIModeText();
 
-            // Recargamos los datos desde Supabase para actualizar los pines del mapa al instante
             try {
                 const [{ data: clientData }, { data: apptData }, { data: serviceData }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
@@ -564,7 +562,6 @@
                 allAppointments = apptData || [];
                 allServices = serviceData || [];
 
-                // Reinicializamos el modal del mapa para que dibuje los nuevos colores (azul/rojo)
                 initInteractiveMapModal(
                     'map-modal',
                     'interactive-map',
@@ -572,7 +569,7 @@
                     'close-map-modal',
                     () => allClients,
                     (selectedClient) => {
-                        selectClient(selectedClient);
+                        selectClient(selectedClient, null);
                     }
                 );
             } catch (err) {
@@ -580,14 +577,14 @@
             }
         }
 
-        function selectClient(client) {
+        function selectClient(client, preselectApptId = null) {
             activeClient = client;
             window.activeClient = client;
             searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
             document.getElementById('client-select').value = client.id;
 
-            actionType = 'new';
-            selectedAppointmentId = null;
+            actionType = preselectApptId ? 'reschedule' : 'new';
+            selectedAppointmentId = preselectApptId;
             updateUIModeText();
 
             if (client.service_requested) {
@@ -624,6 +621,8 @@
             const appointmentsListDiv = document.getElementById('client-appointments-list');
             appointmentsListDiv.innerHTML = '';
 
+            let targetApptToSelect = null;
+
             if (clientAppointments.length > 0) {
                 appointmentsContainer.style.display = 'block';
                 appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (${clientAppointments.length}):`;
@@ -636,6 +635,7 @@
                     
                     const card = document.createElement('div');
                     card.className = 'appointment-selection-card';
+                    card.dataset.apptId = appt.id;
                     card.innerHTML = `
                         <div style="flex: 1;">
                             <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
@@ -646,7 +646,7 @@
                         </button>
                     `;
 
-                    card.querySelector('.btn-quick-reschedule').addEventListener('click', () => {
+                    const handleSelectThisAppointment = () => {
                         actionType = 'reschedule';
                         selectedAppointmentId = appt.id;
                         updateUIModeText();
@@ -678,9 +678,16 @@
                                 }
                             });
                         }
-                    });
+                    };
+
+                    card.querySelector('.btn-quick-reschedule').addEventListener('click', handleSelectThisAppointment);
+                    card.addEventListener('click', handleSelectThisAppointment);
 
                     appointmentsListDiv.appendChild(card);
+
+                    if (preselectApptId && appt.id === preselectApptId) {
+                        targetApptToSelect = { card, appt };
+                    }
                 });
 
                 dateSection.style.display = 'block';
@@ -772,6 +779,11 @@
             } else {
                 suggestionsList.innerHTML = `<p style="font-size: 0.78rem; color: #718096; margin: 2px 0;">No hay citas registradas. Selecciona la fecha en el calendario.</p>`;
                 suggestionBox.style.display = 'block';
+            }
+
+            // Si se especificó una cita para preseleccionar, simulamos el clic en ella inmediatamente
+            if (targetApptToSelect) {
+                targetApptToSelect.card.querySelector('.btn-quick-reschedule').click();
             }
         }
 
@@ -892,7 +904,6 @@
                 
                 alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}`);
 
-                // Limpiamos el formulario y actualizamos automáticamente el mapa
                 await resetFormAndReloadMap();
 
                 btn.textContent = originalBtnText;
