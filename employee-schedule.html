@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Mi Ruta de Hoy</title>
+    <title>ClientSync | Portal del Empleado</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
@@ -17,13 +17,12 @@
             max-width: 500px; 
             margin: 10px auto 60px auto; 
             background: white; 
-            padding: 18px; 
+            padding: 20px; 
             border-radius: 16px; 
             box-shadow: 0 4px 16px rgba(0,0,0,0.06); 
             border: 1px solid #e2e8f0;
         }
         
-        /* Selector de empleado minimalista */
         .selector-box {
             background: #f8fafc;
             border: 1px solid #cbd5e0;
@@ -43,7 +42,56 @@
             font-weight: 600;
         }
 
-        /* Tarjeta de cita limpia y moderna */
+        /* Menú interno amigable del empleado */
+        .employee-menu-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .action-card {
+            display: flex;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #cbd5e0;
+            padding: 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+        }
+        .action-card:hover {
+            background: #ebf8ff;
+            border-color: #2563eb;
+            transform: translateY(-1px);
+        }
+        .action-icon {
+            font-size: 1.5rem;
+            width: 42px;
+            height: 42px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .action-info h3 {
+            margin: 0 0 2px 0;
+            font-size: 0.9rem;
+            color: #1e293b;
+            font-weight: 700;
+        }
+        .action-info p {
+            margin: 0;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        /* Tarjeta de cliente para la vista de lista */
         .client-card { 
             background: #ffffff; 
             border: 1px solid #e2e8f0;
@@ -54,7 +102,6 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.03); 
         }
 
-        /* Botón de navegación GPS estilizado */
         .btn-nav {
             display: flex;
             align-items: center;
@@ -65,7 +112,7 @@
             border: none;
             padding: 10px;
             border-radius: 8px;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             font-weight: bold;
             cursor: pointer;
             text-decoration: none;
@@ -79,12 +126,11 @@
         /* Calendario mensual limpio */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
         .cal-header { text-align: center; font-weight: bold; font-size: 0.75rem; color: #64748b; padding: 4px 0; }
-        .cal-day { min-height: 44px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #334155; transition: all 0.2s; }
+        .cal-day { min-height: 44px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #334155; }
         .cal-day:hover { background: #e2e8f0; }
         .cal-day.has-appointments { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
         .badge-count { font-size: 0.6rem; background: #2563eb; color: white; padding: 1px 5px; border-radius: 10px; margin-top: 2px; }
 
-        /* Modal limpio para ver citas de otro día */
         .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 12px; }
         .custom-modal-content { background: white; width: 100%; max-width: 480px; max-height: 85vh; padding: 18px; border-radius: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
     </style>
@@ -92,13 +138,13 @@
 <body>
 
     <div class="container">
-        <!-- Cabecera simple -->
+        <!-- Cabecera -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">👷‍♂️ Mi Ruta Diaria</h1>
-            <a href="./index.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">Menú</a>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">👷‍♂️ Portal del Empleado</h1>
+            <a href="./index.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">Menú Principal</a>
         </div>
 
-        <!-- Selector de empleado con aspecto amigable -->
+        <!-- Selector de empleado -->
         <div class="selector-box">
             <label style="display: block; font-weight: 700; margin-bottom: 6px; color: #475569; font-size: 0.82rem;">¿Quién eres?</label>
             <select id="employee-selector">
@@ -106,19 +152,46 @@
             </select>
         </div>
 
-        <!-- Pestañas simples y limpias (Solo aparecen al seleccionar el nombre) -->
-        <div id="nav-tabs" style="display: none; gap: 8px; margin-bottom: 16px;">
-            <button type="button" id="btn-today" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #2563eb; background: #2563eb; color: white; font-weight: bold; font-size: 0.85rem; cursor: pointer;">📅 Hoy</button>
-            <button type="button" id="btn-calendar" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e0; background: white; color: #475569; font-weight: bold; font-size: 0.85rem; cursor: pointer;">🗓️ Calendario</button>
+        <!-- MENÚ INTERNO DEL EMPLEADO (Aparece al seleccionar el nombre) -->
+        <div id="employee-menu" class="employee-menu-grid" style="display: none;">
+            <!-- Opción 1: Ver Ruta Interactiva con Pines Numerados -->
+            <button type="button" class="action-card" id="btn-goto-route-map">
+                <div class="action-icon">🗺️</div>
+                <div class="action-info">
+                    <h3>Mapa de Ruta de Hoy</h3>
+                    <p>Ver los clientes del día con pines numerados (1, 2, 3...) y GPS.</p>
+                </div>
+            </button>
+
+            <!-- Opción 2: Ver tu día (Estructura / Lista de Clientes de Hoy) -->
+            <button type="button" class="action-card" id="btn-view-day-list">
+                <div class="action-icon">📋</div>
+                <div class="action-info">
+                    <h3>Estructura de Clientes de Hoy</h3>
+                    <p>Consulta la lista detallada de tus tareas del día actual.</p>
+                </div>
+            </button>
+
+            <!-- Opción 3: Ver tu mes (Calendario Mensual) -->
+            <button type="button" class="action-card" id="btn-view-month-cal">
+                <div class="action-icon">🗓️</div>
+                <div class="action-info">
+                    <h3>Calendario Mensual</h3>
+                    <p>Revisa tus asignaciones de todo el mes de forma general.</p>
+                </div>
+            </button>
         </div>
 
-        <!-- Contenedor principal de la agenda o calendario -->
-        <div id="main-view-area">
-            <p style="color: #94a3b8; text-align: center; font-size: 0.85rem; margin: 30px 0;">Selecciona tu nombre arriba para consultar tus tareas.</p>
+        <!-- Botón para regresar al menú interno del empleado -->
+        <div id="back-to-menu-container" style="display: none; margin-bottom: 12px;">
+            <button type="button" id="btn-back-menu" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: bold; cursor: pointer; color: #475569;">← Volver al Menú de Opciones</button>
         </div>
+
+        <!-- Área dinámica donde se despliega la lista o el calendario -->
+        <div id="dynamic-content-area"></div>
     </div>
 
-    <!-- Modal emergente para ver las citas de un día seleccionado en el calendario -->
+    <!-- Modal para ver las citas de un día seleccionado en el calendario -->
     <div id="day-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
@@ -146,7 +219,7 @@
             return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
         }
 
-        async function initPortal() {
+        async function initSchedulePortal() {
             try {
                 const [{ data: clients }, { data: appointments }, { data: employees }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
@@ -163,56 +236,55 @@
                     selector.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
             } catch (err) {
-                console.error('Error al cargar portal:', err);
-                document.getElementById('main-view-area').innerHTML = '<p style="color: #ef4444; text-align: center; font-size: 0.85rem;">Error al conectar con el servidor.</p>';
+                console.error('Error al inicializar:', err);
             }
         }
 
         document.getElementById('employee-selector').addEventListener('change', (e) => {
             selectedEmployee = e.target.value;
-            const navTabs = document.getElementById('nav-tabs');
-            const viewArea = document.getElementById('main-view-area');
+            const empMenu = document.getElementById('employee-menu');
+            const contentArea = document.getElementById('dynamic-content-area');
+            const backBtnContainer = document.getElementById('back-to-menu-container');
 
             if (!selectedEmployee) {
-                navTabs.style.display = 'none';
-                viewArea.innerHTML = '<p style="color: #94a3b8; text-align: center; font-size: 0.85rem; margin: 30px 0;">Selecciona tu nombre arriba.</p>';
+                empMenu.style.display = 'none';
+                backBtnContainer.style.display = 'none';
+                contentArea.innerHTML = '';
                 return;
             }
 
-            navTabs.style.display = 'flex';
-            activateTab('today');
+            empMenu.style.display = 'grid';
+            backBtnContainer.style.display = 'none';
+            contentArea.innerHTML = '';
         });
 
-        document.getElementById('btn-today').addEventListener('click', () => activateTab('today'));
-        document.getElementById('btn-calendar').addEventListener('click', () => activateTab('calendar'));
+        // Botón 1: Ir directo al mapa de ruta del día (employee-route.html)
+        document.getElementById('btn-goto-route-map').addEventListener('click', () => {
+            if (!selectedEmployee) return;
+            // Redirige al programa de mapa interactivo pasando el empleado en la URL si lo deseas, o se mantiene en su sesión
+            window.location.href = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}`;
+        });
 
-        function activateTab(tabName) {
-            const btnToday = document.getElementById('btn-today');
-            const btnCalendar = document.getElementById('btn-calendar');
-            const viewArea = document.getElementById('main-view-area');
+        // Botón 2: Ver tu día (Lista / Estructura detallada de clientes de hoy)
+        document.getElementById('btn-view-day-list').addEventListener('click', () => {
+            document.getElementById('employee-menu').style.display = 'none';
+            document.getElementById('back-to-menu-container').style.display = 'block';
+            renderDaySchedule(document.getElementById('dynamic-content-area'), todayStrSystem, "Estructura de Clientes de Hoy");
+        });
 
-            if (tabName === 'today') {
-                btnToday.style.background = '#2563eb';
-                btnToday.style.color = 'white';
-                btnToday.style.borderColor = '#2563eb';
+        // Botón 3: Ver tu mes (Calendario mensual)
+        document.getElementById('btn-view-month-cal').addEventListener('click', () => {
+            document.getElementById('employee-menu').style.display = 'none';
+            document.getElementById('back-to-menu-container').style.display = 'block';
+            renderMonthCalendar(document.getElementById('dynamic-content-area'));
+        });
 
-                btnCalendar.style.background = 'white';
-                btnCalendar.style.color = '#475569';
-                btnCalendar.style.borderColor = '#cbd5e0';
-
-                renderDaySchedule(viewArea, todayStrSystem, "Agenda de Hoy");
-            } else {
-                btnCalendar.style.background = '#2563eb';
-                btnCalendar.style.color = 'white';
-                btnCalendar.style.borderColor = '#2563eb';
-
-                btnToday.style.background = 'white';
-                btnToday.style.color = '#475569';
-                btnToday.style.borderColor = '#cbd5e0';
-
-                renderMonthCalendar(viewArea);
-            }
-        }
+        // Botón de Volver al menú interno
+        document.getElementById('btn-back-menu').addEventListener('click', () => {
+            document.getElementById('dynamic-content-area').innerHTML = '';
+            document.getElementById('back-to-menu-container').style.display = 'none';
+            document.getElementById('employee-menu').style.display = 'grid';
+        });
 
         function getEmployeeAppointmentsForDate(dateStr) {
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
@@ -231,7 +303,7 @@
                 container.innerHTML = `
                     <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 10px; text-align: center; color: #b45309; margin-top: 10px;">
                         <strong>No tienes citas programadas para el ${formatDateToDDMMYYYY(dateStr)}.</strong>
-                        <p style="font-size: 0.78rem; margin: 4px 0 0 0;">Buen trabajo, revisa el calendario para tus próximas rutas.</p>
+                        <p style="font-size: 0.78rem; margin: 4px 0 0 0;">Buen trabajo.</p>
                     </div>
                 `;
                 return;
@@ -239,7 +311,7 @@
 
             let html = `<h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 10px;">📅 ${titleText} (${formatDateToDDMMYYYY(dateStr)}):</h3>`;
 
-            dayAppointments.forEach(appt => {
+            dayAppointments.forEach((appt, index) => {
                 const client = clientsMap.get(appt.client_id);
                 const timeStr = appt.time_slot || '09:00';
                 const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h est.)` : '';
@@ -251,7 +323,7 @@
                 html += `
                     <div class="client-card">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong style="font-size: 1rem; color: #1e293b;">⏰ ${timeStr}h</strong>
+                            <strong style="font-size: 1rem; color: #1e293b;">#${index + 1} - ⏰ ${timeStr}h</strong>
                             <span style="font-size: 0.75rem; background: #e2e8f0; padding: 2px 6px; border-radius: 6px; font-weight: 700; color: #475569;">CP: ${client.postal_code || 'N/A'}</span>
                         </div>
                         <h4 style="margin: 6px 0 2px 0; font-size: 0.95rem; color: #0f172a;">${client.name}</h4>
@@ -334,7 +406,7 @@
             document.getElementById('day-modal').style.display = 'none'; 
         });
 
-        initPortal();
+        initSchedulePortal();
     </script>
 </body>
 </html>
