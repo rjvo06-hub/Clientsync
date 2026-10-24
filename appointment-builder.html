@@ -247,6 +247,13 @@
                 </div>
 
                 <div class="form-row-group">
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Técnico Asignado (Opcional):</label>
+                    <select id="employee-select">
+                        <option value="General">Sin asignar</option>
+                    </select>
+                </div>
+
+                <div class="form-row-group">
                     <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Horas estimadas (Opcional):</label>
                     <input type="text" id="estimated-hours" inputmode="decimal" placeholder="Ej. 4 o 1.5">
                 </div>
@@ -288,6 +295,7 @@
         let allClients = [];
         let allAppointments = [];
         let allServices = [];
+        let allEmployees = [];
         let clientAppointments = [];
         let selectedAppointmentId = null;
         let selectedDateOnly = '';
@@ -395,15 +403,23 @@
 
         async function initForm() {
             try {
-                const [{ data: clientData }, { data: apptData }, { data: serviceData }] = await Promise.all([
+                const [{ data: clientData }, { data: apptData }, { data: serviceData }, { data: employeeData }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
                     supabase.from('appointments').select('*'),
-                    supabase.from('services').select('*').order('name', { ascending: true })
+                    supabase.from('services').select('*').order('name', { ascending: true }),
+                    supabase.from('employees').select('*').order('name', { ascending: true })
                 ]);
 
                 allClients = clientData || [];
                 allAppointments = apptData || [];
                 allServices = serviceData || [];
+                allEmployees = employeeData || [];
+
+                const empSelect = document.getElementById('employee-select');
+                empSelect.innerHTML = `<option value="General">Sin asignar</option>`;
+                allEmployees.forEach(emp => {
+                    empSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
+                });
 
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
@@ -542,6 +558,7 @@
             document.getElementById('appointment-time').value = '';
             document.getElementById('estimated-hours').value = '';
             serviceSearchInput.value = '';
+            document.getElementById('employee-select').value = 'General';
 
             document.getElementById('client-details').style.display = 'none';
             document.getElementById('date-section').style.display = 'none';
@@ -603,6 +620,7 @@
             document.getElementById('free-date-input').value = '';
             document.getElementById('appointment-time').value = '';
             document.getElementById('estimated-hours').value = '';
+            document.getElementById('employee-select').value = 'General';
             
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.6';
@@ -640,7 +658,7 @@
                     card.innerHTML = `
                         <div style="flex: 1;">
                             <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
-                            <div style="font-size: 0.72rem; color: #666;">Servicio: ${appt.service_requested || 'General'}</div>
+                            <div style="font-size: 0.72rem; color: #666;">Servicio: ${appt.service_requested || 'General'} | Técnico: ${appt.assigned_employee || 'Sin asignar'}</div>
                         </div>
                         <button type="button" class="btn-quick-reschedule" data-id="${appt.id}" style="width: auto; padding: 4px 8px; background: #3182ce; color: white; border: none; border-radius: 6px; font-size: 0.68rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
                             🔄 Reprogramar
@@ -667,6 +685,9 @@
                             if (appt.service_requested) {
                                 document.getElementById('service-search-input').value = appt.service_requested;
                             }
+                            if (appt.assigned_employee) {
+                                document.getElementById('employee-select').value = appt.assigned_employee;
+                            }
                             selectedDateOnly = datePart;
                             updateFinalTimestamp();
                             saveBtn.disabled = false;
@@ -680,7 +701,6 @@
                             });
                         }
 
-                        // Desplazamiento automático y enfoque directo al campo de fecha
                         setTimeout(() => {
                             dateSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             const dateInput = document.getElementById('free-date-input');
@@ -727,7 +747,6 @@
                         const scheduledClient = allClients.find(c => c.id === appt.client_id);
                         if (scheduledClient && scheduledClient.latitude && scheduledClient.longitude) {
                             const timeStr = appt.time_slot ? appt.time_slot.substring(0, 5) : '09:00';
-                            
                             const isCurrentClient = (scheduledClient.id === client.id);
 
                             if (isCurrentClient) {
@@ -790,7 +809,6 @@
                 suggestionBox.style.display = 'block';
             }
 
-            // Si se pasa un appointment_id exacto por URL, simulamos el clic para seleccionarla y enfocarla de inmediato
             if (targetApptToSelect) {
                 targetApptToSelect.card.querySelector('.btn-quick-reschedule').click();
             }
@@ -841,6 +859,7 @@
             const timeVal = document.getElementById('appointment-time').value || '09:00';
             const rawHours = document.getElementById('estimated-hours').value.trim();
             const serviceVal = document.getElementById('service-search-input').value.trim();
+            const employeeVal = document.getElementById('employee-select').value;
 
             if (!clientId || !dateVal) {
                 alert('Selecciona un cliente y una fecha/hora válida.');
@@ -884,14 +903,13 @@
 
             const parsedHours = rawHours !== '' ? parseFloat(rawHours.replace(',', '.')) : null;
 
-            // NOTA: Al crear o actualizar la cita, NO incluimos ningún campo de técnico asignado (assigned_employee) 
-            // para garantizar que las nuevas citas o modificaciones nunca tengan técnico por defecto.
             const payload = {
                 client_id: clientId,
                 scheduled_date: dateVal,
                 time_slot: timeVal,
                 estimated_hours: !isNaN(parsedHours) ? parsedHours : null,
-                service_requested: serviceVal || null
+                service_requested: serviceVal || null,
+                assigned_employee: employeeVal !== 'General' ? employeeVal : null
             };
 
             let errorResult = null;
@@ -912,7 +930,7 @@
                 const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
                 const formattedDateReadable = formatLocalDateTime(dateVal, timeVal);
                 
-                alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}`);
+                alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}\n🛠️ Técnico: ${employeeVal}`);
 
                 await resetFormAndReloadMap();
 
