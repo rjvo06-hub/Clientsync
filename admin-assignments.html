@@ -225,7 +225,6 @@
             const timeStr = appt.time_slot || '09:00';
             const dateStrFormatted = dateStr ? `${dateStr.split('T')[0].split('-').reverse().join('/')} a las ${timeStr}h` : 'Pendiente';
             
-            // Obtenemos el técnico asignado específicamente a ESTA cita
             const currentEmp = appt.assigned_employee || 'General';
             const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h est.)` : '';
 
@@ -244,7 +243,6 @@
                         </div>
                         <div style="flex: 1; min-width: 150px;">
                             <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
-                            <!-- Guardamos el ID de la cita en lugar del cliente -->
                             <select class="emp-dropdown" data-appt-id="${appt.id}" style="width: 100%;">${employeeOptions}</select>
                         </div>
                         <div style="display: flex; align-items: flex-end;">
@@ -256,12 +254,11 @@
         }
 
         function attachEventListeners() {
-            // Actualiza el técnico directamente en la tabla appointments según la cita
             document.querySelectorAll('.emp-dropdown').forEach(sel => {
                 sel.addEventListener('change', async (e) => {
                     const apptId = e.target.getAttribute('data-appt-id');
                     const newEmp = e.target.value;
-                    await supabase.from('appointments').update({ assigned_employee: newEmp }).eq('id', apptId);
+                    await supabase.from('appointments').update({ assigned_employee: newEmp !== 'General' ? newEmp : null }).eq('id', apptId);
                 });
             });
 
