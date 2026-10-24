@@ -278,7 +278,7 @@
 
             map.fitBounds(bounds);
 
-            // 2. Trazar cada tramo adaptado a las calles reales en carro
+            // 2. Trazar tramos viales usando la Routes API activada
             for (let i = 0; i < validStops.length - 1; i++) {
                 const origin = validStops[i].latLng;
                 const destination = validStops[i + 1].latLng;
@@ -302,7 +302,7 @@
                         renderer.setDirections(response);
                         routeRenderers.push(renderer);
                     } else {
-                        console.error(`Error al calcular la ruta en coche para el tramo ${i+1} -> ${i+2}:`, status);
+                        console.error(`Error en el tramo ${i+1} -> ${i+2}:`, status);
                     }
                 });
             }
