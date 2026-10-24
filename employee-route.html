@@ -88,7 +88,6 @@
         let map = null;
         let markers = [];
         let routeRenderers = [];
-        let fallbackPolylines = [];
         let infoWindow = null;
         let directionsService = null;
         
@@ -193,8 +192,6 @@
         function clearPreviousRoutes() {
             routeRenderers.forEach(renderer => renderer.setMap(null));
             routeRenderers = [];
-            fallbackPolylines.forEach(poly => poly.setMap(null));
-            fallbackPolylines = [];
         }
 
         function renderSelectedDayData() {
@@ -281,7 +278,7 @@
 
             map.fitBounds(bounds);
 
-            // 2. Dibujar tramos de ruta. Si DirectionsService falla, dibuja una línea directa de respaldo automáticamente.
+            // 2. Trazar cada tramo adaptado a las calles reales en carro
             for (let i = 0; i < validStops.length - 1; i++) {
                 const origin = validStops[i].latLng;
                 const destination = validStops[i + 1].latLng;
@@ -305,17 +302,7 @@
                         renderer.setDirections(response);
                         routeRenderers.push(renderer);
                     } else {
-                        console.warn(`DirectionsService falló en el tramo ${i+1}->${i+2} (${status}). Activando línea directa de respaldo.`);
-                        // Respaldo geométrico directo si la API externa está restringida o falla
-                        const fallbackLine = new google.maps.Polyline({
-                            path: [origin, destination],
-                            geodesic: true,
-                            strokeColor: segmentColor,
-                            strokeOpacity: 0.85,
-                            strokeWeight: 5,
-                            map: map
-                        });
-                        fallbackPolylines.push(fallbackLine);
+                        console.error(`Error al calcular la ruta en coche para el tramo ${i+1} -> ${i+2}:`, status);
                     }
                 });
             }
