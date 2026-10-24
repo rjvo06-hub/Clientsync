@@ -334,14 +334,12 @@
             return dateStr;
         }
 
-        // Función auxiliar para formatear la fecha y hora local fija (sin conversiones de huso horario)
-        function formatLocalDateTime(isoString) {
-            if (!isoString) return '';
-            const parts = isoString.split('T');
-            if (parts.length !== 2) return isoString;
-            
-            const dateParts = parts[0].split('-');
-            const timePart = parts[1].substring(0, 5); // HH:mm (formato 24 horas)
+        // Función auxiliar para formatear fecha y hora local fija combinando scheduled_date y time_slot
+        function formatLocalDateTime(dateStr, timeStr) {
+            if (!dateStr) return '';
+            const cleanDate = dateStr.split('T')[0];
+            const dateParts = cleanDate.split('-');
+            const timePart = timeStr ? timeStr.substring(0, 5) : '00:00';
             
             if (dateParts.length === 3) {
                 const [year, month, day] = dateParts;
@@ -350,7 +348,7 @@
                 const dateReadable = localDate.toLocaleDateString('es-ES', options);
                 return `${dateReadable}, ${timePart} hrs`;
             }
-            return isoString;
+            return `${cleanDate} ${timePart}`;
         }
 
         function suggestNextTimeForDate(dateStr) {
@@ -371,21 +369,19 @@
             let latestMinute = 0;
 
             apptsOnDate.forEach(a => {
-                const parts = a.scheduled_date.split('T');
-                if (parts.length === 2) {
-                    const timeParts = parts[1].split(':');
-                    const h = parseInt(timeParts[0], 10);
-                    const m = parseInt(timeParts[1], 10);
-                    const totalMins = h * 60 + m;
-                    
-                    const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 60;
-                    const endMins = totalMins + durationMins;
+                const timeStr = a.time_slot || '09:00';
+                const timeParts = timeStr.split(':');
+                const h = parseInt(timeParts[0], 10);
+                const m = parseInt(timeParts[1], 10);
+                const totalMins = h * 60 + m;
+                
+                const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 60;
+                const endMins = totalMins + durationMins;
 
-                    const currentLatestMins = latestHour * 60 + latestMinute;
-                    if (endMins > currentLatestMins) {
-                        latestHour = Math.floor(endMins / 60);
-                        latestMinute = endMins % 60;
-                    }
+                const currentLatestMins = latestHour * 60 + latestMinute;
+                if (endMins > currentLatestMins) {
+                    latestHour = Math.floor(endMins / 60);
+                    latestMinute = endMins % 60;
                 }
             });
 
@@ -582,7 +578,7 @@
                 clientAppointments.forEach((appt, index) => {
                     let formatted = 'Fecha no válida';
                     if (appt.scheduled_date) {
-                        formatted = formatLocalDateTime(appt.scheduled_date);
+                        formatted = formatLocalDateTime(appt.scheduled_date, appt.time_slot);
                     }
                     
                     const card = document.createElement('div');
@@ -608,7 +604,7 @@
                         
                         if (appt.scheduled_date) {
                             const datePart = appt.scheduled_date.split('T')[0];
-                            const timePart = appt.scheduled_date.split('T')[1].substring(0, 5);
+                            const timePart = appt.time_slot || '09:00';
                             document.getElementById('free-date-input').value = datePart;
                             document.getElementById('appointment-time').value = timePart;
                             selectedDateOnly = datePart;
@@ -656,8 +652,7 @@
                     apptsOnThisDate.forEach(appt => {
                         const scheduledClient = allClients.find(c => c.id === appt.client_id);
                         if (scheduledClient && scheduledClient.latitude && scheduledClient.longitude) {
-                            const timePart = appt.scheduled_date.split('T')[1];
-                            const timeStr = timePart ? timePart.substring(0, 5) : '00:00';
+                            const timeStr = appt.time_slot ? appt.time_slot.substring(0, 5) : '09:00';
                             
                             const isCurrentClient = (scheduledClient.id === client.id);
 
@@ -756,11 +751,11 @@
             }
         });
 
-        // MODIFICACIÓN APLICADA: Se quita la 'Z' final para evitar conversiones automáticas de huso horario
         function updateFinalTimestamp() {
             const timeVal = document.getElementById('appointment-time').value || '09:00';
             if (selectedDateOnly) {
-                document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00`;
+                // Mantenemos la fecha limpia para scheduled_date
+                document.getElementById('selected-appointment-date').value = selectedDateOnly;
             }
         }
 
@@ -769,11 +764,12 @@
 
             const clientId = document.getElementById('client-select').value;
             updateFinalTimestamp();
-            const apptVal = document.getElementById('selected-appointment-date').value;
+            const dateVal = document.getElementById('selected-appointment-date').value;
+            const timeVal = document.getElementById('appointment-time').value || '09:00';
             const hoursVal = document.getElementById('estimated-hours').value;
             const serviceVal = document.getElementById('service-search-input').value.trim();
 
-            if (!clientId || !apptVal) {
+            if (!clientId || !dateVal) {
                 alert('Selecciona un cliente y una fecha/hora válida.');
                 return;
             }
@@ -783,21 +779,18 @@
                 return;
             }
 
-            const chosenDatePart = apptVal.split('T')[0];
-            const chosenTimePart = apptVal.split('T')[1].substring(0, 5);
-
-            if (chosenDatePart < todayStrSystem) {
+            if (dateVal < todayStrSystem) {
                 alert('No se pueden programar citas en fechas pasadas.');
                 return;
             }
 
-            if (chosenDatePart === todayStrSystem) {
+            if (dateVal === todayStrSystem) {
                 const now = new Date();
                 const currentHours = String(now.getHours()).padStart(2, '0');
                 const currentMinutes = String(now.getMinutes()).padStart(2, '0');
                 const currentTimeStr = `${currentHours}:${currentMinutes}`;
 
-                if (chosenTimePart < currentTimeStr) {
+                if (timeVal < currentTimeStr) {
                     alert('No puedes programar una cita a una hora que ya ha transcurrido el día de hoy.');
                     return;
                 }
@@ -816,9 +809,11 @@
                 }
             }
 
+            // MODIFICACIÓN APLICADA: Separación limpia en el payload
             const payload = {
                 client_id: clientId,
-                scheduled_date: apptVal,
+                scheduled_date: dateVal,   // Guarda solo la fecha en la columna date
+                time_slot: timeVal,          // Guarda la hora exacta en el campo time_slot
                 estimated_hours: hoursVal ? parseFloat(hoursVal) : null,
                 service_requested: serviceVal || null
             };
@@ -842,7 +837,7 @@
                 allAppointments = refreshedAppts || [];
 
                 const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
-                const formattedDateReadable = formatLocalDateTime(apptVal);
+                const formattedDateReadable = formatLocalDateTime(dateVal, timeVal);
                 
                 alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient.name}`);
 
