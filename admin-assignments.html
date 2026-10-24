@@ -63,44 +63,6 @@
         </div>
     </div>
 
-    <!-- Modal Modificar Cita -->
-    <div id="reschedule-modal" class="custom-modal">
-        <div class="custom-modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 style="margin: 0; font-size: 1.05rem; color: #2b6cb0;">🔄 Modificar Cita y Horario</h3>
-                <button type="button" id="close-reschedule-modal" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
-            </div>
-            <form id="reschedule-form">
-                <input type="hidden" id="reschedule-appt-id">
-                
-                <div style="margin-bottom: 12px;">
-                    <strong id="res-client-name" style="font-size: 1rem; color: #2d3748; display: block;">Cliente: -</strong>
-                    <span id="res-client-address" style="font-size: 0.85rem; color: #718096;">-</span>
-                </div>
-
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
-                    <div style="flex: 1; min-width: 140px;">
-                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Nueva Fecha:</label>
-                        <input type="date" id="res-date-input" style="width: 100%;" required>
-                    </div>
-                    <div style="flex: 1; min-width: 140px;">
-                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Hora de atención:</label>
-                        <input type="time" id="res-time-input" style="width: 100%;" required>
-                    </div>
-                    <div style="flex: 1; min-width: 120px;">
-                        <label style="font-size: 0.8rem; font-weight: bold; color: #4a5568; display: block; margin-bottom: 4px;">Horas est. (Opc):</label>
-                        <input type="number" id="res-hours-input" step="0.5" min="0.5" placeholder="Ej. 1.5" style="width: 100%;">
-                    </div>
-                </div>
-
-                <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
-                    <button type="button" id="cancel-reschedule-btn" style="background: #e2e8f0; color: #4a5568; border: none; padding: 10px 16px; font-weight: bold; cursor: pointer; border-radius: 6px;">Cancelar</button>
-                    <button type="submit" style="background: #38a169; color: white; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 6px;">Guardar y Actualizar Cita</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -279,7 +241,7 @@
                             <select class="emp-dropdown" data-client-id="${client.id}" style="width: 100%;">${employeeOptions}</select>
                         </div>
                         <div style="display: flex; align-items: flex-end;">
-                            <button type="button" class="open-reschedule-modal-btn" data-appt-id="${appt.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Modificar</button>
+                            <button type="button" class="goto-reschedule-btn" data-client-id="${client.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Modificar</button>
                         </div>
                     </div>
                 </div>
@@ -295,52 +257,14 @@
                 });
             });
 
-            document.querySelectorAll('.open-reschedule-modal-btn').forEach(btn => {
+            // Redirige directamente al programa de programación/reprogramación de citas con el cliente seleccionado
+            document.querySelectorAll('.goto-reschedule-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const appt = allAppointments.find(a => a.id === e.target.getAttribute('data-appt-id'));
-                    const client = allClients.find(c => c.id === appt.client_id);
-                    if (!appt || !client) return;
-
-                    document.getElementById('reschedule-appt-id').value = appt.id;
-                    document.getElementById('res-client-name').textContent = `Cliente: ${client.name}`;
-                    document.getElementById('res-client-address').textContent = `📍 ${client.address || 'Sin dirección'}`;
-
-                    document.getElementById('res-date-input').value = appt.scheduled_date || todayStrSystem;
-                    document.getElementById('res-time-input').value = appt.time_slot || '09:00';
-                    document.getElementById('res-hours-input').value = appt.estimated_hours || '';
-
-                    document.getElementById('reschedule-modal').style.display = 'flex';
+                    const clientId = e.target.getAttribute('data-client-id');
+                    window.location.href = `./appointment-builder.html?client_id=${clientId}&action=reschedule`;
                 });
             });
         }
-
-        document.getElementById('cancel-reschedule-btn').addEventListener('click', () => { document.getElementById('reschedule-modal').style.display = 'none'; });
-        document.getElementById('close-reschedule-modal').addEventListener('click', () => { document.getElementById('reschedule-modal').style.display = 'none'; });
-
-        document.getElementById('reschedule-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const apptId = document.getElementById('reschedule-appt-id').value;
-            const newDate = document.getElementById('res-date-input').value;
-            const newTime = document.getElementById('res-time-input').value || '09:00';
-            const newHours = document.getElementById('res-hours-input').value;
-
-            const { error } = await supabase.from('appointments').update({
-                scheduled_date: newDate,
-                time_slot: newTime,
-                estimated_hours: newHours ? parseFloat(newHours) : null
-            }).eq('id', apptId);
-
-            if (error) {
-                alert('Error al actualizar: ' + error.message);
-            } else {
-                alert('¡Cita reprogramada con éxito!');
-                document.getElementById('reschedule-modal').style.display = 'none';
-                document.getElementById('day-modal').style.display = 'none';
-                const { data } = await supabase.from('appointments').select('*');
-                allAppointments = data || [];
-                renderCurrentView();
-            }
-        });
 
         initAdminPanel();
     </script>
