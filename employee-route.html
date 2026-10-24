@@ -52,7 +52,6 @@
             border: 1px solid #cbd5e0;
         }
 
-        /* Estilo idéntico al otro mapa interactivo para el botón de navegación GPS dentro del InfoWindow */
         .btn-nav-popup {
             display: inline-flex;
             align-items: center;
@@ -156,16 +155,22 @@
         function initMapObject() {
             const centerOttobrunn = { lat: 48.0664, lng: 11.6611 };
             
-            // Se configura gestureHandling: 'greedy' para permitir el movimiento con un solo dedo en móviles
             map = new google.maps.Map(document.getElementById('daily-map'), {
                 zoom: 13,
                 center: centerOttobrunn,
-                gestureHandling: 'greedy',
+                gestureHandling: 'greedy', // Movimiento fluido con un solo dedo en móviles
                 mapTypeControl: false,
                 streetViewControl: false
             });
 
             infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
+
+            // Cierra la ventana flotante automáticamente si haces clic fuera de un marcador
+            map.addListener('click', () => {
+                if (infoWindow) {
+                    infoWindow.close();
+                }
+            });
         }
 
         function setupInfoWindowStyles() {
@@ -184,7 +189,7 @@
                     iwOuter.style.maxHeight = 'none';
                 }
                 const closeBtn = document.querySelector('.gm-ui-hover-effect');
-                if (closeBtn) closeBtn.style.display = 'none'; // Oculta la "X" blanca predeterminada
+                if (closeBtn) closeBtn.style.display = 'none'; // Oculta la "X" blanca
 
                 let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
                 if (!styleTag) {
@@ -231,7 +236,6 @@
                 const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
                 bounds.extend(pos);
 
-                // Pin con número secuencial exacto (1, 2, 3, 4...)
                 const marker = new google.maps.Marker({
                     position: pos,
                     map: map,
@@ -250,7 +254,6 @@
                 const mapsQuery = `${client.latitude},${client.longitude}`;
                 const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}&travelmode=driving`;
 
-                // Estructura visual limpia, con fuente profesional y colores oscuros idénticos a tu otro mapa
                 const windowContent = `
                     <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 6px; border-radius: 6px; width: 190px;">
                         <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
@@ -265,7 +268,8 @@
                     </div>
                 `;
 
-                marker.addListener('click', () => {
+                marker.addListener('click', (e) => {
+                    e.stop(); // Evita que el clic en el marcador dispare el cierre del mapa
                     infoWindow.setContent(windowContent);
                     infoWindow.open(map, marker);
                     setupInfoWindowStyles();
