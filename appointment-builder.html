@@ -247,7 +247,8 @@
 
                 <div class="form-row-group">
                     <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Horas estimadas (Opcional):</label>
-                    <input type="number" id="estimated-hours" step="0.5" min="0.5" placeholder="Ej. 1.5">
+                    <!-- Modificado step="any" y min="0.1" para permitir escritura manual libre -->
+                    <input type="number" id="estimated-hours" step="any" min="0.1" placeholder="Ej. 4 o 1.5">
                 </div>
 
                 <div class="client-search-container" style="margin-top: 8px; margin-bottom: 0;">
@@ -334,7 +335,6 @@
             return dateStr;
         }
 
-        // Función auxiliar para formatear fecha y hora local fija combinando scheduled_date y time_slot
         function formatLocalDateTime(dateStr, timeStr) {
             if (!dateStr) return '';
             const cleanDate = dateStr.split('T')[0];
@@ -527,6 +527,31 @@
             }
         });
 
+        function resetFormToBlank() {
+            activeClient = null;
+            window.activeClient = null;
+            selectedAppointmentId = null;
+            actionType = 'new';
+            selectedDateOnly = '';
+
+            searchInput.value = '';
+            document.getElementById('client-select').value = '';
+            document.getElementById('selected-appointment-date').value = '';
+            document.getElementById('free-date-input').value = '';
+            document.getElementById('appointment-time').value = '';
+            document.getElementById('estimated-hours').value = '';
+            serviceSearchInput.value = '';
+
+            document.getElementById('client-details').style.display = 'none';
+            document.getElementById('date-section').style.display = 'none';
+
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = true;
+            saveBtn.style.opacity = '0.6';
+
+            updateUIModeText();
+        }
+
         function selectClient(client) {
             activeClient = client;
             window.activeClient = client;
@@ -607,6 +632,12 @@
                             const timePart = appt.time_slot || '09:00';
                             document.getElementById('free-date-input').value = datePart;
                             document.getElementById('appointment-time').value = timePart;
+                            if (appt.estimated_hours) {
+                                document.getElementById('estimated-hours').value = appt.estimated_hours;
+                            }
+                            if (appt.service_requested) {
+                                document.getElementById('service-search-input').value = appt.service_requested;
+                            }
                             selectedDateOnly = datePart;
                             updateFinalTimestamp();
                             saveBtn.disabled = false;
@@ -726,11 +757,7 @@
                 return;
             }
 
-            actionType = 'new';
-            selectedAppointmentId = null;
-            updateUIModeText();
-            document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
-
+            // Si estaba en modo reprogramar pero cambia la fecha libremente, aseguramos que actúe de forma limpia
             selectedDateOnly = chosenDate;
             
             const suggestedTime = suggestNextTimeForDate(chosenDate);
@@ -754,7 +781,6 @@
         function updateFinalTimestamp() {
             const timeVal = document.getElementById('appointment-time').value || '09:00';
             if (selectedDateOnly) {
-                // Mantenemos la fecha limpia para scheduled_date
                 document.getElementById('selected-appointment-date').value = selectedDateOnly;
             }
         }
@@ -809,11 +835,10 @@
                 }
             }
 
-            // MODIFICACIÓN APLICADA: Separación limpia en el payload
             const payload = {
                 client_id: clientId,
-                scheduled_date: dateVal,   // Guarda solo la fecha en la columna date
-                time_slot: timeVal,          // Guarda la hora exacta en el campo time_slot
+                scheduled_date: dateVal,
+                time_slot: timeVal,
                 estimated_hours: hoursVal ? parseFloat(hoursVal) : null,
                 service_requested: serviceVal || null
             };
@@ -839,12 +864,10 @@
                 const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
                 const formattedDateReadable = formatLocalDateTime(dateVal, timeVal);
                 
-                alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient.name}`);
+                alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}`);
 
-                selectClient(activeClient);
-
-                btn.textContent = originalBtnText;
-                btn.disabled = false;
+                // Reiniciamos el formulario por completo en blanco tras guardar con éxito
+                resetFormToBlank();
             }
         });
 
