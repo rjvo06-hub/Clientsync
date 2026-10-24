@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Mi Ruta Interactiva</title>
+    <title>ClientSync | Mapa de Ruta por Fecha</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
@@ -14,7 +14,7 @@
             padding: 12px; 
         }
         .container { 
-            max-width: 600px; 
+            max-width: 650px; 
             margin: 10px auto 60px auto; 
             background: white; 
             padding: 18px; 
@@ -23,33 +23,34 @@
             border: 1px solid #e2e8f0;
         }
         
-        .selector-box {
+        .controls-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
             background: #f8fafc;
             border: 1px solid #cbd5e0;
             padding: 12px;
             border-radius: 12px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
         }
-        select { 
-            font-size: 15px; 
-            width: 100%; 
-            padding: 10px 12px; 
-            border: 1px solid #cbd5e0; 
-            border-radius: 8px; 
-            background: white; 
+        .controls-bar select, .controls-bar input {
+            font-size: 14px;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background: white;
             outline: none;
             color: #1e293b;
             font-weight: 600;
         }
 
-        /* Contenedor del mapa interactivo del día */
-        #employee-day-map {
+        #daily-map {
             width: 100%;
-            height: 280px;
+            height: 400px;
             border-radius: 12px;
             border: 1px solid #cbd5e0;
             margin-bottom: 16px;
-            display: none;
         }
 
         .client-card { 
@@ -58,7 +59,7 @@
             border-left: 5px solid #2563eb; 
             padding: 14px; 
             border-radius: 12px; 
-            margin-bottom: 12px; 
+            margin-bottom: 10px; 
             box-shadow: 0 2px 6px rgba(0,0,0,0.03); 
         }
 
@@ -70,66 +71,49 @@
             background: #2563eb;
             color: white;
             border: none;
-            padding: 10px;
+            padding: 8px;
             border-radius: 8px;
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             font-weight: bold;
             cursor: pointer;
             text-decoration: none;
-            margin-top: 10px;
+            margin-top: 8px;
             width: 100%;
-            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
             transition: background 0.2s;
         }
         .btn-nav:hover { background: #1d4ed8; }
-
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
-        .cal-header { text-align: center; font-weight: bold; font-size: 0.75rem; color: #64748b; padding: 4px 0; }
-        .cal-day { min-height: 44px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #334155; transition: all 0.2s; }
-        .cal-day:hover { background: #e2e8f0; }
-        .cal-day.has-appointments { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
-        .badge-count { font-size: 0.6rem; background: #2563eb; color: white; padding: 1px 5px; border-radius: 10px; margin-top: 2px; }
-
-        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 12px; }
-        .custom-modal-content { background: white; width: 100%; max-width: 480px; max-height: 85vh; padding: 18px; border-radius: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <!-- Cabecera -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">👷‍♂️ Mi Ruta Interactiva</h1>
-            <a href="./index.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">Menú</a>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">🗺️ Mapa de Ruta por Fecha</h1>
+            <a href="./index.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">Menú Principal</a>
         </div>
 
-        <div class="selector-box">
-            <label style="display: block; font-weight: 700; margin-bottom: 6px; color: #475569; font-size: 0.82rem;">¿Quién eres?</label>
-            <select id="employee-selector">
-                <option value="">-- Selecciona tu nombre --</option>
-            </select>
-        </div>
-
-        <div id="nav-tabs" style="display: none; gap: 8px; margin-bottom: 16px;">
-            <button type="button" id="btn-today" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #2563eb; background: #2563eb; color: white; font-weight: bold; font-size: 0.85rem; cursor: pointer;">📅 Hoy</button>
-            <button type="button" id="btn-calendar" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e0; background: white; color: #475569; font-weight: bold; font-size: 0.85rem; cursor: pointer;">🗓️ Calendario</button>
-        </div>
-
-        <!-- Mapa interactivo del día -->
-        <div id="employee-day-map"></div>
-
-        <div id="main-view-area">
-            <p style="color: #94a3b8; text-align: center; font-size: 0.85rem; margin: 30px 0;">Selecciona tu nombre arriba para consultar tus tareas.</p>
-        </div>
-    </div>
-
-    <!-- Modal para ver las citas de otro día seleccionado en el calendario -->
-    <div id="day-modal" class="custom-modal">
-        <div class="custom-modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
-                <h3 id="modal-day-title" style="margin: 0; font-size: 0.95rem; color: #1e293b;">📅 Citas del Día</h3>
-                <button type="button" id="close-modal-btn" style="background: #e2e8f0; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.75rem;">✕ Cerrar</button>
+        <!-- Barra de Controles: Selector de Fecha y Filtro de Empleado -->
+        <div class="controls-bar">
+            <div style="flex: 1; min-width: 140px;">
+                <label style="display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; margin-bottom: 3px;">📅 Seleccionar Fecha:</label>
+                <input type="date" id="route-date-input" style="width: 100%;">
             </div>
-            <div id="modal-day-body"></div>
+            <div style="flex: 1; min-width: 140px;">
+                <label style="display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; margin-bottom: 3px;">👷‍♂️ Filtrar Técnico:</label>
+                <select id="employee-filter" style="width: 100%;">
+                    <option value="ALL">-- Todos los técnicos --</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Contenedor del Mapa Interactivo -->
+        <div id="daily-map"></div>
+
+        <!-- Lista de tareas / clientes correspondientes a ese día -->
+        <div id="daily-schedule-list">
+            <p style="color: #94a3b8; text-align: center; font-size: 0.85rem;">Cargando citas del día...</p>
         </div>
     </div>
 
@@ -138,15 +122,19 @@
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
+        let map = null;
+        let markers = [];
+        let infoWindow = null;
         let allClients = [];
         let allAppointments = [];
         let allEmployees = [];
-        let selectedEmployee = '';
-        let selectedMonthDate = new Date();
-        let mapInstance = null;
-        let markersList = [];
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
+
+        const dateInput = document.getElementById('route-date-input');
+        const employeeFilter = document.getElementById('employee-filter');
+
+        dateInput.value = todayStrSystem;
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
@@ -154,7 +142,7 @@
             return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
         }
 
-        async function initPortal() {
+        async function initDailyRouteMap() {
             try {
                 const [{ data: clients }, { data: appointments }, { data: employees }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
@@ -166,152 +154,63 @@
                 allAppointments = appointments || [];
                 allEmployees = employees || [];
 
-                const selector = document.getElementById('employee-selector');
                 allEmployees.forEach(emp => {
-                    selector.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
+                    employeeFilter.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
+
+                initMapObject();
+                renderSelectedDayData();
+
             } catch (err) {
-                console.error('Error al cargar portal:', err);
-                document.getElementById('main-view-area').innerHTML = '<p style="color: #ef4444; text-align: center; font-size: 0.85rem;">Error al conectar con el servidor.</p>';
+                console.error('Error al inicializar mapa diario:', err);
             }
         }
 
-        document.getElementById('employee-selector').addEventListener('change', (e) => {
-            selectedEmployee = e.target.value;
-            const navTabs = document.getElementById('nav-tabs');
-            const viewArea = document.getElementById('main-view-area');
-            const mapDiv = document.getElementById('employee-day-map');
-
-            if (!selectedEmployee) {
-                navTabs.style.display = 'none';
-                mapDiv.style.display = 'none';
-                viewArea.innerHTML = '<p style="color: #94a3b8; text-align: center; font-size: 0.85rem; margin: 30px 0;">Selecciona tu nombre arriba.</p>';
-                return;
-            }
-
-            navTabs.style.display = 'flex';
-            activateTab('today');
-        });
-
-        document.getElementById('btn-today').addEventListener('click', () => activateTab('today'));
-        document.getElementById('btn-calendar').addEventListener('click', () => activateTab('calendar'));
-
-        function activateTab(tabName) {
-            const btnToday = document.getElementById('btn-today');
-            const btnCalendar = document.getElementById('btn-calendar');
-            const viewArea = document.getElementById('main-view-area');
-            const mapDiv = document.getElementById('employee-day-map');
-
-            if (tabName === 'today') {
-                btnToday.style.background = '#2563eb';
-                btnToday.style.color = 'white';
-                btnToday.style.borderColor = '#2563eb';
-
-                btnCalendar.style.background = 'white';
-                btnCalendar.style.color = '#475569';
-                btnCalendar.style.borderColor = '#cbd5e0';
-
-                mapDiv.style.display = 'block';
-                renderDaySchedule(viewArea, todayStrSystem, "Agenda de Hoy", true);
-            } else {
-                btnCalendar.style.background = '#2563eb';
-                btnCalendar.style.color = 'white';
-                btnCalendar.style.borderColor = '#2563eb';
-
-                btnToday.style.background = 'white';
-                btnToday.style.color = '#475569';
-                btnToday.style.borderColor = '#cbd5e0';
-
-                mapDiv.style.display = 'none';
-                renderMonthCalendar(viewArea);
-            }
-        }
-
-        function getEmployeeAppointmentsForDate(dateStr) {
-            const clientsMap = new Map(allClients.map(c => [c.id, c]));
-            return allAppointments.filter(appt => {
-                if (!appt.scheduled_date || appt.scheduled_date.split('T')[0] !== dateStr) return false;
-                if (appt.assigned_employee !== selectedEmployee) return false;
-                return clientsMap.has(appt.client_id);
-            });
-        }
-
-        function renderDaySchedule(container, dateStr, titleText, showMap = false) {
-            const dayAppointments = getEmployeeAppointmentsForDate(dateStr);
-            const clientsMap = new Map(allClients.map(c => [c.id, c]));
-
-            if (showMap) {
-                setTimeout(() => initDayMap(dayAppointments, clientsMap), 200);
-            }
-
-            if (dayAppointments.length === 0) {
-                if (showMap) document.getElementById('employee-day-map').style.display = 'none';
-                container.innerHTML = `
-                    <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 10px; text-align: center; color: #b45309; margin-top: 10px;">
-                        <strong>No tienes citas programadas para el ${formatDateToDDMMYYYY(dateStr)}.</strong>
-                        <p style="font-size: 0.78rem; margin: 4px 0 0 0;">Buen trabajo, revisa el calendario para tus próximas rutas.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = `<h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 10px;">📅 ${titleText} (${formatDateToDDMMYYYY(dateStr)}):</h3>`;
-
-            dayAppointments.forEach((appt, index) => {
-                const client = clientsMap.get(appt.client_id);
-                const timeStr = appt.time_slot || '09:00';
-                const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h est.)` : '';
-                const serviceStr = appt.service_requested ? `<p style="margin: 2px 0 4px 0; font-size: 0.82rem; color: #2563eb; font-weight: 700;">🛠️ ${appt.service_requested}</p>` : '';
-                
-                const mapsQuery = (client.latitude && client.longitude) ? `${client.latitude},${client.longitude}` : encodeURIComponent(client.address || '');
-                const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}&travelmode=driving`;
-
-                html += `
-                    <div class="client-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong style="font-size: 1rem; color: #1e293b;">#${index + 1} - ⏰ ${timeStr}h</strong>
-                            <span style="font-size: 0.75rem; background: #e2e8f0; padding: 2px 6px; border-radius: 6px; font-weight: 700; color: #475569;">CP: ${client.postal_code || 'N/A'}</span>
-                        </div>
-                        <h4 style="margin: 6px 0 2px 0; font-size: 0.95rem; color: #0f172a;">${client.name}</h4>
-                        ${serviceStr}
-                        <p style="margin: 0 0 3px 0; font-size: 0.82rem; color: #475569;">📍 ${client.address || 'Sin dirección'}${hoursInfo}</p>
-                        <p style="margin: 0 0 6px 0; font-size: 0.82rem; color: #475569;">📞 Tel: ${client.phone || 'No registrado'}</p>
-                        <a href="${mapsNavUrl}" target="_blank" class="btn-nav">🧭 Iniciar Navegación GPS</a>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-        }
-
-        function initDayMap(dayAppointments, clientsMap) {
-            const mapContainer = document.getElementById('employee-day-map');
-            if (!window.google || !window.google.maps) return;
-
-            if (dayAppointments.length === 0) {
-                mapContainer.style.display = 'none';
-                return;
-            }
-
-            mapContainer.style.display = 'block';
-
-            // Centrar por defecto en el primer cliente
-            const firstClient = clientsMap.get(dayAppointments[0].client_id);
-            const defaultLat = firstClient ? Number(firstClient.latitude) : 48.1351;
-            const defaultLng = firstClient ? Number(firstClient.longitude) : 11.5820;
-
-            mapInstance = new google.maps.Map(mapContainer, {
-                zoom: 12,
-                center: { lat: defaultLat, lng: defaultLng },
+        function initMapObject() {
+            const centerOttobrunn = { lat: 48.0664, lng: 11.6611 };
+            map = new google.maps.Map(document.getElementById('daily-map'), {
+                zoom: 13,
+                center: centerOttobrunn,
                 mapTypeControl: false,
                 streetViewControl: false
             });
 
-            // Limpiar marcadores previos
-            markersList.forEach(m => m.setMap(null));
-            markersList = [];
+            infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
+        }
+
+        function renderSelectedDayData() {
+            if (!map) return;
+
+            const selectedDate = dateInput.value;
+            const selectedEmployee = employeeFilter.value;
+            const clientsMap = new Map(allClients.map(c => [c.id, c]));
+
+            // Filtrar citas según la fecha seleccionada y opcionalmente por empleado
+            const dayAppointments = allAppointments.filter(appt => {
+                if (!appt.scheduled_date || appt.scheduled_date.split('T')[0] !== selectedDate) return false;
+                if (selectedEmployee !== 'ALL' && appt.assigned_employee !== selectedEmployee) return false;
+                return clientsMap.has(appt.client_id);
+            });
+
+            // Limpiar marcadores anteriores del mapa
+            markers.forEach(m => m.setMap(null));
+            markers = [];
+
+            const listContainer = document.getElementById('daily-schedule-list');
+
+            if (dayAppointments.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 10px; text-align: center; color: #b45309;">
+                        <strong>No hay citas programadas para el ${formatDateToDDMMYYYY(selectedDate)}.</strong>
+                    </div>
+                `;
+                map.setCenter({ lat: 48.0664, lng: 11.6611 });
+                map.setZoom(13);
+                return;
+            }
 
             const bounds = new google.maps.LatLngBounds();
+            let listHtml = `<h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 10px;">📅 Ruta del ${formatDateToDDMMYYYY(selectedDate)} (${dayAppointments.length} paradas):</h3>`;
 
             dayAppointments.forEach((appt, index) => {
                 const client = clientsMap.get(appt.client_id);
@@ -320,10 +219,10 @@
                 const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
                 bounds.extend(pos);
 
-                // Crear pin numerado usando Google Charts Marker / Label estándar
+                // Crear pin con número secuencial (1, 2, 3, 4...)
                 const marker = new google.maps.Marker({
                     position: pos,
-                    map: mapInstance,
+                    map: map,
                     label: {
                         text: String(index + 1),
                         color: "white",
@@ -332,91 +231,57 @@
                     title: `${index + 1}. ${client.name} (${appt.time_slot || '09:00'})`
                 });
 
-                const infoWindow = new google.maps.InfoWindow({
-                    content: `<div style="font-size: 0.85rem;"><strong>#${index + 1}: ${client.name}</strong><br>⏰ ${appt.time_slot || '09:00'}h<br>📍 ${client.address || 'Sin dirección'}</div>`
-                });
+                const clientPhone = client.phone || client.telefono || '';
+                const phoneHtml = clientPhone ? `<br>📞 Tel: ${clientPhone}` : '';
+                const techAssigned = appt.assigned_employee ? `<br>👷‍♂️ Técnico: <strong>${appt.assigned_employee}</strong>` : '';
 
-                marker.addListener('click', () => {
-                    infoWindow.open(mapInstance, marker);
-                });
-
-                markersList.push(marker);
-            });
-
-            if (dayAppointments.length > 1) {
-                mapInstance.fitBounds(bounds);
-            }
-        }
-
-        function renderMonthCalendar(container) {
-            const year = selectedMonthDate.getFullYear();
-            const month = selectedMonthDate.getMonth();
-            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
-            const firstDayIndex = new Date(year, month, 1).getDay();
-            const totalDays = new Date(year, month + 1, 0).getDate();
-            const offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-
-            let calendarHtml = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 5px;">
-                    <button type="button" id="prev-month" style="width: auto; padding: 6px 10px; font-size: 0.8rem; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">◀</button>
-                    <strong style="font-size: 0.95rem; color: #1e293b;">${monthNames[month]} ${year}</strong>
-                    <button type="button" id="next-month" style="width: auto; padding: 6px 10px; font-size: 0.8rem; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">▶</button>
-                </div>
-                <div class="calendar-grid">
-                    <div class="cal-header">Lun</div><div class="cal-header">Mar</div><div class="cal-header">Mié</div><div class="cal-header">Jue</div><div class="cal-header">Vie</div><div class="cal-header">Sáb</div><div class="cal-header">Dom</div>
-            `;
-
-            for (let i = 0; i < offset; i++) {
-                calendarHtml += `<div class="cal-day" style="background: transparent; border: none;"></div>`;
-            }
-
-            for (let day = 1; day <= totalDays; day++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const dayAppts = getEmployeeAppointmentsForDate(dateStr);
-                const count = dayAppts.length;
-                
-                let classes = 'cal-day';
-                if (count > 0) classes += ' has-appointments';
-
-                calendarHtml += `
-                    <div class="${classes}" data-date="${dateStr}">
-                        <span>${day}</span>
-                        ${count > 0 ? `<span class="badge-count">${count}</span>` : ''}
+                const windowContent = `
+                    <div style="font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 4px; border-radius: 6px;">
+                        <strong style="color: #38bdf8; font-size: 0.8rem;">#${index + 1}: ${client.name}</strong><br>
+                        <span style="font-size: 0.72rem;">⏰ Hora: ${appt.time_slot || '09:00'}h</span><br>
+                        <span style="font-size: 0.72rem;">📍 ${client.address || 'Sin dirección'}</span>
+                        ${techAssigned}
+                        ${phoneHtml}
                     </div>
                 `;
-            }
 
-            calendarHtml += `</div>`;
-            container.innerHTML = calendarHtml;
-
-            document.getElementById('prev-month').addEventListener('click', () => { 
-                selectedMonthDate.setMonth(selectedMonthDate.getMonth() - 1); 
-                renderMonthCalendar(container); 
-            });
-            document.getElementById('next-month').addEventListener('click', () => { 
-                selectedMonthDate.setMonth(selectedMonthDate.getMonth() + 1); 
-                renderMonthCalendar(container); 
-            });
-
-            document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
-                cell.addEventListener('click', () => {
-                    openDayModal(cell.getAttribute('data-date'));
+                marker.addListener('click', () => {
+                    infoWindow.setContent(windowContent);
+                    infoWindow.open(map, marker);
                 });
+
+                markers.push(marker);
+
+                // Renderizar tarjeta de la lista inferior
+                const mapsQuery = `${client.latitude},${client.longitude}`;
+                const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}&travelmode=driving`;
+                const serviceStr = appt.service_requested ? `<span style="color: #2563eb; font-weight: 700;">🛠️ ${appt.service_requested}</span><br>` : '';
+
+                listHtml += `
+                    <div class="client-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="font-size: 0.95rem; color: #1e293b;">Parada #${index + 1} - ⏰ ${appt.time_slot || '09:00'}h</strong>
+                            <span style="font-size: 0.72rem; background: #e2e8f0; padding: 2px 6px; border-radius: 6px; font-weight: 700; color: #475569;">${appt.assigned_employee || 'Sin asignar'}</span>
+                        </div>
+                        <h4 style="margin: 6px 0 2px 0; font-size: 0.95rem; color: #0f172a;">${client.name}</h4>
+                        <p style="margin: 0 0 3px 0; font-size: 0.82rem; color: #475569;">📍 ${client.address || 'Sin dirección'}</p>
+                        <p style="margin: 0 0 6px 0; font-size: 0.82rem;">${serviceStr}</p>
+                        <a href="${mapsNavUrl}" target="_blank" class="btn-nav">🧭 Iniciar Navegación GPS (Parada #${index + 1})</a>
+                    </div>
+                `;
             });
+
+            listContainer.innerHTML = listHtml;
+
+            if (dayAppointments.length > 0) {
+                map.fitBounds(bounds);
+            }
         }
 
-        function openDayModal(dateStr) {
-            document.getElementById('modal-day-title').textContent = `📅 Citas del ${formatDateToDDMMYYYY(dateStr)}`;
-            renderDaySchedule(document.getElementById('modal-day-body'), dateStr, "Tus tareas", false);
-            document.getElementById('day-modal').style.display = 'flex';
-        }
+        dateInput.addEventListener('change', renderSelectedDayData);
+        employeeFilter.addEventListener('change', renderSelectedDayData);
 
-        document.getElementById('close-modal-btn').addEventListener('click', () => { 
-            document.getElementById('day-modal').style.display = 'none'; 
-        });
-
-        initPortal();
+        initDailyRouteMap();
     </script>
 </body>
 </html>
