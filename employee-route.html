@@ -80,16 +80,16 @@
         <div id="daily-map"></div>
     </div>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
+    <!-- Se carga la Maps JS API incluyendo la librería de geometría para decodificar las polilíneas de Routes API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ&libraries=geometry" async defer></script>
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
         let map = null;
         let markers = [];
-        let routeRenderers = [];
+        let polylines = [];
         let infoWindow = null;
-        let directionsService = null;
         
         let allClients = [];
         let allAppointments = [];
@@ -122,7 +122,7 @@
                 allEmployees = employees || [];
 
                 allEmployees.forEach(emp => {
-                    employeeFilter.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
+                    employeeFilter.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
                 });
 
                 if (preselectedEmployee) {
@@ -149,7 +149,6 @@
             });
 
             infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
-            directionsService = new google.maps.DirectionsService();
 
             map.addListener('click', () => {
                 if (infoWindow) {
@@ -190,20 +189,23 @@
         }
 
         function clearPreviousRoutes() {
-            routeRenderers.forEach(renderer => renderer.setMap(null));
-            routeRenderers = [];
+            polylines.forEach(poly => poly.setMap(null));
+            polylines = [];
         }
 
-        function renderSelectedDayData() {
+        async function renderSelectedDayData() {
             if (!map) return;
 
             const selectedDate = dateInput.value;
-            const selectedEmployee = employeeFilter.value;
+            const selectedEmployeeId = employeeFilter.value;
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
+            const employeesMap = new Map(allEmployees.map(e => [e.id, e.name]));
 
             const dayAppointments = allAppointments.filter(appt => {
-                if (!appt.scheduled_date || appt.scheduled_date.split('T')[0] !== selectedDate) return false;
-                if (selectedEmployee !== 'ALL' && appt.assigned_employee !== selectedEmployee) return false;
+                if (!appt.scheduled_date) return false;
+                const apptDateOnly = appt.scheduled_date.includes('T') ? appt.scheduled_date.split('T')[0] : appt.scheduled_date;
+                if (apptDateOnly !== selectedDate) return false;
+                if (selectedEmployeeId !== 'ALL' && appt.employee_id !== selectedEmployeeId) return false;
                 return clientsMap.has(appt.client_id);
             });
 
@@ -230,7 +232,10 @@
                 }
             });
 
-            if (validStops.length === 0) return;
+            if (validStops.length === 0) {
+                alert('Las citas de este día no tienen coordenadas geográficas válidas registradas.');
+                return;
+            }
 
             const bounds = new google.maps.LatLngBounds();
 
@@ -249,8 +254,9 @@
                     title: `Parada #${index + 1}: ${stop.client.name}`
                 });
 
-                const clientPhone = stop.client.phone || stop.client.telefono || 'No registrado';
-                const techAssigned = stop.appt.assigned_employee ? `<br>👷‍♂️ Técnico: <strong>${stop.appt.assigned_employee}</strong>` : '';
+                const clientPhone = stop.client.phone || 'No registrado';
+                const assignedEmpName = stop.appt.employee_id ? employeesMap.get(stop.appt.employee_id) : (stop.appt.assigned_employee || 'General');
+                const techAssigned = `<br>👷‍♂️ Técnico: <strong>${assignedEmpName}</strong>`;
                 const serviceStr = stop.appt.service_requested ? `<br>🛠️ Servicio: <strong>${stop.appt.service_requested}</strong>` : '';
                 
                 const windowContent = `
@@ -278,33 +284,68 @@
 
             map.fitBounds(bounds);
 
-            // 2. Trazar tramos viales usando la Routes API activada
+            // 2. Trazar tramos viales usando Google Routes API (v2) de forma secuencial (Cliente A -> Cliente B)
+            const apiKey = 'AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ';
+
             for (let i = 0; i < validStops.length - 1; i++) {
                 const origin = validStops[i].latLng;
                 const destination = validStops[i + 1].latLng;
                 const segmentColor = routeColors[i % routeColors.length];
 
-                directionsService.route({
-                    origin: origin,
-                    destination: destination,
-                    travelMode: google.maps.TravelMode.DRIVING
-                }, (response, status) => {
-                    if (status === 'OK') {
-                        const renderer = new google.maps.DirectionsRenderer({
-                            map: map,
-                            suppressMarkers: true,
-                            polylineOptions: {
-                                strokeColor: segmentColor,
-                                strokeWeight: 6,
-                                strokeOpacity: 0.9
+                const requestBody = {
+                    origin: {
+                        location: {
+                            latLng: {
+                                latitude: origin.lat(),
+                                longitude: origin.lng()
                             }
+                        }
+                    },
+                    destination: {
+                        location: {
+                            latLng: {
+                                latitude: destination.lat(),
+                                longitude: destination.lng()
+                            }
+                        }
+                    },
+                    travelMode: "DRIVE",
+                    routingPreference: "TRAFFIC_AWARE"
+                };
+
+                try {
+                    const response = await fetch(`https://routes.googleapis.com/directions/v2:computeRoutes`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Goog-Api-Key': apiKey,
+                            'X-Goog-FieldMask': 'routes.polyline.encodedPolyline'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    const data = await response.json();
+
+                    if (data.routes && data.routes.length > 0) {
+                        const encodedPolyline = data.routes[0].polyline.encodedPolyline;
+                        const decodedPath = google.maps.geometry.encoding.decodePath(encodedPolyline);
+
+                        const routePath = new google.maps.Polyline({
+                            path: decodedPath,
+                            geodesic: true,
+                            strokeColor: segmentColor,
+                            strokeOpacity: 0.9,
+                            strokeWeight: 6,
+                            map: map
                         });
-                        renderer.setDirections(response);
-                        routeRenderers.push(renderer);
+
+                        polylines.push(routePath);
                     } else {
-                        console.error(`Error en el tramo ${i+1} -> ${i+2}:`, status);
+                        console.warn(`⚠️ No se encontró ruta en el tramo ${i+1} -> ${i+2}`);
                     }
-                });
+                } catch (error) {
+                    console.error(`Error al conectar tramo ${i+1} -> ${i+2} con Routes API:`, error);
+                }
             }
         }
 
