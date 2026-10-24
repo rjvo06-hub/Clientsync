@@ -234,7 +234,7 @@
 
             const bounds = new google.maps.LatLngBounds();
 
-            // 1. Dibujar marcadores numerados
+            // 1. Dibujar marcadores numerados inmediatamente
             validStops.forEach((stop, index) => {
                 bounds.extend(stop.latLng);
 
@@ -278,7 +278,7 @@
 
             map.fitBounds(bounds);
 
-            // 2. Dibujar cada tramo de la ruta de forma independiente con un color único
+            // 2. Solicitar y dibujar inmediatamente los tramos multicolores en paralelo
             for (let i = 0; i < validStops.length - 1; i++) {
                 const origin = validStops[i].latLng;
                 const destination = validStops[i + 1].latLng;
@@ -295,14 +295,12 @@
                             suppressMarkers: true,
                             polylineOptions: {
                                 strokeColor: segmentColor,
-                                strokeWeight: 5,
-                                strokeOpacity: 0.85
+                                strokeWeight: 6,
+                                strokeOpacity: 0.9
                             }
                         });
                         renderer.setDirections(response);
                         routeRenderers.push(renderer);
-                    } else {
-                        console.error(`Error al trazar tramo ${i + 1} -> ${i + 2}:`, status);
                     }
                 });
             }
@@ -311,7 +309,12 @@
         dateInput.addEventListener('change', renderSelectedDayData);
         employeeFilter.addEventListener('change', renderSelectedDayData);
 
-        initEmployeeRouteMap();
+        // Asegurar que las rutas se carguen y rendericen al iniciar
+        if (window.google && window.google.maps) {
+            initEmployeeRouteMap();
+        } else {
+            window.addEventListener('load', initEmployeeRouteMap);
+        }
     </script>
 </body>
 </html>
