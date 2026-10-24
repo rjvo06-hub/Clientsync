@@ -80,7 +80,7 @@
         <div id="daily-map"></div>
     </div>
 
-    <!-- Se carga la Maps JS API incluyendo la librería de geometría para decodificar las polilíneas de Routes API -->
+    <!-- Google Maps JS API con librería geometry para decodificar las polilíneas de Routes API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ&libraries=geometry" async defer></script>
 
     <script type="module">
@@ -121,12 +121,18 @@
                 allAppointments = appointments || [];
                 allEmployees = employees || [];
 
+                // Llenar el desplegable con los nombres de los empleados
                 allEmployees.forEach(emp => {
-                    employeeFilter.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
+                    employeeFilter.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
 
                 if (preselectedEmployee) {
-                    employeeFilter.value = preselectedEmployee;
+                    const matchedEmp = allEmployees.find(e => e.name.toLowerCase() === preselectedEmployee.toLowerCase());
+                    if (matchedEmp) {
+                        employeeFilter.value = matchedEmp.name;
+                    } else {
+                        employeeFilter.value = preselectedEmployee;
+                    }
                 }
 
                 initMapObject();
@@ -197,7 +203,7 @@
             if (!map) return;
 
             const selectedDate = dateInput.value;
-            const selectedEmployeeId = employeeFilter.value;
+            const selectedEmployeeName = employeeFilter.value;
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
             const employeesMap = new Map(allEmployees.map(e => [e.id, e.name]));
 
@@ -205,7 +211,26 @@
                 if (!appt.scheduled_date) return false;
                 const apptDateOnly = appt.scheduled_date.includes('T') ? appt.scheduled_date.split('T')[0] : appt.scheduled_date;
                 if (apptDateOnly !== selectedDate) return false;
-                if (selectedEmployeeId !== 'ALL' && appt.employee_id !== selectedEmployeeId) return false;
+
+                // Si está en 'ALL', pasan todas
+                if (selectedEmployeeName === 'ALL') {
+                    return clientsMap.has(appt.client_id);
+                }
+
+                // Obtener el nombre del empleado asignado ya sea por UUID o por nombre directo
+                let assignedEmpName = '';
+                if (appt.employee_id) {
+                    assignedEmpName = employeesMap.get(appt.employee_id) || '';
+                }
+                if (!assignedEmpName && appt.assigned_employee) {
+                    assignedEmpName = appt.assigned_employee;
+                }
+
+                // Filtrar comparando nombres (ignorando mayúsculas/minúsculas)
+                if (!assignedEmpName || assignedEmpName.toLowerCase() !== selectedEmployeeName.toLowerCase()) {
+                    return false;
+                }
+
                 return clientsMap.has(appt.client_id);
             });
 
@@ -239,7 +264,7 @@
 
             const bounds = new google.maps.LatLngBounds();
 
-            // 1. Dibujar marcadores numerados
+            // 1. Dibujar marcadores numerados secuencialmente
             validStops.forEach((stop, index) => {
                 bounds.extend(stop.latLng);
 
@@ -284,7 +309,7 @@
 
             map.fitBounds(bounds);
 
-            // 2. Trazar tramos viales usando Google Routes API (v2) de forma secuencial (Cliente A -> Cliente B)
+            // 2. Trazar tramos viales de cliente a cliente usando Google Routes API (v2)
             const apiKey = 'AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ';
 
             for (let i = 0; i < validStops.length - 1; i++) {
