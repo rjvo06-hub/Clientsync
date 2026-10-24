@@ -30,7 +30,7 @@
             border-radius: 12px;
             margin-bottom: 16px;
         }
-        select { 
+        select, input { 
             font-size: 15px; 
             width: 100%; 
             padding: 10px 12px; 
@@ -42,7 +42,7 @@
             font-weight: 600;
         }
 
-        /* Menú principal del empleado con los dos botones grandes */
+        /* Menú principal del empleado (2 Botones) */
         .employee-menu-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -92,7 +92,7 @@
             line-height: 1.3;
         }
 
-        /* Submenú interno para Visualizar Citas (Hoy o Calendario) */
+        /* Submenú de Citas (Hoy o Calendario) */
         .sub-menu-citas {
             display: flex;
             gap: 10px;
@@ -114,6 +114,16 @@
             background: #2563eb;
             color: white;
             border-color: #2563eb;
+        }
+
+        /* Selector de fecha rápido para el mapa */
+        .date-picker-box {
+            background: #f8fafc;
+            border: 1px solid #cbd5e0;
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            text-align: center;
         }
 
         /* Tarjeta de cliente */
@@ -169,17 +179,17 @@
             <a href="./index.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">Menú Principal</a>
         </div>
 
-        <!-- Selector de empleado -->
+        <!-- 1. Selección de Empleado (Obligatorio primero) -->
         <div class="selector-box">
-            <label style="display: block; font-weight: 700; margin-bottom: 6px; color: #475569; font-size: 0.82rem;">¿Quién eres?</label>
+            <label style="display: block; font-weight: 700; margin-bottom: 6px; color: #475569; font-size: 0.82rem;">1. Selecciona tu nombre (Empleado):</label>
             <select id="employee-selector">
-                <option value="">-- Selecciona tu nombre --</option>
+                <option value="">-- Elige quién eres --</option>
             </select>
         </div>
 
-        <!-- MENÚ PRINCIPAL DEL EMPLEADO (2 Botones principales) -->
+        <!-- MENÚ PRINCIPAL DEL EMPLEADO (Aparece al seleccionar empleado) -->
         <div id="employee-menu" class="employee-menu-grid" style="display: none;">
-            <!-- Opción 1: Visualizar Citas (Hoy o Calendario) -->
+            <!-- Botón A: Visualizar Citas (Solo lista / sin mapa) -->
             <button type="button" class="action-card" id="btn-menu-citas">
                 <div class="action-icon">📋</div>
                 <div class="action-info">
@@ -188,17 +198,17 @@
                 </div>
             </button>
 
-            <!-- Opción 2: Visualizar Mapa (Abre employee-route.html) -->
+            <!-- Botón B: Visualizar Mapa (Selección de fecha y abre el mapa) -->
             <button type="button" class="action-card" id="btn-menu-mapa">
                 <div class="action-icon">🗺️</div>
                 <div class="action-info">
                     <h3>Visualizar Mapa</h3>
-                    <p>Abre el mapa interactivo con pines numerados (1, 2, 3...) de tu ruta por fecha.</p>
+                    <p>Abre el mapa interactivo por fecha con pines numerados (1, 2, 3...).</p>
                 </div>
             </button>
         </div>
 
-        <!-- Botón para regresar al menú principal del empleado -->
+        <!-- Botón para regresar al menú -->
         <div id="back-to-menu-container" style="display: none; margin-bottom: 12px;">
             <button type="button" id="btn-back-menu" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: bold; cursor: pointer; color: #475569;">← Volver al Menú</button>
         </div>
@@ -209,7 +219,14 @@
             <button type="button" class="sub-btn" id="sub-btn-calendar">🗓️ Calendario Mensual</button>
         </div>
 
-        <!-- Área dinámica de contenido -->
+        <!-- Selector de fecha para el Mapa -->
+        <div id="date-picker-map-container" class="date-picker-box" style="display: none;">
+            <label style="display: block; font-size: 0.82rem; color: #1e293b; font-weight: 700; margin-bottom: 6px;">Selecciona la fecha para ver en el mapa:</label>
+            <input type="date" id="map-target-date" style="margin-bottom: 10px;">
+            <button type="button" id="btn-launch-map" style="background: #2563eb; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%;">🚀 Abrir Mapa Interactivo</button>
+        </div>
+
+        <!-- Área dinámica de contenido para citas -->
         <div id="dynamic-content-area"></div>
     </div>
 
@@ -234,6 +251,7 @@
         let selectedMonthDate = new Date();
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
+        document.getElementById('map-target-date').value = todayStrSystem;
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
@@ -268,11 +286,13 @@
             const contentArea = document.getElementById('dynamic-content-area');
             const backBtnContainer = document.getElementById('back-to-menu-container');
             const subMenuCitas = document.getElementById('sub-menu-citas-container');
+            const datePickerBox = document.getElementById('date-picker-map-container');
 
             if (!selectedEmployee) {
                 empMenu.style.display = 'none';
                 backBtnContainer.style.display = 'none';
                 subMenuCitas.style.display = 'none';
+                datePickerBox.style.display = 'none';
                 contentArea.innerHTML = '';
                 return;
             }
@@ -280,21 +300,32 @@
             empMenu.style.display = 'grid';
             backBtnContainer.style.display = 'none';
             subMenuCitas.style.display = 'none';
+            datePickerBox.style.display = 'none';
             contentArea.innerHTML = '';
         });
 
-        // 1. Botón: Visualizar Citas (Muestra submenú de Hoy y Calendario)
+        // Botón 1: Visualizar Citas
         document.getElementById('btn-menu-citas').addEventListener('click', () => {
             document.getElementById('employee-menu').style.display = 'none';
             document.getElementById('back-to-menu-container').style.display = 'block';
             document.getElementById('sub-menu-citas-container').style.display = 'flex';
+            document.getElementById('date-picker-map-container').style.display = 'none';
             activateCitasSubTab('today');
         });
 
-        // 2. Botón: Visualizar Mapa (Redirige a employee-route.html con el empleado seleccionado)
+        // Botón 2: Visualizar Mapa (Muestra selector de fecha antes de ir al mapa)
         document.getElementById('btn-menu-mapa').addEventListener('click', () => {
-            if (!selectedEmployee) return;
-            window.location.href = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}`;
+            document.getElementById('employee-menu').style.display = 'none';
+            document.getElementById('back-to-menu-container').style.display = 'block';
+            document.getElementById('sub-menu-citas-container').style.display = 'none';
+            document.getElementById('date-picker-map-container').style.display = 'block';
+            document.getElementById('dynamic-content-area').innerHTML = '';
+        });
+
+        // Lanzar Mapa con la fecha y empleado seleccionados
+        document.getElementById('btn-launch-map').addEventListener('click', () => {
+            const chosenDate = document.getElementById('map-target-date').value || todayStrSystem;
+            window.location.href = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${chosenDate}`;
         });
 
         // Sub-pestañas de Citas
@@ -317,11 +348,12 @@
             }
         }
 
-        // Botón de Volver al Menú Principal del Empleado
+        // Volver al Menú
         document.getElementById('btn-back-menu').addEventListener('click', () => {
             document.getElementById('dynamic-content-area').innerHTML = '';
             document.getElementById('back-to-menu-container').style.display = 'none';
             document.getElementById('sub-menu-citas-container').style.display = 'none';
+            document.getElementById('date-picker-map-container').style.display = 'none';
             document.getElementById('employee-menu').style.display = 'grid';
         });
 
@@ -342,7 +374,6 @@
                 container.innerHTML = `
                     <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 10px; text-align: center; color: #b45309; margin-top: 10px;">
                         <strong>No tienes citas programadas para el ${formatDateToDDMMYYYY(dateStr)}.</strong>
-                        <p style="font-size: 0.78rem; margin: 4px 0 0 0;">Buen trabajo.</p>
                     </div>
                 `;
                 return;
