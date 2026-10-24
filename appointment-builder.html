@@ -66,6 +66,7 @@
             justify-content: space-between;
             align-items: center;
             transition: all 0.2s;
+            cursor: pointer;
         }
         .appointment-selection-card.selected {
             background-color: #ebf8ff;
@@ -678,6 +679,13 @@
                                 }
                             });
                         }
+
+                        // Desplazamiento automático y enfoque directo al campo de fecha
+                        setTimeout(() => {
+                            dateSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            const dateInput = document.getElementById('free-date-input');
+                            if (dateInput) dateInput.focus();
+                        }, 100);
                     };
 
                     card.querySelector('.btn-quick-reschedule').addEventListener('click', handleSelectThisAppointment);
@@ -752,10 +760,12 @@
                     `;
 
                     btn.addEventListener('click', () => {
-                        actionType = 'new';
-                        selectedAppointmentId = null;
-                        updateUIModeText();
-                        document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
+                        // Si no estamos reprogramando explícitamente una cita previa, pasa a modo nuevo
+                        if (!selectedAppointmentId) {
+                            actionType = 'new';
+                            updateUIModeText();
+                            document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
+                        }
 
                         selectedDateOnly = dateStr;
                         document.getElementById('free-date-input').value = dateStr;
@@ -781,7 +791,7 @@
                 suggestionBox.style.display = 'block';
             }
 
-            // Si se especificó una cita para preseleccionar, simulamos el clic en ella inmediatamente
+            // Si venimos del panel de control con una cita a reprogramar, se selecciona y enfoca automáticamente al cargar
             if (targetApptToSelect) {
                 targetApptToSelect.card.querySelector('.btn-quick-reschedule').click();
             }
@@ -818,7 +828,6 @@
         });
 
         function updateFinalTimestamp() {
-            const timeVal = document.getElementById('appointment-time').value || '09:00';
             if (selectedDateOnly) {
                 document.getElementById('selected-appointment-date').value = selectedDateOnly;
             }
@@ -840,7 +849,7 @@
             }
 
             if (actionType === 'reschedule' && !selectedAppointmentId) {
-                alert('Por favor, haz clic en el botón "🔄 Reprogramar" al lado de la cita que deseas modificar.');
+                alert('Por favor, selecciona la cita que deseas modificar.');
                 return;
             }
 
