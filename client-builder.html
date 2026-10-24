@@ -268,13 +268,18 @@
                 }
 
                 let errorResult = null;
+                let createdClientId = null;
 
                 if (currentMode === 'edit' && clientId) {
                     const { error } = await supabase.from('clients').update(payload).eq('id', clientId);
                     errorResult = error;
                 } else {
-                    const { error } = await supabase.from('clients').insert([payload]);
+                    // Al insertar, solicitamos que nos devuelva el registro creado para obtener su ID
+                    const { data, error } = await supabase.from('clients').insert([payload]).select();
                     errorResult = error;
+                    if (data && data.length > 0) {
+                        createdClientId = data[0].id;
+                    }
                 }
 
                 if (errorResult) {
@@ -284,8 +289,18 @@
                         saveBtn.disabled = false;
                     }
                 } else {
-                    alert(currentMode === 'edit' ? '¡Cliente actualizado correctamente!' : '¡Cliente creado correctamente!');
-                    window.location.href = './index.html';
+                    if (currentMode === 'create') {
+                        // Preguntamos al usuario si desea programar una cita para este nuevo cliente
+                        const wantAppointment = confirm('¡Cliente creado correctamente!\n\n¿Deseas programar una nueva cita para este cliente ahora?');
+                        if (wantAppointment && createdClientId) {
+                            window.location.href = `./appointment-builder.html?client_id=${createdClientId}&action=new`;
+                        } else {
+                            window.location.href = './index.html';
+                        }
+                    } else {
+                        alert('¡Cliente actualizado correctamente!');
+                        window.location.href = './index.html';
+                    }
                 }
             });
         }
