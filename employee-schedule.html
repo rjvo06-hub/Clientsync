@@ -42,11 +42,11 @@
             font-weight: 600;
         }
 
-        /* Menú interno amigable del empleado */
+        /* Menú principal del empleado con los dos botones grandes */
         .employee-menu-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 12px;
+            gap: 14px;
             margin-bottom: 20px;
         }
         .action-card {
@@ -54,8 +54,8 @@
             align-items: center;
             background: #f8fafc;
             border: 1px solid #cbd5e0;
-            padding: 14px;
-            border-radius: 12px;
+            padding: 16px;
+            border-radius: 14px;
             text-decoration: none;
             transition: all 0.2s;
             cursor: pointer;
@@ -68,30 +68,55 @@
             transform: translateY(-1px);
         }
         .action-icon {
-            font-size: 1.5rem;
-            width: 42px;
-            height: 42px;
+            font-size: 1.8rem;
+            width: 48px;
+            height: 48px;
             background: #e2e8f0;
-            border-radius: 10px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 12px;
+            margin-right: 14px;
             flex-shrink: 0;
         }
         .action-info h3 {
-            margin: 0 0 2px 0;
-            font-size: 0.9rem;
+            margin: 0 0 3px 0;
+            font-size: 1rem;
             color: #1e293b;
             font-weight: 700;
         }
         .action-info p {
             margin: 0;
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: #64748b;
+            line-height: 1.3;
         }
 
-        /* Tarjeta de cliente para la vista de lista */
+        /* Submenú interno para Visualizar Citas (Hoy o Calendario) */
+        .sub-menu-citas {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .sub-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+            background: white;
+            color: #475569;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .sub-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        /* Tarjeta de cliente */
         .client-card { 
             background: #ffffff; 
             border: 1px solid #e2e8f0;
@@ -123,7 +148,7 @@
         }
         .btn-nav:hover { background: #1d4ed8; }
 
-        /* Calendario mensual limpio */
+        /* Calendario mensual */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
         .cal-header { text-align: center; font-weight: bold; font-size: 0.75rem; color: #64748b; padding: 4px 0; }
         .cal-day { min-height: 44px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #334155; }
@@ -152,46 +177,43 @@
             </select>
         </div>
 
-        <!-- MENÚ INTERNO DEL EMPLEADO (Aparece al seleccionar el nombre) -->
+        <!-- MENÚ PRINCIPAL DEL EMPLEADO (2 Botones principales) -->
         <div id="employee-menu" class="employee-menu-grid" style="display: none;">
-            <!-- Opción 1: Ver Ruta Interactiva con Pines Numerados -->
-            <button type="button" class="action-card" id="btn-goto-route-map">
-                <div class="action-icon">🗺️</div>
-                <div class="action-info">
-                    <h3>Mapa de Ruta de Hoy</h3>
-                    <p>Ver los clientes del día con pines numerados (1, 2, 3...) y GPS.</p>
-                </div>
-            </button>
-
-            <!-- Opción 2: Ver tu día (Estructura / Lista de Clientes de Hoy) -->
-            <button type="button" class="action-card" id="btn-view-day-list">
+            <!-- Opción 1: Visualizar Citas (Hoy o Calendario) -->
+            <button type="button" class="action-card" id="btn-menu-citas">
                 <div class="action-icon">📋</div>
                 <div class="action-info">
-                    <h3>Estructura de Clientes de Hoy</h3>
-                    <p>Consulta la lista detallada de tus tareas del día actual.</p>
+                    <h3>Visualizar Citas</h3>
+                    <p>Revisa tus tareas programadas para hoy o consulta el calendario mensual.</p>
                 </div>
             </button>
 
-            <!-- Opción 3: Ver tu mes (Calendario Mensual) -->
-            <button type="button" class="action-card" id="btn-view-month-cal">
-                <div class="action-icon">🗓️</div>
+            <!-- Opción 2: Visualizar Mapa (Abre employee-route.html) -->
+            <button type="button" class="action-card" id="btn-menu-mapa">
+                <div class="action-icon">🗺️</div>
                 <div class="action-info">
-                    <h3>Calendario Mensual</h3>
-                    <p>Revisa tus asignaciones de todo el mes de forma general.</p>
+                    <h3>Visualizar Mapa</h3>
+                    <p>Abre el mapa interactivo con pines numerados (1, 2, 3...) de tu ruta por fecha.</p>
                 </div>
             </button>
         </div>
 
-        <!-- Botón para regresar al menú interno del empleado -->
+        <!-- Botón para regresar al menú principal del empleado -->
         <div id="back-to-menu-container" style="display: none; margin-bottom: 12px;">
-            <button type="button" id="btn-back-menu" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: bold; cursor: pointer; color: #475569;">← Volver al Menú de Opciones</button>
+            <button type="button" id="btn-back-menu" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: bold; cursor: pointer; color: #475569;">← Volver al Menú</button>
         </div>
 
-        <!-- Área dinámica donde se despliega la lista o el calendario -->
+        <!-- Submenú de Citas (Hoy / Calendario) -->
+        <div id="sub-menu-citas-container" class="sub-menu-citas" style="display: none;">
+            <button type="button" class="sub-btn active" id="sub-btn-today">📅 Citas de Hoy</button>
+            <button type="button" class="sub-btn" id="sub-btn-calendar">🗓️ Calendario Mensual</button>
+        </div>
+
+        <!-- Área dinámica de contenido -->
         <div id="dynamic-content-area"></div>
     </div>
 
-    <!-- Modal para ver las citas de un día seleccionado en el calendario -->
+    <!-- Modal para ver citas de un día seleccionado en el calendario -->
     <div id="day-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
@@ -245,44 +267,61 @@
             const empMenu = document.getElementById('employee-menu');
             const contentArea = document.getElementById('dynamic-content-area');
             const backBtnContainer = document.getElementById('back-to-menu-container');
+            const subMenuCitas = document.getElementById('sub-menu-citas-container');
 
             if (!selectedEmployee) {
                 empMenu.style.display = 'none';
                 backBtnContainer.style.display = 'none';
+                subMenuCitas.style.display = 'none';
                 contentArea.innerHTML = '';
                 return;
             }
 
             empMenu.style.display = 'grid';
             backBtnContainer.style.display = 'none';
+            subMenuCitas.style.display = 'none';
             contentArea.innerHTML = '';
         });
 
-        // Botón 1: Ir directo al mapa de ruta del día (employee-route.html)
-        document.getElementById('btn-goto-route-map').addEventListener('click', () => {
+        // 1. Botón: Visualizar Citas (Muestra submenú de Hoy y Calendario)
+        document.getElementById('btn-menu-citas').addEventListener('click', () => {
+            document.getElementById('employee-menu').style.display = 'none';
+            document.getElementById('back-to-menu-container').style.display = 'block';
+            document.getElementById('sub-menu-citas-container').style.display = 'flex';
+            activateCitasSubTab('today');
+        });
+
+        // 2. Botón: Visualizar Mapa (Redirige a employee-route.html con el empleado seleccionado)
+        document.getElementById('btn-menu-mapa').addEventListener('click', () => {
             if (!selectedEmployee) return;
-            // Redirige al programa de mapa interactivo pasando el empleado en la URL si lo deseas, o se mantiene en su sesión
             window.location.href = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}`;
         });
 
-        // Botón 2: Ver tu día (Lista / Estructura detallada de clientes de hoy)
-        document.getElementById('btn-view-day-list').addEventListener('click', () => {
-            document.getElementById('employee-menu').style.display = 'none';
-            document.getElementById('back-to-menu-container').style.display = 'block';
-            renderDaySchedule(document.getElementById('dynamic-content-area'), todayStrSystem, "Estructura de Clientes de Hoy");
-        });
+        // Sub-pestañas de Citas
+        document.getElementById('sub-btn-today').addEventListener('click', () => activateCitasSubTab('today'));
+        document.getElementById('sub-btn-calendar').addEventListener('click', () => activateCitasSubTab('calendar'));
 
-        // Botón 3: Ver tu mes (Calendario mensual)
-        document.getElementById('btn-view-month-cal').addEventListener('click', () => {
-            document.getElementById('employee-menu').style.display = 'none';
-            document.getElementById('back-to-menu-container').style.display = 'block';
-            renderMonthCalendar(document.getElementById('dynamic-content-area'));
-        });
+        function activateCitasSubTab(tabName) {
+            const btnToday = document.getElementById('sub-btn-today');
+            const btnCalendar = document.getElementById('sub-btn-calendar');
+            const contentArea = document.getElementById('dynamic-content-area');
 
-        // Botón de Volver al menú interno
+            if (tabName === 'today') {
+                btnToday.classList.add('active');
+                btnCalendar.classList.remove('active');
+                renderDaySchedule(contentArea, todayStrSystem, "Citas de Hoy");
+            } else {
+                btnCalendar.classList.add('active');
+                btnToday.classList.remove('active');
+                renderMonthCalendar(contentArea);
+            }
+        }
+
+        // Botón de Volver al Menú Principal del Empleado
         document.getElementById('btn-back-menu').addEventListener('click', () => {
             document.getElementById('dynamic-content-area').innerHTML = '';
             document.getElementById('back-to-menu-container').style.display = 'none';
+            document.getElementById('sub-menu-citas-container').style.display = 'none';
             document.getElementById('employee-menu').style.display = 'grid';
         });
 
