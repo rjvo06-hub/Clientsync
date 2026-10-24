@@ -1,4 +1,4 @@
-ä<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -20,7 +20,6 @@
             width: 100%;
         }
 
-        /* Rejilla exacta de 4 columnas idéntica para etiquetas y campos */
         .datetime-four-grid {
             display: grid;
             grid-template-columns: 1fr 24px 110px 24px;
@@ -35,7 +34,6 @@
             width: 100%;
         }
 
-        /* Campos transparentes auxiliares estrictamente del tamaño de un carácter */
         .transparent-helper-field {
             width: 24px !important;
             min-width: 24px !important;
@@ -48,7 +46,6 @@
             text-align: center;
         }
 
-        /* Iconos limpios para fecha y hora */
         input[type="date"] {
             background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>') no-repeat right 10px center;
             background-size: 14px;
@@ -337,6 +334,25 @@
             return dateStr;
         }
 
+        // Función auxiliar para formatear la fecha y hora local fija (sin conversiones de huso horario)
+        function formatLocalDateTime(isoString) {
+            if (!isoString) return '';
+            const parts = isoString.split('T');
+            if (parts.length !== 2) return isoString;
+            
+            const dateParts = parts[0].split('-');
+            const timePart = parts[1].substring(0, 5); // HH:mm (formato 24 horas)
+            
+            if (dateParts.length === 3) {
+                const [year, month, day] = dateParts;
+                const localDate = new Date(year, month - 1, day);
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const dateReadable = localDate.toLocaleDateString('es-ES', options);
+                return `${dateReadable}, ${timePart} hrs`;
+            }
+            return isoString;
+        }
+
         function suggestNextTimeForDate(dateStr) {
             const apptsOnDate = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
             if (apptsOnDate.length === 0) {
@@ -355,18 +371,21 @@
             let latestMinute = 0;
 
             apptsOnDate.forEach(a => {
-                const dateObj = new Date(a.scheduled_date);
-                const h = dateObj.getHours();
-                const m = dateObj.getMinutes();
-                const totalMins = h * 60 + m;
-                
-                const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 60;
-                const endMins = totalMins + durationMins;
+                const parts = a.scheduled_date.split('T');
+                if (parts.length === 2) {
+                    const timeParts = parts[1].split(':');
+                    const h = parseInt(timeParts[0], 10);
+                    const m = parseInt(timeParts[1], 10);
+                    const totalMins = h * 60 + m;
+                    
+                    const durationMins = a.estimated_hours ? (Number(a.estimated_hours) * 60) : 60;
+                    const endMins = totalMins + durationMins;
 
-                const currentLatestMins = latestHour * 60 + latestMinute;
-                if (endMins > currentLatestMins) {
-                    latestHour = Math.floor(endMins / 60);
-                    latestMinute = endMins % 60;
+                    const currentLatestMins = latestHour * 60 + latestMinute;
+                    if (endMins > currentLatestMins) {
+                        latestHour = Math.floor(endMins / 60);
+                        latestMinute = endMins % 60;
+                    }
                 }
             });
 
@@ -561,8 +580,10 @@
                 appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (${clientAppointments.length}):`;
 
                 clientAppointments.forEach((appt, index) => {
-                    const d = new Date(appt.scheduled_date);
-                    const formatted = !isNaN(d) ? d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : 'Fecha no válida';
+                    let formatted = 'Fecha no válida';
+                    if (appt.scheduled_date) {
+                        formatted = formatLocalDateTime(appt.scheduled_date);
+                    }
                     
                     const card = document.createElement('div');
                     card.className = 'appointment-selection-card';
@@ -617,7 +638,6 @@
 
             detailsCard.style.display = 'block';
 
-            // Regenerar sugerencias ordenadas de MENOR a MAYOR carga de trabajo
             suggestionsList.innerHTML = '';
 
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
@@ -636,12 +656,12 @@
                     apptsOnThisDate.forEach(appt => {
                         const scheduledClient = allClients.find(c => c.id === appt.client_id);
                         if (scheduledClient && scheduledClient.latitude && scheduledClient.longitude) {
-                            const timeStr = new Date(appt.scheduled_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                            const timePart = appt.scheduled_date.split('T')[1];
+                            const timeStr = timePart ? timePart.substring(0, 5) : '00:00';
                             
                             const isCurrentClient = (scheduledClient.id === client.id);
 
                             if (isCurrentClient) {
-                                // Muestra el nombre, la hora y la etiqueta (Actual) en azul destacada limpiamente
                                 clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 6px; border-radius: 4px;">• ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
                             } else {
                                 const dist = calculateDistanceKm(Number(client.latitude), Number(client.longitude), Number(scheduledClient.latitude), Number(scheduledClient.longitude));
@@ -736,10 +756,11 @@
             }
         });
 
+        // MODIFICACIÓN APLICADA: Se quita la 'Z' final para evitar conversiones automáticas de huso horario
         function updateFinalTimestamp() {
             const timeVal = document.getElementById('appointment-time').value || '09:00';
             if (selectedDateOnly) {
-                document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00.000Z`;
+                document.getElementById('selected-appointment-date').value = `${selectedDateOnly}T${timeVal}:00`;
             }
         }
 
@@ -821,7 +842,7 @@
                 allAppointments = refreshedAppts || [];
 
                 const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
-                const formattedDateReadable = new Date(apptVal).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' });
+                const formattedDateReadable = formatLocalDateTime(apptVal);
                 
                 alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient.name}`);
 
