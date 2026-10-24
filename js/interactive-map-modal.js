@@ -131,6 +131,23 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         }
     });
 
+    // Función auxiliar para formatear la fecha y hora fija sin conversiones de huso horario
+    function formatLocalDateTime(dateStr, timeStr) {
+        if (!dateStr) return '';
+        const cleanDate = dateStr.split('T')[0];
+        const dateParts = cleanDate.split('-');
+        const timePart = timeStr ? timeStr.substring(0, 5) : '00:00';
+        
+        if (dateParts.length === 3) {
+            const [year, month, day] = dateParts;
+            const localDate = new Date(year, month - 1, day);
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+            const dateReadable = localDate.toLocaleDateString('es-ES', options);
+            return `${dateReadable}, ${timePart} hrs`;
+        }
+        return `${cleanDate} ${timePart}`;
+    }
+
     async function initModalMap() {
         const ottobrunnCenter = { lat: 48.0664, lng: 11.6611 };
         
@@ -340,9 +357,8 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         if (hasAppointment) {
             let apptsHtml = '';
             appointments.forEach((appt, index) => {
-                const d = new Date(appt.scheduled_date);
                 const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h)` : '';
-                const formattedDate = !isNaN(d) ? `${d.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}${hoursInfo}` : 'Fecha pendiente';
+                const formattedDate = formatLocalDateTime(appt.scheduled_date, appt.time_slot) + hoursInfo;
                 
                 apptsHtml += `
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #1e293b;">
