@@ -247,8 +247,8 @@
 
                 <div class="form-row-group">
                     <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Horas estimadas (Opcional):</label>
-                    <!-- Modificado step="any" y min="0.1" para permitir escritura manual libre -->
-                    <input type="number" id="estimated-hours" step="any" min="0.1" placeholder="Ej. 4 o 1.5">
+                    <!-- Cambiado a type="text" con inputmode="decimal" para permitir escribir números libremente con el teclado -->
+                    <input type="text" id="estimated-hours" inputmode="decimal" placeholder="Ej. 4 o 1.5">
                 </div>
 
                 <div class="client-search-container" style="margin-top: 8px; margin-bottom: 0;">
@@ -527,7 +527,8 @@
             }
         });
 
-        function resetFormToBlank() {
+        // Función para limpiar el formulario y refrescar los datos del mapa automáticamente
+        async function resetFormAndReloadMap() {
             activeClient = null;
             window.activeClient = null;
             selectedAppointmentId = null;
@@ -550,6 +551,33 @@
             saveBtn.style.opacity = '0.6';
 
             updateUIModeText();
+
+            // Recargamos los datos desde Supabase para actualizar los pines del mapa al instante
+            try {
+                const [{ data: clientData }, { data: apptData }, { data: serviceData }] = await Promise.all([
+                    supabase.from('clients').select('*').order('name', { ascending: true }),
+                    supabase.from('appointments').select('*'),
+                    supabase.from('services').select('*').order('name', { ascending: true })
+                ]);
+
+                allClients = clientData || [];
+                allAppointments = apptData || [];
+                allServices = serviceData || [];
+
+                // Reinicializamos el modal del mapa para que dibuje los nuevos colores (azul/rojo)
+                initInteractiveMapModal(
+                    'map-modal',
+                    'interactive-map',
+                    'btn-open-map-selector',
+                    'close-map-modal',
+                    () => allClients,
+                    (selectedClient) => {
+                        selectClient(selectedClient);
+                    }
+                );
+            } catch (err) {
+                console.error('Error al actualizar datos tras guardar:', err);
+            }
         }
 
         function selectClient(client) {
@@ -757,7 +785,6 @@
                 return;
             }
 
-            // Si estaba en modo reprogramar pero cambia la fecha libremente, aseguramos que actúe de forma limpia
             selectedDateOnly = chosenDate;
             
             const suggestedTime = suggestNextTimeForDate(chosenDate);
@@ -792,7 +819,7 @@
             updateFinalTimestamp();
             const dateVal = document.getElementById('selected-appointment-date').value;
             const timeVal = document.getElementById('appointment-time').value || '09:00';
-            const hoursVal = document.getElementById('estimated-hours').value;
+            const rawHours = document.getElementById('estimated-hours').value.trim();
             const serviceVal = document.getElementById('service-search-input').value.trim();
 
             if (!clientId || !dateVal) {
@@ -835,11 +862,13 @@
                 }
             }
 
+            const parsedHours = rawHours !== '' ? parseFloat(rawHours.replace(',', '.')) : null;
+
             const payload = {
                 client_id: clientId,
                 scheduled_date: dateVal,
                 time_slot: timeVal,
-                estimated_hours: hoursVal ? parseFloat(hoursVal) : null,
+                estimated_hours: !isNaN(parsedHours) ? parsedHours : null,
                 service_requested: serviceVal || null
             };
 
@@ -858,16 +887,16 @@
                 btn.textContent = originalBtnText;
                 btn.disabled = false;
             } else {
-                const { data: refreshedAppts } = await supabase.from('appointments').select('*');
-                allAppointments = refreshedAppts || [];
-
                 const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
                 const formattedDateReadable = formatLocalDateTime(dateVal, timeVal);
                 
                 alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}`);
 
-                // Reiniciamos el formulario por completo en blanco tras guardar con éxito
-                resetFormToBlank();
+                // Limpiamos el formulario y actualizamos automáticamente el mapa
+                await resetFormAndReloadMap();
+
+                btn.textContent = originalBtnText;
+                btn.disabled = false;
             }
         });
 
