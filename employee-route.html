@@ -47,7 +47,7 @@
 
         #daily-map {
             width: 100%;
-            height: 400px;
+            height: 380px;
             border-radius: 12px;
             border: 1px solid #cbd5e0;
             margin-bottom: 16px;
@@ -71,9 +71,9 @@
             background: #2563eb;
             color: white;
             border: none;
-            padding: 8px;
+            padding: 9px;
             border-radius: 8px;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: bold;
             cursor: pointer;
             text-decoration: none;
@@ -90,20 +90,20 @@
     <div class="container">
         <!-- Cabecera -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">🗺️ Mapa de Ruta por Fecha</h1>
-            <a href="./index.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">Menú Principal</a>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">🗺️ Mapa de Ruta del Día</h1>
+            <a href="./employee-schedule.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">← Volver al Portal</a>
         </div>
 
         <!-- Barra de Controles: Selector de Fecha y Filtro de Empleado -->
         <div class="controls-bar">
             <div style="flex: 1; min-width: 140px;">
-                <label style="display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; margin-bottom: 3px;">📅 Seleccionar Fecha:</label>
+                <label style="display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; margin-bottom: 3px;">📅 Fecha Seleccionada:</label>
                 <input type="date" id="route-date-input" style="width: 100%;">
             </div>
             <div style="flex: 1; min-width: 140px;">
-                <label style="display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; margin-bottom: 3px;">👷‍♂️ Filtrar Técnico:</label>
+                <label style="display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; margin-bottom: 3px;">👷‍♂️ Empleado:</label>
                 <select id="employee-filter" style="width: 100%;">
-                    <option value="ALL">-- Todos los técnicos --</option>
+                    <option value="ALL">-- Todos --</option>
                 </select>
             </div>
         </div>
@@ -134,7 +134,12 @@
         const dateInput = document.getElementById('route-date-input');
         const employeeFilter = document.getElementById('employee-filter');
 
-        dateInput.value = todayStrSystem;
+        // Capturar parámetros de la URL enviados desde el menú
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselectedEmployee = urlParams.get('employee');
+        const preselectedDate = urlParams.get('date');
+
+        dateInput.value = preselectedDate || todayStrSystem;
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
@@ -142,7 +147,7 @@
             return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
         }
 
-        async function initDailyRouteMap() {
+        async function initEmployeeRouteMap() {
             try {
                 const [{ data: clients }, { data: appointments }, { data: employees }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
@@ -158,11 +163,15 @@
                     employeeFilter.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
 
+                if (preselectedEmployee) {
+                    employeeFilter.value = preselectedEmployee;
+                }
+
                 initMapObject();
                 renderSelectedDayData();
 
             } catch (err) {
-                console.error('Error al inicializar mapa diario:', err);
+                console.error('Error al inicializar mapa de ruta:', err);
             }
         }
 
@@ -185,14 +194,12 @@
             const selectedEmployee = employeeFilter.value;
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
 
-            // Filtrar citas según la fecha seleccionada y opcionalmente por empleado
             const dayAppointments = allAppointments.filter(appt => {
                 if (!appt.scheduled_date || appt.scheduled_date.split('T')[0] !== selectedDate) return false;
                 if (selectedEmployee !== 'ALL' && appt.assigned_employee !== selectedEmployee) return false;
                 return clientsMap.has(appt.client_id);
             });
 
-            // Limpiar marcadores anteriores del mapa
             markers.forEach(m => m.setMap(null));
             markers = [];
 
@@ -219,7 +226,7 @@
                 const pos = { lat: Number(client.latitude), lng: Number(client.longitude) };
                 bounds.extend(pos);
 
-                // Crear pin con número secuencial (1, 2, 3, 4...)
+                // Pin con número secuencial (1, 2, 3, 4...)
                 const marker = new google.maps.Marker({
                     position: pos,
                     map: map,
@@ -236,7 +243,7 @@
                 const techAssigned = appt.assigned_employee ? `<br>👷‍♂️ Técnico: <strong>${appt.assigned_employee}</strong>` : '';
 
                 const windowContent = `
-                    <div style="font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 4px; border-radius: 6px;">
+                    <div style="font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 6px; border-radius: 6px;">
                         <strong style="color: #38bdf8; font-size: 0.8rem;">#${index + 1}: ${client.name}</strong><br>
                         <span style="font-size: 0.72rem;">⏰ Hora: ${appt.time_slot || '09:00'}h</span><br>
                         <span style="font-size: 0.72rem;">📍 ${client.address || 'Sin dirección'}</span>
@@ -252,7 +259,6 @@
 
                 markers.push(marker);
 
-                // Renderizar tarjeta de la lista inferior
                 const mapsQuery = `${client.latitude},${client.longitude}`;
                 const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery}&travelmode=driving`;
                 const serviceStr = appt.service_requested ? `<span style="color: #2563eb; font-weight: 700;">🛠️ ${appt.service_requested}</span><br>` : '';
@@ -281,7 +287,7 @@
         dateInput.addEventListener('change', renderSelectedDayData);
         employeeFilter.addEventListener('change', renderSelectedDayData);
 
-        initDailyRouteMap();
+        initEmployeeRouteMap();
     </script>
 </body>
 </html>
