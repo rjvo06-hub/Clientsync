@@ -760,7 +760,6 @@
                     `;
 
                     btn.addEventListener('click', () => {
-                        // Si no estamos reprogramando explícitamente una cita previa, pasa a modo nuevo
                         if (!selectedAppointmentId) {
                             actionType = 'new';
                             updateUIModeText();
@@ -791,7 +790,7 @@
                 suggestionBox.style.display = 'block';
             }
 
-            // Si venimos del panel de control con una cita a reprogramar, se selecciona y enfoca automáticamente al cargar
+            // Si se pasa un appointment_id exacto por URL, simulamos el clic para seleccionarla y enfocarla de inmediato
             if (targetApptToSelect) {
                 targetApptToSelect.card.querySelector('.btn-quick-reschedule').click();
             }
@@ -885,6 +884,8 @@
 
             const parsedHours = rawHours !== '' ? parseFloat(rawHours.replace(',', '.')) : null;
 
+            // NOTA: Al crear o actualizar la cita, NO incluimos ningún campo de técnico asignado (assigned_employee) 
+            // para garantizar que las nuevas citas o modificaciones nunca tengan técnico por defecto.
             const payload = {
                 client_id: clientId,
                 scheduled_date: dateVal,
