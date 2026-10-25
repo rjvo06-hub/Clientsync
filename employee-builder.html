@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ClientSync | Gestión de Empleados</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            margin: 0;
+            padding: 12px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 10px auto 60px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+        }
+        .form-group {
+            margin-bottom: 14px;
+        }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 5px;
+        }
+        input, select {
+            font-size: 14px;
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background: #f8fafc;
+            outline: none;
+            color: #1e293b;
+            font-weight: 600;
+        }
+        button {
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            padding: 10px 16px;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .employee-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Cabecera -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+            <h1 style="margin: 0; font-size: 1.15rem; color: #0f172a;">👨‍🔧 Gestión de Empleados</h1>
+            <a href="./index.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">🏠 Inicio</a>
+        </div>
+
+        <!-- Formulario de Registro / Edición -->
+        <form id="employee-form" style="background: #f8fafc; border: 1px solid #cbd5e0; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+            <input type="hidden" id="employee-id">
+            
+            <div class="form-group">
+                <label>Nombre del Empleado:</label>
+                <input type="text" id="employee-name" required placeholder="Ej. Juan Pérez">
+            </div>
+
+            <div class="form-group">
+                <label>Correo Electrónico:</label>
+                <input type="email" id="employee-email" placeholder="correo@clientsync.com">
+            </div>
+
+            <div class="form-group">
+                <label>Rol / Puesto:</label>
+                <input type="text" id="employee-role" placeholder="Ej. Técnico, Supervisor">
+            </div>
+
+            <div class="form-group">
+                <label>Nivel de Usuario (Seguridad):</label>
+                <select id="employee-level">
+                    <option value="1">Nivel 1 (Básico)</option>
+                    <option value="2">Nivel 2 (Intermedio)</option>
+                    <option value="3">Nivel 3 (Avanzado / Admin)</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-primary" id="save-btn">💾 Guardar Empleado</button>
+            <button type="button" id="cancel-btn" style="background: #e2e8f0; color: #475569; width: 100%; margin-top: 6px; display: none;">Cancelar Edición</button>
+        </form>
+
+        <!-- Lista de Empleados Registrados -->
+        <h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 10px;">📋 Empleados Registrados</h3>
+        <div id="employees-list-container">
+            <p style="color: #64748b; font-size: 0.8rem; text-align: center;">Cargando empleados...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        const form = document.getElementById('employee-form');
+        const employeeIdInput = document.getElementById('employee-id');
+        const nameInput = document.getElementById('employee-name');
+        const emailInput = document.getElementById('employee-email');
+        const roleInput = document.getElementById('employee-role');
+        const levelInput = document.getElementById('employee-level');
+        const saveBtn = document.getElementById('save-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const listContainer = document.getElementById('employees-list-container');
+
+        async function fetchEmployees() {
+            try {
+                const { data, error } = await supabase.from('employees').select('*').order('name', { ascending: true });
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    listContainer.innerHTML = `<p style="color: #64748b; font-size: 0.8rem; text-align: center;">No hay empleados registrados.</p>`;
+                    return;
+                }
+
+                let html = '';
+                data.forEach(emp => {
+                    const level = emp.user_level !== undefined && emp.user_level !== null ? emp.user_level : 1;
+                    html += `
+                        <div class="employee-card">
+                            <div>
+                                <strong style="font-size: 0.88rem; color: #1e293b; display: block;">${emp.name}</strong>
+                                <span style="font-size: 0.72rem; color: #64748b;">✉️ ${emp.email || 'Sin correo'} | 🏷️ ${emp.role || 'Sin rol'}</span>
+                                <div style="margin-top: 3px;">
+                                    <span style="font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; padding: 1px 6px; border-radius: 4px; border: 1px solid #bfdbfe; font-weight: 700;">Nivel ${level}</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="edit-btn" data-id="${emp.id}" data-name="${emp.name || ''}" data-email="${emp.email || ''}" data-role="${emp.role || ''}" data-level="${level}" style="background: #e2e8f0; color: #334155; padding: 6px 10px; font-size: 0.72rem;">✏️</button>
+                                <button type="button" class="delete-btn" data-id="${emp.id}" style="background: #fee2e2; color: #991b1b; padding: 6px 10px; font-size: 0.72rem;">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                listContainer.innerHTML = html;
+
+                // Eventos de edición
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const ds = e.currentTarget.dataset;
+                        employeeIdInput.value = ds.id;
+                        nameInput.value = ds.name;
+                        emailInput.value = ds.email;
+                        roleInput.value = ds.role;
+                        levelInput.value = ds.level;
+                        saveBtn.textContent = 'Actualizar Empleado';
+                        cancelBtn.style.display = 'block';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    });
+                });
+
+                // Eventos de eliminación
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const id = e.currentTarget.dataset.id;
+                        if (confirm('¿Estás seguro de eliminar este empleado?')) {
+                            const { error } = await supabase.from('employees').delete().eq('id', id);
+                            if (error) alert('Error al eliminar: ' + error.message);
+                            else fetchEmployees();
+                        }
+                    });
+                });
+
+            } catch (err) {
+                console.error('Error al cargar empleados:', err);
+                listContainer.innerHTML = `<p style="color: #dc2626; font-size: 0.8rem; text-align: center;">Error al cargar datos.</p>`;
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = employeeIdInput.value;
+            const payload = {
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim() || null,
+                role: roleInput.value.trim() || null,
+                user_level: parseInt(levelInput.value) || 1
+            };
+
+            try {
+                if (id) {
+                    // Actualizar
+                    const { error } = await supabase.from('employees').update(payload).eq('id', id);
+                    if (error) throw error;
+                } else {
+                    // Crear nuevo
+                    const { error } = await supabase.from('employees').insert([payload]);
+                    if (error) throw error;
+                }
+
+                resetForm();
+                fetchEmployees();
+            } catch (err) {
+                alert('Error al guardar: ' + err.message);
+            }
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            resetForm();
+        });
+
+        function resetForm() {
+            form.reset();
+            employeeIdInput.value = '';
+            saveBtn.textContent = '💾 Guardar Empleado';
+            cancelBtn.style.display = 'none';
+        }
+
+        fetchEmployees();
+    </script>
+</body>
+</html>
