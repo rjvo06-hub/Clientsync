@@ -475,8 +475,10 @@
                         const midIndex = Math.floor(decodedPath.length / 2);
                         const midPoint = decodedPath[midIndex];
 
-                        // Enlace oficial de navegación de Google Maps
-                        const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat()},${origin.lng()}&destination=${destination.lat()},${destination.lng()}&travelmode=driving`;
+                        // Construcción de la URL de navegación de Google Maps usando las direcciones reales
+                        const originQuery = encodeURIComponent(originStop.client.address || `${origin.lat()},${origin.lng()}`);
+                        const destQuery = encodeURIComponent(destStop.client.address || `${destination.lat()},${destination.lng()}`);
+                        const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&origin=${originQuery}&destination=${destQuery}&travelmode=driving`;
 
                         routePath.addListener('click', () => {
                             if (infoWindow) infoWindow.close();
