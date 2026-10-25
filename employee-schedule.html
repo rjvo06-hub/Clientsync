@@ -377,12 +377,15 @@
                             <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">#${index + 1} &nbsp;|&nbsp; ⏰ ${timeStr}h ${serviceStr}</span>
                             <span style="font-size: 0.72rem; background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-weight: 700; color: #475569; border: 1px solid #e2e8f0;">CP: ${client.postal_code || 'N/A'}</span>
                         </div>
-                        <!-- Línea 2: Nombre del cliente, Dirección al lado y Teléfono en el extremo derecho -->
+                        <!-- Línea 2: Dirección a la izquierda, Nombre del cliente a la derecha, seguido del icono de teléfono -->
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-size: 0.85rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
-                                <strong style="color: #0f172a;">${client.name}</strong> <span style="color: #64748b; font-weight: 400; margin-left: 4px;">— 📍 ${client.address || 'Sin dirección'}</span>
+                            <div style="font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;">
+                                📍 ${client.address || 'Sin dirección'}
                             </div>
-                            ${phoneHtml}
+                            <div style="display: flex; align-items: center; flex-shrink: 0; margin-left: 8px;">
+                                <span style="font-size: 0.85rem; font-weight: 700; color: #0f172a; text-align: right;">${client.name}</span>
+                                ${phoneHtml}
+                            </div>
                         </div>
                     </div>
                 `;
