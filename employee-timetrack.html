@@ -47,7 +47,7 @@
             <div>
                 <h1 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">⏱️ Tiempos de <span id="employee-title-name" style="color: #2563eb;">...</span></h1>
             </div>
-            <a href="#" id="back-link" style="padding: 5px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">← Volver</a>
+            <a href="#" id="back-link" style="padding: 5px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">← Volver a Citas</a>
         </div>
 
         <!-- Área dinámica de contenido -->
@@ -104,14 +104,18 @@
         }
 
         async function fetchEmployeeDailyLog() {
-            const { data, error } = await supabase.from('employee_daily_logs')
-                .select('*')
-                .eq('employee_name', selectedEmployee)
-                .eq('work_date', todayStrSystem)
-                .maybeSingle();
+            try {
+                const { data, error } = await supabase.from('employee_daily_logs')
+                    .select('*')
+                    .eq('employee_name', selectedEmployee)
+                    .eq('work_date', todayStrSystem)
+                    .maybeSingle();
 
-            if (!error) {
-                employeeDailyLog = data;
+                if (!error) {
+                    employeeDailyLog = data;
+                }
+            } catch (err) {
+                console.error('Error al buscar registro diario:', err);
             }
         }
 
@@ -148,9 +152,9 @@
                     <strong style="font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 4px;">🏢 Estado de Jornada Laboral:</strong>
                     <div id="global-status-text" style="font-size: 0.78rem; color: #2563eb; font-weight: bold; margin-bottom: 10px;">Estado: ${statusText}</div>
                     <div style="display: flex; gap: 6px;">
-                        <button type="button" id="btn-start-work" style="flex:1; background: #16a34a; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">▶️ Iniciar</button>
-                        <button type="button" id="btn-lunch-work" style="flex:1; background: #d97706; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">☕ Almuerzo</button>
-                        <button type="button" id="btn-end-work" style="flex:1; background: #dc2626; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">⏹️ Finalizar</button>
+                        <button type="button" id="btn-start-work" style="flex:1; background: #16a34a; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">▶️ Iniciar</button>
+                        <button type="button" id="btn-lunch-work" style="flex:1; background: #d97706; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">☕ Almuerzo</button>
+                        <button type="button" id="btn-end-work" style="flex:1; background: #dc2626; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">⏹️ Finalizar</button>
                     </div>
                 </div>
 
@@ -172,7 +176,7 @@
                         statusBadge = `<span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">🟢 En Visita</span>`;
                         actionButton = `<button type="button" class="btn-checkout" data-appt-id="${appt.id}" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">⏹️ Terminar Visita</button>`;
                     } else if (isCompleted) {
-                        statusBadge = `<span style="background: #0284c7; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">✅ ${appt.visit_duration_minutes || 0} min (Total Mano de Obra: ${appt.total_labor_minutes || 0}m)</span>`;
+                        statusBadge = `<span style="background: #0284c7; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">✅ ${appt.visit_duration_minutes || 0} min (Total: ${appt.total_labor_minutes || 0}m)</span>`;
                         actionButton = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: bold;">Registrado</span>`;
                     }
 
@@ -204,22 +208,28 @@
             if (btnStart) {
                 btnStart.addEventListener('click', async () => {
                     const nowIso = new Date().toISOString();
-                    if (!employeeDailyLog) {
-                        const { data, error } = await supabase.from('employee_daily_logs').insert([{
-                            employee_name: selectedEmployee,
-                            work_date: todayStrSystem,
-                            clock_in_time: nowIso,
-                            status: 'activo'
-                        }]).select().single();
-                        if (!error) employeeDailyLog = data;
-                    } else {
-                        const { data, error } = await supabase.from('employee_daily_logs')
-                            .update({ clock_in_time: nowIso, status: 'activo' })
-                            .eq('id', employeeDailyLog.id)
-                            .select().single();
-                        if (!error) employeeDailyLog = data;
+                    try {
+                        if (!employeeDailyLog) {
+                            const { data, error } = await supabase.from('employee_daily_logs').insert([{
+                                employee_name: selectedEmployee,
+                                work_date: todayStrSystem,
+                                clock_in_time: nowIso,
+                                status: 'activo'
+                            }]).select().single();
+                            if (error) throw error;
+                            employeeDailyLog = data;
+                        } else {
+                            const { data, error } = await supabase.from('employee_daily_logs')
+                                .update({ clock_in_time: nowIso, status: 'activo' })
+                                .eq('id', employeeDailyLog.id)
+                                .select().single();
+                            if (error) throw error;
+                            employeeDailyLog = data;
+                        }
+                        renderTimeTrackingView();
+                    } catch (err) {
+                        alert('Error al iniciar jornada: ' + err.message);
                     }
-                    renderTimeTrackingView();
                 });
             }
 
@@ -235,13 +245,18 @@
                         ? { lunch_start_time: nowIso, status: 'almuerzo' }
                         : { lunch_end_time: nowIso, status: 'activo' };
 
-                    const { data, error } = await supabase.from('employee_daily_logs')
-                        .update(updateData)
-                        .eq('id', employeeDailyLog.id)
-                        .select().single();
+                    try {
+                        const { data, error } = await supabase.from('employee_daily_logs')
+                            .update(updateData)
+                            .eq('id', employeeDailyLog.id)
+                            .select().single();
 
-                    if (!error) employeeDailyLog = data;
-                    renderTimeTrackingView();
+                        if (error) throw error;
+                        employeeDailyLog = data;
+                        renderTimeTrackingView();
+                    } catch (err) {
+                        alert('Error al actualizar almuerzo: ' + err.message);
+                    }
                 });
             }
 
@@ -252,13 +267,18 @@
                         return;
                     }
                     const nowIso = new Date().toISOString();
-                    const { data, error } = await supabase.from('employee_daily_logs')
-                        .update({ clock_out_time: nowIso, status: 'finalizado' })
-                        .eq('id', employeeDailyLog.id)
-                        .select().single();
+                    try {
+                        const { data, error } = await supabase.from('employee_daily_logs')
+                            .update({ clock_out_time: nowIso, status: 'finalizado' })
+                            .eq('id', employeeDailyLog.id)
+                            .select().single();
 
-                    if (!error) employeeDailyLog = data;
-                    renderTimeTrackingView();
+                        if (error) throw error;
+                        employeeDailyLog = data;
+                        renderTimeTrackingView();
+                    } catch (err) {
+                        alert('Error al finalizar jornada: ' + err.message);
+                    }
                 });
             }
 
@@ -267,16 +287,18 @@
                     const apptId = e.target.getAttribute('data-appt-id');
                     const nowIso = new Date().toISOString();
 
-                    const { error } = await supabase.from('appointments')
-                        .update({ check_in_time: nowIso })
-                        .eq('id', apptId);
+                    try {
+                        const { error } = await supabase.from('appointments')
+                            .update({ check_in_time: nowIso })
+                            .eq('id', apptId);
 
-                    if (!error) {
+                        if (error) throw error;
+
                         const appt = allAppointments.find(a => a.id === apptId);
                         if (appt) appt.check_in_time = nowIso;
                         renderTimeTrackingView();
-                    } else {
-                        alert('Error al registrar la llegada: ' + error.message);
+                    } catch (err) {
+                        alert('Error al registrar la llegada: ' + err.message);
                     }
                 });
             });
@@ -295,28 +317,29 @@
                     }
                     const visitMins = durationMins > 0 ? durationMins : 1;
 
-                    // Multiplicar por la cantidad de empleados asignados
                     const assignedList = (appt.assigned_employee || '').split(',').map(el => el.trim()).filter(Boolean);
                     const employeeCount = Math.max(1, assignedList.length);
                     const totalLaborMins = visitMins * employeeCount;
 
-                    const { error } = await supabase.from('appointments')
-                        .update({ 
-                            check_out_time: nowIso,
-                            visit_duration_minutes: visitMins,
-                            total_labor_minutes: totalLaborMins
-                        })
-                        .eq('id', apptId);
+                    try {
+                        const { error } = await supabase.from('appointments')
+                            .update({ 
+                                check_out_time: nowIso,
+                                visit_duration_minutes: visitMins,
+                                total_labor_minutes: totalLaborMins
+                            })
+                            .eq('id', apptId);
 
-                    if (!error) {
+                        if (error) throw error;
+
                         if (appt) {
                             appt.check_out_time = nowIso;
                             appt.visit_duration_minutes = visitMins;
                             appt.total_labor_minutes = totalLaborMins;
                         }
                         renderTimeTrackingView();
-                    } else {
-                        alert('Error al finalizar la visita: ' + error.message);
+                    } catch (err) {
+                        alert('Error al finalizar la visita: ' + err.message);
                     }
                 });
             });
