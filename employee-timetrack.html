@@ -118,7 +118,7 @@
         let selectedEmployee = '';
         let timerInterval = null;
 
-        // Fecha neutra estática (YYYY-MM-DD local sin conversiones UTC)
+        // Fecha neutra estática local (YYYY-MM-DD sin UTC)
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
         
@@ -222,7 +222,7 @@
                     </div>
                 </div>
 
-                <strong style="font-size: 0.82rem; color: #0f172a; display: block; margin-bottom: 8px;">📍 Clientes Asignados Hoy:</strong>
+                <strong style="font-size: 0.82rem; color: #0f172a; display: block; margin-bottom: 8px;">📍 Clientes Pendientes / En Curso:</strong>
                 <div id="clients-timetrack-list"></div>
             `;
 
@@ -233,16 +233,19 @@
 
         function renderClientsList(appts, map) {
             const listContainer = document.getElementById('clients-timetrack-list');
-            if (appts.length === 0) {
-                listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.8rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">No hay citas para registrar hoy.</div>`;
+            
+            // FILTRO CLAVE: Ocultar los clientes que ya tienen check_out_time (finalizados)
+            const activeAppts = appts.filter(a => !a.check_out_time);
+
+            if (activeAppts.length === 0) {
+                listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #16a34a; font-size: 0.8rem; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0; font-weight: 700;">🎉 ¡Has completado todos los clientes de hoy!</div>`;
                 return;
             }
 
             let html = '';
-            appts.forEach((appt, idx) => {
+            activeAppts.forEach((appt, idx) => {
                 const c = map.get(appt.client_id);
                 const isCheckedIn = appt.check_in_time && !appt.check_out_time;
-                const isCompleted = appt.check_out_time;
 
                 let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
                 let actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
@@ -250,9 +253,6 @@
                 if (isCheckedIn) {
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
                     actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
-                } else if (isCompleted) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ ${appt.visit_duration_minutes || 0}m (Total: ${appt.total_labor_minutes || 0}m)</span>`;
-                    actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                 }
 
                 html += `
@@ -273,7 +273,6 @@
             attachClientTimerListeners();
         }
 
-        // Cronómetro en vivo neutro
         function startLiveTimer() {
             if (timerInterval) clearInterval(timerInterval);
             
@@ -425,6 +424,7 @@
                             a.visit_duration_minutes = mins;
                             a.total_labor_minutes = totalLabor;
                         }
+                        // Al terminar, se vuelve a renderizar y el cliente desaparecerá automáticamente de la lista activa
                         renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
                     } else alert('Error: ' + error.message);
                 });
