@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Portal del Empleado</title>
+    <title>ClientSync | Portal del Empleado y Control de Tiempos</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
@@ -14,7 +14,7 @@
             padding: 12px; 
         }
         .container { 
-            max-width: 500px; 
+            max-width: 520px; 
             margin: 10px auto 60px auto; 
             background: white; 
             padding: 20px; 
@@ -23,36 +23,67 @@
             border: 1px solid #e2e8f0;
         }
         
-        .sub-menu-citas {
+        .main-menu-tabs {
             display: flex;
             gap: 8px;
             margin-bottom: 16px;
         }
-        .sub-btn {
+        .tab-btn {
             flex: 1;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 11px 8px;
+            border-radius: 10px;
             border: 1px solid #cbd5e0;
             background: white;
             color: #475569;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             cursor: pointer;
             text-align: center;
         }
-        .sub-btn.active {
+        .tab-btn.active {
             background: #2563eb;
             color: white;
             border-color: #2563eb;
         }
 
+        .sub-menu-citas {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+        .sub-btn {
+            flex: 1;
+            padding: 8px 4px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+            background: #f8fafc;
+            color: #475569;
+            font-weight: bold;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .sub-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
         .client-card { 
             background: #ffffff; 
             border: 1px solid #cbd5e0;
-            padding: 10px 12px; 
+            padding: 12px; 
             border-radius: 10px; 
-            margin-bottom: 8px; 
+            margin-bottom: 10px; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
+        }
+
+        .time-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 14px;
+            border-radius: 10px;
+            margin-bottom: 16px;
         }
 
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
@@ -74,23 +105,20 @@
             <div>
                 <h1 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">👷‍♂️ Portal de <span id="employee-title-name" style="color: #2563eb;">...</span></h1>
             </div>
-            <div style="display: flex; gap: 6px;">
-                <a href="#" id="link-timetrack" style="padding: 5px 8px; background: #eff6ff; color: #1d4ed8; text-decoration: none; border-radius: 8px; font-size: 0.72rem; font-weight: 700; border: 1px solid #bfdbfe;">⏱️ Tiempos</a>
-                <a href="./index.html" style="padding: 5px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.72rem; font-weight: 600;">🏠 Inicio</a>
-            </div>
+            <a href="./index.html" style="padding: 5px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">🏠 Inicio</a>
         </div>
 
-        <!-- Submenú de Vistas (Hoy / Calendario) -->
-        <div class="sub-menu-citas">
-            <button type="button" class="sub-btn active" id="sub-btn-today">📅 Citas de Hoy</button>
-            <button type="button" class="sub-btn" id="sub-btn-calendar">🗓️ Calendario Mensual</button>
+        <!-- Botones Principales de Navegación (Citas vs Tiempos) -->
+        <div class="main-menu-tabs">
+            <button type="button" class="tab-btn active" id="tab-btn-citas">📅 Visualizar Citas</button>
+            <button type="button" class="tab-btn" id="tab-btn-timetrack">⏱️ Control de Tiempos</button>
         </div>
 
-        <!-- Área dinámica de contenido -->
-        <div id="dynamic-content-area"></div>
+        <!-- Contenedor principal donde cambia la vista -->
+        <div id="app-main-content"></div>
     </div>
 
-    <!-- Modal para ver citas de un día seleccionado -->
+    <!-- Modal para ver citas de un día seleccionado en el calendario -->
     <div id="day-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
@@ -106,6 +134,7 @@
 
         let allClients = [];
         let allAppointments = [];
+        let employeeDailyLog = null;
         let selectedEmployee = '';
         let selectedMonthDate = new Date();
 
@@ -123,7 +152,6 @@
         } else {
             document.getElementById('employee-title-name').textContent = selectedEmployee;
             localStorage.setItem(STORAGE_KEY, selectedEmployee);
-            document.getElementById('link-timetrack').href = `./employee-timetrack.html?employee=${encodeURIComponent(selectedEmployee)}`;
         }
 
         function formatDateToDDMMYYYY(dateStr) {
@@ -142,31 +170,55 @@
                 allClients = clients || [];
                 allAppointments = appointments || [];
 
+                await fetchEmployeeDailyLog();
+
                 if (viewMode === 'calendar' && returnDate) {
                     selectedMonthDate = new Date(returnDate + 'T00:00:00');
-                    activateCitasSubTab('calendar');
+                    switchMainTab('citas');
+                    activateCitasSubView('calendar');
                     openDayModal(returnDate);
                 } else {
-                    activateCitasSubTab('today');
+                    switchMainTab('citas');
+                    activateCitasSubView('today');
                 }
             } catch (err) {
                 console.error('Error al inicializar portal:', err);
             }
         }
 
-        document.getElementById('sub-btn-today').addEventListener('click', () => activateCitasSubTab('today'));
-        document.getElementById('sub-btn-calendar').addEventListener('click', () => activateCitasSubTab('calendar'));
+        async function fetchEmployeeDailyLog() {
+            try {
+                const { data, error } = await supabase.from('employee_daily_logs')
+                    .select('*')
+                    .eq('employee_name', selectedEmployee)
+                    .eq('work_date', todayStrSystem)
+                    .maybeSingle();
 
-        function activateCitasSubTab(tabName) {
-            document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
-            const contentArea = document.getElementById('dynamic-content-area');
+                if (!error) {
+                    employeeDailyLog = data;
+                }
+            } catch (err) {
+                console.error('Error al buscar registro diario:', err);
+            }
+        }
 
-            if (tabName === 'today') {
-                document.getElementById('sub-btn-today').classList.add('active');
-                renderDaySchedule(contentArea, todayStrSystem, "Citas de Hoy");
+        // Cambio entre pestañas principales: Citas vs Tiempos
+        document.getElementById('tab-btn-citas').addEventListener('click', () => {
+            switchMainTab('citas');
+            activateCitasSubView('today');
+        });
+
+        document.getElementById('tab-btn-timetrack').addEventListener('click', () => {
+            switchMainTab('timetrack');
+            renderTimeTrackingView();
+        });
+
+        function switchMainTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (tabName === 'citas') {
+                document.getElementById('tab-btn-citas').classList.add('active');
             } else {
-                document.getElementById('sub-btn-calendar').classList.add('active');
-                renderMonthCalendar(contentArea);
+                document.getElementById('tab-btn-timetrack').classList.add('active');
             }
         }
 
@@ -181,6 +233,28 @@
 
                 return clientsMap.has(appt.client_id);
             });
+        }
+
+        function activateCitasSubView(subView) {
+            const container = document.getElementById('app-main-content');
+            let html = `
+                <div class="sub-menu-citas">
+                    <button type="button" class="sub-btn ${subView === 'today' ? 'active' : ''}" id="sub-btn-today">📅 Citas de Hoy</button>
+                    <button type="button" class="sub-btn ${subView === 'calendar' ? 'active' : ''}" id="sub-btn-calendar">🗓️ Calendario Mensual</button>
+                </div>
+                <div id="citas-sub-content"></div>
+            `;
+            container.innerHTML = html;
+
+            document.getElementById('sub-btn-today').addEventListener('click', () => activateCitasSubView('today'));
+            document.getElementById('sub-btn-calendar').addEventListener('click', () => activateCitasSubView('calendar'));
+
+            const subContainer = document.getElementById('citas-sub-content');
+            if (subView === 'today') {
+                renderDaySchedule(subContainer, todayStrSystem, "Citas de Hoy");
+            } else {
+                renderMonthCalendar(subContainer);
+            }
         }
 
         function renderDaySchedule(container, dateStr, titleText) {
@@ -314,6 +388,219 @@
         document.getElementById('close-modal-btn').addEventListener('click', () => { 
             document.getElementById('day-modal').style.display = 'none'; 
         });
+
+        // Vista de Control de Tiempos
+        function renderTimeTrackingView() {
+            const container = document.getElementById('app-main-content');
+            const todayAppts = getEmployeeAppointmentsForDate(todayStrSystem);
+            const clientsMap = new Map(allClients.map(c => [c.id, c]));
+
+            let statusText = 'Jornada no iniciada';
+            if (employeeDailyLog) {
+                if (employeeDailyLog.status === 'activo') statusText = '🟢 Jornada en curso';
+                else if (employeeDailyLog.status === 'almuerzo') statusText = '☕ En pausa de almuerzo';
+                else if (employeeDailyLog.status === 'finalizado') statusText = '✅ Jornada finalizada';
+            }
+
+            let html = `
+                <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 12px; font-weight: 600;">📅 Fecha: ${formatDateToDDMMYYYY(todayStrSystem)}</div>
+                
+                <div class="time-box">
+                    <strong style="font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 4px;">🏢 Estado de Jornada Laboral:</strong>
+                    <div id="global-status-text" style="font-size: 0.78rem; color: #2563eb; font-weight: bold; margin-bottom: 10px;">Estado: ${statusText}</div>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" id="btn-start-work" style="flex:1; background: #16a34a; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">▶️ Iniciar</button>
+                        <button type="button" id="btn-lunch-work" style="flex:1; background: #d97706; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">☕ Almuerzo</button>
+                        <button type="button" id="btn-end-work" style="flex:1; background: #dc2626; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">⏹️ Finalizar</button>
+                    </div>
+                </div>
+
+                <strong style="font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 8px;">📍 Clientes Asignados Hoy (Control por Visita):</strong>
+            `;
+
+            if (todayAppts.length === 0) {
+                html += `<div style="padding: 16px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; text-align: center; color: #b45309; font-size: 0.82rem;">No tienes citas programadas para registrar hoy.</div>`;
+            } else {
+                todayAppts.forEach((appt, index) => {
+                    const client = clientsMap.get(appt.client_id);
+                    const isCheckedIn = appt.check_in_time && !appt.check_out_time;
+                    const isCompleted = appt.check_out_time;
+
+                    let statusBadge = `<span style="background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">Pendiente</span>`;
+                    let actionButton = `<button type="button" class="btn-checkin" data-appt-id="${appt.id}" style="background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">▶️ Llegué (Iniciar)</button>`;
+
+                    if (isCheckedIn) {
+                        statusBadge = `<span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">🟢 En Visita</span>`;
+                        actionButton = `<button type="button" class="btn-checkout" data-appt-id="${appt.id}" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">⏹️ Terminar Visita</button>`;
+                    } else if (isCompleted) {
+                        statusBadge = `<span style="background: #0284c7; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">✅ ${appt.visit_duration_minutes || 0} min (Total: ${appt.total_labor_minutes || 0}m)</span>`;
+                        actionButton = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: bold;">Registrado</span>`;
+                    }
+
+                    html += `
+                        <div class="client-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <strong style="font-size: 0.85rem; color: #1e293b;">#${index + 1} ${client.name}</strong>
+                                ${statusBadge}
+                            </div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">📍 ${client.address || 'Sin dirección'}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.72rem; color: #2563eb; font-weight: bold;">⏰ Programada: ${appt.time_slot || '09:00'}h</span>
+                                <div>${actionButton}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+            attachTimeTrackingListeners();
+        }
+
+        function attachTimeTrackingListeners() {
+            const btnStart = document.getElementById('btn-start-work');
+            const btnLunch = document.getElementById('btn-lunch-work');
+            const btnEnd = document.getElementById('btn-end-work');
+
+            if (btnStart) {
+                btnStart.addEventListener('click', async () => {
+                    const nowIso = new Date().toISOString();
+                    try {
+                        if (!employeeDailyLog) {
+                            const { data, error } = await supabase.from('employee_daily_logs').insert([{
+                                employee_name: selectedEmployee,
+                                work_date: todayStrSystem,
+                                clock_in_time: nowIso,
+                                status: 'activo'
+                            }]).select().single();
+                            if (error) throw error;
+                            employeeDailyLog = data;
+                        } else {
+                            const { data, error } = await supabase.from('employee_daily_logs')
+                                .update({ clock_in_time: nowIso, status: 'activo' })
+                                .eq('id', employeeDailyLog.id)
+                                .select().single();
+                            if (error) throw error;
+                            employeeDailyLog = data;
+                        }
+                        renderTimeTrackingView();
+                    } catch (err) {
+                        alert('Error al iniciar jornada: ' + err.message);
+                    }
+                });
+            }
+
+            if (btnLunch) {
+                btnLunch.addEventListener('click', async () => {
+                    if (!employeeDailyLog) {
+                        alert('Primero debes iniciar tu jornada laboral.');
+                        return;
+                    }
+                    const nowIso = new Date().toISOString();
+                    const nextStatus = employeeDailyLog.status === 'almuerzo' ? 'activo' : 'almuerzo';
+                    const updateData = nextStatus === 'almuerzo' 
+                        ? { lunch_start_time: nowIso, status: 'almuerzo' }
+                        : { lunch_end_time: nowIso, status: 'activo' };
+
+                    try {
+                        const { data, error } = await supabase.from('employee_daily_logs')
+                            .update(updateData)
+                            .eq('id', employeeDailyLog.id)
+                            .select().single();
+
+                        if (error) throw error;
+                        employeeDailyLog = data;
+                        renderTimeTrackingView();
+                    } catch (err) {
+                        alert('Error al actualizar almuerzo: ' + err.message);
+                    }
+                });
+            }
+
+            if (btnEnd) {
+                btnEnd.addEventListener('click', async () => {
+                    if (!employeeDailyLog) {
+                        alert('No hay una jornada activa iniciada.');
+                        return;
+                    }
+                    const nowIso = new Date().toISOString();
+                    try {
+                        const { data, error } = await supabase.from('employee_daily_logs')
+                            .update({ clock_out_time: nowIso, status: 'finalizado' })
+                            .eq('id', employeeDailyLog.id)
+                            .select().single();
+
+                        if (error) throw error;
+                        employeeDailyLog = data;
+                        renderTimeTrackingView();
+                    } catch (err) {
+                        alert('Error al finalizar jornada: ' + err.message);
+                    }
+                });
+            }
+
+            document.querySelectorAll('.btn-checkin').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    const nowIso = new Date().toISOString();
+
+                    try {
+                        const { error } = await supabase.from('appointments')
+                            .update({ check_in_time: nowIso })
+                            .eq('id', apptId);
+
+                        if (error) throw error;
+
+                        const appt = allAppointments.find(a => a.id === apptId);
+                        if (appt) appt.check_in_time = nowIso;
+                        renderTimeTrackingView();
+                    } catch (err) {
+                        alert('Error al registrar la llegada: ' + err.message);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btn-checkout').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    const now = new Date();
+                    const nowIso = now.toISOString();
+
+                    const appt = allAppointments.find(a => a.id === apptId);
+                    let durationMins = 0;
+                    if (appt && appt.check_in_time) {
+                        const checkInDate = new Date(appt.check_in_time);
+                        durationMins = Math.round((now - checkInDate) / 60000);
+                    }
+                    const visitMins = durationMins > 0 ? durationMins : 1;
+
+                    const assignedList = (appt.assigned_employee || '').split(',').map(el => el.trim()).filter(Boolean);
+                    const employeeCount = Math.max(1, assignedList.length);
+                    const totalLaborMins = visitMins * employeeCount;
+
+                    try {
+                        const { error } = await supabase.from('appointments')
+                            .update({ 
+                                check_out_time: nowIso,
+                                visit_duration_minutes: visitMins,
+                                total_labor_minutes: totalLaborMins
+                            })
+                            .eq('id', apptId);
+
+                        if (error) throw error;
+
+                        if (appt) {
+                            appt.check_out_time = nowIso;
+                            appt.visit_duration_minutes = visitMins;
+                            appt.total_labor_minutes = totalLaborMins;
+                        }
+                        renderTimeTrackingView();
+                    } catch (err) {
+                        alert('Error al finalizar la visita: ' + err.message);
+                    }
+                });
+            });
+        }
 
         initSchedulePortal();
     </script>
