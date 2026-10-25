@@ -27,7 +27,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             geoBtn.id = 'geo-btn-dynamic';
             geoBtn.type = 'button';
             geoBtn.innerHTML = '📍 Mi Ubicación';
-            geoBtn.style.background = '#3182ce';
+            geoBtn.style.background = '#2563eb';
             geoBtn.style.color = 'white';
             geoBtn.style.border = 'none';
             geoBtn.style.borderRadius = '6px';
@@ -57,7 +57,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
                         const pinSvg = {
                             path: "M 0,0 C -2,-20 -10,-22 -10,-30 a 10,10 0 1,1 20,0 c 0,8 -8,10 -10,30 z",
-                            fillColor: "#4f46e5",
+                            fillColor: "#2563eb",
                             fillOpacity: 1,
                             strokeColor: "#ffffff",
                             strokeWeight: 2,
@@ -165,7 +165,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         });
 
         modalInfoWindow = new google.maps.InfoWindow({
-            maxWidth: 195
+            maxWidth: 210
         });
 
         modalMap.addListener('click', (event) => {
@@ -178,7 +178,7 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
             const pinSvgSelected = {
                 path: "M 0,0 C -2,-20 -10,-22 -10,-30 a 10,10 0 1,1 20,0 c 0,8 -8,10 -10,30 z",
-                fillColor: "#38bdf8",
+                fillColor: "#0284c7",
                 fillOpacity: 1,
                 strokeColor: "#ffffff",
                 strokeWeight: 2,
@@ -207,11 +207,11 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
     function showUserLocationInfoWindow(pos, markerInstance) {
         const contentHtml = `
-            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
-                <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700;">📍 Mi Ubicación Actual</h3>
+            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 190px; max-width: 100%; background: #ffffff; color: #1e293b; border-radius: 6px; text-align: left; box-sizing: border-box;">
+                <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; text-align: center;">
+                    <h3 style="margin: 0; font-size: 0.8rem; color: #2563eb; font-weight: 700;">📍 Mi Ubicación Actual</h3>
                 </div>
-                <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1;">Coordenadas: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}</p>
+                <p style="margin: 0; font-size: 0.7rem; color: #64748b;">Coordenadas: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}</p>
             </div>
         `;
         modalInfoWindow.setContent(contentHtml);
@@ -221,15 +221,15 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
 
     function showSelectedPointInfoWindow(pos, markerInstance, clientDraft) {
         const contentHtml = `
-            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
-                <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                    <h3 style="margin: 0; font-size: 0.78rem; color: #38bdf8; font-weight: 700;">📍 Nuevo Punto</h3>
+            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 190px; max-width: 100%; background: #ffffff; color: #1e293b; border-radius: 6px; text-align: left; box-sizing: border-box;">
+                <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; text-align: center;">
+                    <h3 style="margin: 0; font-size: 0.8rem; color: #0284c7; font-weight: 700;">📍 Nuevo Punto</h3>
                 </div>
-                <div style="margin-bottom: 4px;">
-                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1;">Lat/Lng: ${clientDraft.latitude.toFixed(4)}, ${clientDraft.longitude.toFixed(4)}</p>
+                <div style="margin-bottom: 6px;">
+                    <p style="margin: 0; font-size: 0.7rem; color: #64748b;">Lat/Lng: ${clientDraft.latitude.toFixed(4)}, ${clientDraft.longitude.toFixed(4)}</p>
                 </div>
-                <div style="margin-top: 6px; border-top: 1px dashed #1e293b; padding-top: 4px;">
-                    <button type="button" id="modal-create-client-btn" style="background: #10b981; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
+                <div style="margin-top: 8px; border-top: 1px dashed #cbd5e0; padding-top: 6px;">
+                    <button type="button" id="modal-create-client-btn" style="background: #10b981; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; font-size: 0.7rem; font-weight: bold; cursor: pointer;">
                         ➕ Crear cliente aquí
                     </button>
                 </div>
@@ -259,10 +259,10 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         google.maps.event.addListenerOnce(modalInfoWindow, 'domready', () => {
             const iwContainer = document.querySelector('.gm-style-iw-c');
             if (iwContainer) {
-                iwContainer.style.background = '#0f172a';
-                iwContainer.style.padding = '2px 4px 4px 4px';
-                iwContainer.style.borderRadius = '8px';
-                iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
+                iwContainer.style.background = '#ffffff';
+                iwContainer.style.padding = '6px 8px 8px 8px';
+                iwContainer.style.borderRadius = '10px';
+                iwContainer.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)';
             }
             const iwOuter = document.querySelector('.gm-style-iw-d');
             if (iwOuter) {
@@ -273,13 +273,13 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             const closeBtn = document.querySelector('.gm-ui-hover-effect');
             if (closeBtn) closeBtn.style.display = 'none';
 
-            let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
+            let styleTag = document.getElementById('custom-infowindow-light-style-modal');
             if (!styleTag) {
                 styleTag = document.createElement('style');
-                styleTag.id = 'custom-infowindow-dark-style-modal';
+                styleTag.id = 'custom-infowindow-light-style-modal';
                 styleTag.innerHTML = `
-                    .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
-                    .gm-style-iw-tc::after { background: #0f172a !important; }
+                    .gm-style-iw-t::after { background: #ffffff !important; box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important; }
+                    .gm-style-iw-tc::after { background: #ffffff !important; }
                 `;
                 document.head.appendChild(styleTag);
             }
@@ -361,18 +361,18 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
                 const formattedDate = formatLocalDateTime(appt.scheduled_date, appt.time_slot) + hoursInfo;
                 
                 apptsHtml += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #1e293b;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #f1f5f9;">
                         <div>
-                            <strong style="color: #93c5fd; font-size: 0.62rem; display: block;">Cita #${index + 1}:</strong>
-                            <span style="color: #f8fafc; font-size: 0.60rem;">${formattedDate}</span>
+                            <strong style="color: #2563eb; font-size: 0.68rem; display: block;">Cita #${index + 1}:</strong>
+                            <span style="color: #334155; font-size: 0.65rem;">${formattedDate}</span>
                         </div>
                     </div>
                 `;
             });
 
             appointmentSection = `
-                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
-                    <span style="color: #94a3b8; display: block; margin-bottom: 3px;">Citas programadas (${appointments.length}):</span>
+                <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #cbd5e0; font-size: 0.7rem;">
+                    <span style="color: #64748b; display: block; margin-bottom: 3px;">Citas programadas (${appointments.length}):</span>
                     <div style="max-height: 90px; overflow-y: auto;">
                         ${apptsHtml}
                     </div>
@@ -380,8 +380,8 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
             `;
         } else {
             appointmentSection = `
-                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #1e293b; font-size: 0.65rem;">
-                    <span style="color: #94a3b8; display: block; margin-bottom: 2px;">Cita programada: <strong style="color: #f87171;">No programada</strong></span>
+                <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #cbd5e0; font-size: 0.7rem;">
+                    <span style="color: #64748b; display: block; margin-bottom: 2px;">Cita programada: <strong style="color: #dc2626;">No programada</strong></span>
                 </div>
             `;
         }
@@ -389,21 +389,21 @@ export function initInteractiveMapModal(modalId, mapContainerId, openBtnId, clos
         const clientPhone = client.phone || client.telefono || client.phone_number || client.celular || '';
         let phoneActionHtml = '';
         if (clientPhone && String(clientPhone).trim() !== '' && String(clientPhone) !== 'N/A') {
-            phoneActionHtml = `<a href="tel:${clientPhone}" title="Llamar" style="text-decoration: none; font-size: 0.8rem; margin-left: 6px;">📞</a>`;
+            phoneActionHtml = `<a href="tel:${clientPhone}" title="Llamar" style="text-decoration: none; font-size: 0.85rem; margin-left: 6px;">📞</a>`;
         }
 
         const contentHtml = `
-            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 0px; width: 190px; max-width: 100%; background: #0f172a; color: #f8fafc; border-radius: 6px; text-align: left; box-sizing: border-box;">
-                <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                    <h3 style="margin: 0; font-size: 0.78rem; color: ${hasAppointment ? '#60a5fa' : '#f87171'}; font-weight: 700;">${hasAppointment ? '🔵' : '🔴'} ${client.name}</h3>
+            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding: 2px; width: 200px; max-width: 100%; background: #ffffff; color: #1e293b; border-radius: 8px; text-align: left; box-sizing: border-box;">
+                <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; text-align: center;">
+                    <h3 style="margin: 0; font-size: 0.85rem; color: ${hasAppointment ? '#2563eb' : '#dc2626'}; font-weight: 700;">${hasAppointment ? '🔵' : '🔴'} ${client.name}</h3>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <p style="margin: 0; font-size: 0.65rem; color: #cbd5e1; flex: 1;">📍 ${client.address || 'Sin dirección'}, ${client.postal_code || ''}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <p style="margin: 0; font-size: 0.7rem; color: #64748b; flex: 1;">📍 ${client.address || 'Sin dirección'}, ${client.postal_code || ''}</p>
                     ${phoneActionHtml}
                 </div>
                 ${appointmentSection}
-                <div style="margin-top: 6px;">
-                    <button type="button" id="modal-select-client-btn" style="background: #2563eb; color: white; border: none; padding: 6px; width: 100%; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">
+                <div style="margin-top: 8px;">
+                    <button type="button" id="modal-select-client-btn" style="background: #2563eb; color: white; border: none; padding: 6px; width: 100%; border-radius: 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer;">
                         ✔ Seleccionar este cliente
                     </button>
                 </div>
