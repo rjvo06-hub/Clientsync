@@ -163,8 +163,8 @@
 
         dateInput.value = preselectedDate || todayStrSystem;
 
-        // ⚠️ CAMBIA AQUÍ el nombre del archivo si tu pantalla de visualización de citas se llama diferente (ej. 'employee-portal.html')
-        const portalFile = 'admin-assignments.html'; 
+        // Enlace de retorno actualizado a employee-schedule.html
+        const portalFile = 'employee-schedule.html'; 
         backLink.href = `./${portalFile}${currentEmployee ? '?employee=' + encodeURIComponent(currentEmployee) : ''}`;
 
         const routeColors = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#dc2626', '#0891b2', '#db2777'];
