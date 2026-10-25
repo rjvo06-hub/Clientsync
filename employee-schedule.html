@@ -3,127 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Portal del Empleado y Control de Tiempos</title>
+    <title>ClientSync | Portal del Empleado</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f1f5f9; 
+            background-color: #f8fafc; 
             margin: 0; 
-            padding: 12px; 
+            padding: 16px; 
         }
         .container { 
-            max-width: 520px; 
-            margin: 10px auto 60px auto; 
+            max-width: 480px; 
+            margin: 20px auto; 
             background: white; 
-            padding: 20px; 
-            border-radius: 16px; 
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06); 
-            border: 1px solid #e2e8f0;
+            padding: 24px 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05); 
+            border: 1px solid #f1f5f9;
         }
-        
-        .main-menu-tabs {
+
+        /* Botón de volver minimalista */
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* Tarjetas de menú principal minimalistas */
+        .menu-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+        }
+        .menu-card:hover, .menu-card:active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: translateY(-1px);
+        }
+        .menu-card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        .menu-card-desc {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin: 2px 0 0 0;
+        }
+
+        /* Submenús y tarjetas de citas */
+        .sub-menu-citas {
             display: flex;
             gap: 8px;
             margin-bottom: 16px;
         }
-        .tab-btn {
-            flex: 1;
-            padding: 11px 8px;
-            border-radius: 10px;
-            border: 1px solid #cbd5e0;
-            background: white;
-            color: #475569;
-            font-weight: bold;
-            font-size: 0.82rem;
-            cursor: pointer;
-            text-align: center;
-        }
-        .tab-btn.active {
-            background: #2563eb;
-            color: white;
-            border-color: #2563eb;
-        }
-
-        .sub-menu-citas {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 14px;
-        }
         .sub-btn {
             flex: 1;
-            padding: 8px 4px;
-            border-radius: 8px;
-            border: 1px solid #cbd5e0;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
             background: #f8fafc;
             color: #475569;
-            font-weight: bold;
-            font-size: 0.75rem;
+            font-weight: 700;
+            font-size: 0.8rem;
             cursor: pointer;
             text-align: center;
         }
         .sub-btn.active {
-            background: #3b82f6;
+            background: #2563eb;
             color: white;
-            border-color: #3b82f6;
+            border-color: #2563eb;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.2);
         }
 
         .client-card { 
             background: #ffffff; 
-            border: 1px solid #cbd5e0;
-            padding: 12px; 
-            border-radius: 10px; 
+            border: 1px solid #e2e8f0;
+            padding: 14px; 
+            border-radius: 12px; 
             margin-bottom: 10px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02); 
         }
 
         .time-box {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            padding: 14px;
-            border-radius: 10px;
+            padding: 16px;
+            border-radius: 14px;
             margin-bottom: 16px;
         }
 
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
-        .cal-header { text-align: center; font-weight: bold; font-size: 0.75rem; color: #64748b; padding: 4px 0; }
-        .cal-day { min-height: 44px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #334155; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
+        .cal-header { text-align: center; font-weight: 700; font-size: 0.75rem; color: #94a3b8; padding: 4px 0; }
+        .cal-day { min-height: 46px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; cursor: pointer; font-size: 0.82rem; font-weight: 600; color: #334155; }
         .cal-day:hover { background: #e2e8f0; }
-        .cal-day.has-appointments { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
-        .badge-count { font-size: 0.6rem; background: #2563eb; color: white; padding: 1px 5px; border-radius: 10px; margin-top: 2px; }
+        .cal-day.has-appointments { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        .badge-count { font-size: 0.6rem; background: #2563eb; color: white; padding: 1px 6px; border-radius: 10px; margin-top: 3px; font-weight: 700; }
 
-        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 12px; }
-        .custom-modal-content { background: white; width: 100%; max-width: 480px; max-height: 85vh; padding: 18px; border-radius: 16px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(4px); }
+        .custom-modal-content { background: white; width: 100%; max-width: 440px; max-height: 85vh; padding: 20px; border-radius: 20px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Cabecera -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+        <!-- Cabecera Minimalista -->
+        <div class="header-nav" id="header-nav-area">
             <div>
-                <h1 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">👷‍♂️ Portal de <span id="employee-title-name" style="color: #2563eb;">...</span></h1>
+                <h1 style="margin: 0; font-size: 1.15rem; color: #0f172a; font-weight: 800;">👷‍♂️ <span id="employee-title-name">...</span></h1>
             </div>
-            <a href="./index.html" style="padding: 5px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">🏠 Inicio</a>
+            <a href="./index.html" style="padding: 6px 12px; background: #f1f5f9; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">🏠 Salir</a>
         </div>
 
-        <!-- Botones Principales de Navegación (Citas vs Tiempos) -->
-        <div class="main-menu-tabs">
-            <button type="button" class="tab-btn active" id="tab-btn-citas">📅 Visualizar Citas</button>
-            <button type="button" class="tab-btn" id="tab-btn-timetrack">⏱️ Control de Tiempos</button>
-        </div>
-
-        <!-- Contenedor principal donde cambia la vista -->
-        <div id="app-main-content"></div>
+        <!-- Área dinámica de contenido -->
+        <div id="dynamic-content-area"></div>
     </div>
 
-    <!-- Modal para ver citas de un día seleccionado en el calendario -->
+    <!-- Modal para ver citas de un día seleccionado -->
     <div id="day-modal" class="custom-modal">
         <div class="custom-modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <h3 id="modal-day-title" style="margin: 0; font-size: 0.95rem; color: #1e293b;">📅 Citas del Día</h3>
-                <button type="button" id="close-modal-btn" style="background: #e2e8f0; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.75rem;">✕ Cerrar</button>
+                <button type="button" id="close-modal-btn" style="background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.75rem; color: #475569;">✕ Cerrar</button>
             </div>
             <div id="modal-day-body"></div>
         </div>
@@ -143,8 +157,8 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         selectedEmployee = urlParams.get('employee') || localStorage.getItem(STORAGE_KEY) || '';
-        const returnDate = urlParams.get('date');
         const viewMode = urlParams.get('view');
+        const returnDate = urlParams.get('date');
 
         if (!selectedEmployee) {
             alert('Por favor, inicia sesión en la página principal primero.');
@@ -160,7 +174,7 @@
             return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
         }
 
-        async function initSchedulePortal() {
+        async function initPortal() {
             try {
                 const [{ data: clients }, { data: appointments }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
@@ -172,14 +186,16 @@
 
                 await fetchEmployeeDailyLog();
 
-                if (viewMode === 'calendar' && returnDate) {
-                    selectedMonthDate = new Date(returnDate + 'T00:00:00');
-                    switchMainTab('citas');
-                    activateCitasSubView('calendar');
-                    openDayModal(returnDate);
+                // Manejar vistas según URL o mostrar menú principal
+                if (viewMode === 'citas') {
+                    renderCitasView('today');
+                } else if (viewMode === 'calendar') {
+                    renderCitasView('calendar');
+                    if (returnDate) openDayModal(returnDate);
+                } else if (viewMode === 'timetrack') {
+                    renderTimeTrackingView();
                 } else {
-                    switchMainTab('citas');
-                    activateCitasSubView('today');
+                    renderMainMenu();
                 }
             } catch (err) {
                 console.error('Error al inicializar portal:', err);
@@ -194,31 +210,85 @@
                     .eq('work_date', todayStrSystem)
                     .maybeSingle();
 
-                if (!error) {
-                    employeeDailyLog = data;
-                }
+                if (!error) employeeDailyLog = data;
             } catch (err) {
                 console.error('Error al buscar registro diario:', err);
             }
         }
 
-        // Cambio entre pestañas principales: Citas vs Tiempos
-        document.getElementById('tab-btn-citas').addEventListener('click', () => {
-            switchMainTab('citas');
-            activateCitasSubView('today');
-        });
+        // 1. MENÚ PRINCIPAL MINIMALISTA
+        function renderMainMenu() {
+            const container = document.getElementById('dynamic-content-area');
+            container.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <p style="font-size: 0.85rem; color: #64748b; margin: 0;">Selecciona una opción para comenzar:</p>
+                </div>
 
-        document.getElementById('tab-btn-timetrack').addEventListener('click', () => {
-            switchMainTab('timetrack');
-            renderTimeTrackingView();
-        });
+                <div class="menu-card" id="btn-menu-citas">
+                    <div>
+                        <p class="menu-card-title">📅 Mis Citas y Agenda</p>
+                        <p class="menu-card-desc">Visualiza tus visitas de hoy y calendario mensual</p>
+                    </div>
+                    <span style="font-size: 1.2rem; color: #3b82f6;">➔</span>
+                </div>
 
-        function switchMainTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            if (tabName === 'citas') {
-                document.getElementById('tab-btn-citas').classList.add('active');
+                <div class="menu-card" id="btn-menu-timetrack">
+                    <div>
+                        <p class="menu-card-title">⏱️ Control de Tiempos</p>
+                        <p class="menu-card-desc">Fichaje de jornada y cronómetro por cliente</p>
+                    </div>
+                    <span style="font-size: 1.2rem; color: #3b82f6;">➔</span>
+                </div>
+            `;
+
+            document.getElementById('btn-menu-citas').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}&view=citas`);
+                renderCitasView('today');
+            });
+
+            document.getElementById('btn-menu-timetrack').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}&view=timetrack`);
+                renderTimeTrackingView();
+            });
+        }
+
+        // 2. VISTA DE CITAS (HOY / CALENDARIO)
+        function renderCitasView(subView) {
+            const container = document.getElementById('dynamic-content-area');
+            
+            // Botón de volver al menú principal en la cabecera
+            document.getElementById('header-nav-area').innerHTML = `
+                <button type="button" id="btn-back-menu" style="background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; color: #475569; cursor: pointer;">← Menú</button>
+                <h1 style="margin: 0; font-size: 1rem; color: #0f172a; font-weight: 800;">📅 Agenda</h1>
+                <a href="./index.html" style="padding: 6px 10px; background: #f1f5f9; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.72rem; font-weight: 700;">🏠</a>
+            `;
+
+            document.getElementById('btn-back-menu').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}`);
+                document.getElementById('header-nav-area').innerHTML = `
+                    <div><h1 style="margin: 0; font-size: 1.15rem; color: #0f172a; font-weight: 800;">👷‍♂️ <span>${selectedEmployee}</span></h1></div>
+                    <a href="./index.html" style="padding: 6px 12px; background: #f1f5f9; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">🏠 Salir</a>
+                `;
+                renderMainMenu();
+            });
+
+            let html = `
+                <div class="sub-menu-citas">
+                    <button type="button" class="sub-btn ${subView === 'today' ? 'active' : ''}" id="sub-btn-today">📅 Hoy</button>
+                    <button type="button" class="sub-btn ${subView === 'calendar' ? 'active' : ''}" id="sub-btn-calendar">🗓️ Mes</button>
+                </div>
+                <div id="citas-sub-content"></div>
+            `;
+            container.innerHTML = html;
+
+            document.getElementById('sub-btn-today').addEventListener('click', () => renderCitasView('today'));
+            document.getElementById('sub-btn-calendar').addEventListener('click', () => renderCitasView('calendar'));
+
+            const subContainer = document.getElementById('citas-sub-content');
+            if (subView === 'today') {
+                renderDaySchedule(subContainer, todayStrSystem, "Citas de Hoy");
             } else {
-                document.getElementById('tab-btn-timetrack').classList.add('active');
+                renderMonthCalendar(subContainer);
             }
         }
 
@@ -235,40 +305,18 @@
             });
         }
 
-        function activateCitasSubView(subView) {
-            const container = document.getElementById('app-main-content');
-            let html = `
-                <div class="sub-menu-citas">
-                    <button type="button" class="sub-btn ${subView === 'today' ? 'active' : ''}" id="sub-btn-today">📅 Citas de Hoy</button>
-                    <button type="button" class="sub-btn ${subView === 'calendar' ? 'active' : ''}" id="sub-btn-calendar">🗓️ Calendario Mensual</button>
-                </div>
-                <div id="citas-sub-content"></div>
-            `;
-            container.innerHTML = html;
-
-            document.getElementById('sub-btn-today').addEventListener('click', () => activateCitasSubView('today'));
-            document.getElementById('sub-btn-calendar').addEventListener('click', () => activateCitasSubView('calendar'));
-
-            const subContainer = document.getElementById('citas-sub-content');
-            if (subView === 'today') {
-                renderDaySchedule(subContainer, todayStrSystem, "Citas de Hoy");
-            } else {
-                renderMonthCalendar(subContainer);
-            }
-        }
-
         function renderDaySchedule(container, dateStr, titleText) {
             const dayAppointments = getEmployeeAppointmentsForDate(dateStr);
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
             const mapRouteUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}&view=calendar`;
 
             let mapButtonHtml = dayAppointments.length > 0 
-                ? `<a href="${mapRouteUrl}" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px;">🗺️ Ver Mapa</a>` 
+                ? `<a href="${mapRouteUrl}" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-decoration: none;">🗺️ Mapa</a>` 
                 : '';
 
             let headerHtml = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h3 style="font-size: 0.95rem; color: #1e293b; margin: 0;">📅 ${titleText} (${formatDateToDDMMYYYY(dateStr)}):</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="font-size: 0.88rem; color: #1e293b; margin: 0;">${titleText} (${formatDateToDDMMYYYY(dateStr)})</h3>
                     ${mapButtonHtml}
                 </div>
             `;
@@ -276,8 +324,8 @@
             if (dayAppointments.length === 0) {
                 container.innerHTML = `
                     ${headerHtml}
-                    <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 10px; text-align: center; color: #b45309; margin-top: 10px;">
-                        <strong>No tienes citas programadas para el ${formatDateToDDMMYYYY(dateStr)}.</strong>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; text-align: center; color: #64748b; font-size: 0.82rem;">
+                        No tienes citas programadas para esta fecha.
                     </div>
                 `;
                 return;
@@ -287,7 +335,7 @@
             dayAppointments.forEach((appt, index) => {
                 const client = clientsMap.get(appt.client_id);
                 const timeStr = appt.time_slot || '09:00';
-                const serviceStr = appt.service_requested ? `<span style="font-size: 0.75rem; color: #2563eb; font-weight: 700; margin-left: 6px;">[${appt.service_requested}]</span>` : '';
+                const serviceStr = appt.service_requested ? `<span style="color: #2563eb; font-weight: 700;">[${appt.service_requested}]</span>` : '';
                 
                 const assignedList = (appt.assigned_employee || '').split(',').map(e => e.trim()).filter(Boolean);
                 const colleagues = assignedList.filter(e => e.toLowerCase() !== selectedEmployee.toLowerCase());
@@ -297,23 +345,21 @@
                     : '';
 
                 let phoneHtml = (client.phone && client.phone.trim() !== '' && client.phone.toLowerCase() !== 'no registrado') 
-                    ? `<a href="tel:${client.phone}" title="Llamar" style="font-size: 1rem; text-decoration: none; padding: 1px 5px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe; margin-left: 8px; flex-shrink: 0;">📞</a>` 
+                    ? `<a href="tel:${client.phone}" style="font-size: 0.9rem; text-decoration: none; padding: 2px 6px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe;">📞</a>` 
                     : '';
 
                 html += `
                     <div class="client-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f8fafc; padding-bottom: 6px; margin-bottom: 6px;">
                             <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">#${index + 1} ${client.name} ${serviceStr}</span>
                             <span style="font-size: 0.8rem; font-weight: 700; color: #2563eb;">⏰ ${timeStr}h</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-size: 0.8rem; color: #64748b; padding-right: 8px;">
+                            <div style="font-size: 0.78rem; color: #64748b; padding-right: 6px;">
                                 📍 ${client.address || 'Sin dirección'}
                                 ${colleaguesHtml}
                             </div>
-                            <div style="display: flex; align-items: center; flex-shrink: 0;">
-                                ${phoneHtml}
-                            </div>
+                            <div>${phoneHtml}</div>
                         </div>
                     </div>
                 `;
@@ -331,10 +377,10 @@
             const offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
             let calendarHtml = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 5px;">
-                    <button type="button" id="prev-month" style="width: auto; padding: 6px 10px; font-size: 0.8rem; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">◀</button>
-                    <strong style="font-size: 0.95rem; color: #1e293b;">${monthNames[month]} ${year}</strong>
-                    <button type="button" id="next-month" style="width: auto; padding: 6px 10px; font-size: 0.8rem; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">▶</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <button type="button" id="prev-month" style="padding: 4px 10px; font-size: 0.78rem; background: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-weight: 700;">◀</button>
+                    <strong style="font-size: 0.9rem; color: #1e293b;">${monthNames[month]} ${year}</strong>
+                    <button type="button" id="next-month" style="padding: 4px 10px; font-size: 0.78rem; background: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-weight: 700;">▶</button>
                 </div>
                 <div class="calendar-grid">
                     <div class="cal-header">Lun</div><div class="cal-header">Mar</div><div class="cal-header">Mié</div><div class="cal-header">Jue</div><div class="cal-header">Vie</div><div class="cal-header">Sáb</div><div class="cal-header">Dom</div>
@@ -381,7 +427,7 @@
 
         function openDayModal(dateStr) {
             document.getElementById('modal-day-title').textContent = `📅 Citas del ${formatDateToDDMMYYYY(dateStr)}`;
-            renderDaySchedule(document.getElementById('modal-day-body'), dateStr, "Tus tareas");
+            renderDaySchedule(document.getElementById('modal-day-body'), dateStr, "Tareas");
             document.getElementById('day-modal').style.display = 'flex';
         }
 
@@ -389,11 +435,27 @@
             document.getElementById('day-modal').style.display = 'none'; 
         });
 
-        // Vista de Control de Tiempos
+
+        // 3. VISTA DE CONTROL DE TIEMPOS
         function renderTimeTrackingView() {
-            const container = document.getElementById('app-main-content');
+            const container = document.getElementById('dynamic-content-area');
             const todayAppts = getEmployeeAppointmentsForDate(todayStrSystem);
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
+
+            document.getElementById('header-nav-area').innerHTML = `
+                <button type="button" id="btn-back-menu-2" style="background: #f1f5f9; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; color: #475569; cursor: pointer;">← Menú</button>
+                <h1 style="margin: 0; font-size: 1rem; color: #0f172a; font-weight: 800;">⏱️ Tiempos</h1>
+                <a href="./index.html" style="padding: 6px 10px; background: #f1f5f9; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.72rem; font-weight: 700;">🏠</a>
+            `;
+
+            document.getElementById('btn-back-menu-2').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}`);
+                document.getElementById('header-nav-area').innerHTML = `
+                    <div><h1 style="margin: 0; font-size: 1.15rem; color: #0f172a; font-weight: 800;">👷‍♂️ <span>${selectedEmployee}</span></h1></div>
+                    <a href="./index.html" style="padding: 6px 12px; background: #f1f5f9; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">🏠 Salir</a>
+                `;
+                renderMainMenu();
+            });
 
             let statusText = 'Jornada no iniciada';
             if (employeeDailyLog) {
@@ -403,49 +465,49 @@
             }
 
             let html = `
-                <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 12px; font-weight: 600;">📅 Fecha: ${formatDateToDDMMYYYY(todayStrSystem)}</div>
+                <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 12px; font-weight: 600;">📅 Fecha: ${formatDateToDDMMYYYY(todayStrSystem)}</div>
                 
                 <div class="time-box">
-                    <strong style="font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 4px;">🏢 Estado de Jornada Laboral:</strong>
-                    <div id="global-status-text" style="font-size: 0.78rem; color: #2563eb; font-weight: bold; margin-bottom: 10px;">Estado: ${statusText}</div>
+                    <strong style="font-size: 0.82rem; color: #1e293b; display: block; margin-bottom: 4px;">🏢 Estado de Jornada:</strong>
+                    <div id="global-status-text" style="font-size: 0.78rem; color: #2563eb; font-weight: 700; margin-bottom: 10px;">Estado: ${statusText}</div>
                     <div style="display: flex; gap: 6px;">
-                        <button type="button" id="btn-start-work" style="flex:1; background: #16a34a; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">▶️ Iniciar</button>
-                        <button type="button" id="btn-lunch-work" style="flex:1; background: #d97706; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">☕ Almuerzo</button>
-                        <button type="button" id="btn-end-work" style="flex:1; background: #dc2626; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">⏹️ Finalizar</button>
+                        <button type="button" id="btn-start-work" style="flex:1; background: #16a34a; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 700; font-size: 0.72rem; cursor: pointer;">▶️ Iniciar</button>
+                        <button type="button" id="btn-lunch-work" style="flex:1; background: #d97706; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 700; font-size: 0.72rem; cursor: pointer;">☕ Almuerzo</button>
+                        <button type="button" id="btn-end-work" style="flex:1; background: #dc2626; color: white; border: none; padding: 8px; border-radius: 8px; font-weight: 700; font-size: 0.72rem; cursor: pointer;">⏹️ Finalizar</button>
                     </div>
                 </div>
 
-                <strong style="font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 8px;">📍 Clientes Asignados Hoy (Control por Visita):</strong>
+                <strong style="font-size: 0.82rem; color: #1e293b; display: block; margin-bottom: 8px;">📍 Clientes Asignados Hoy:</strong>
             `;
 
             if (todayAppts.length === 0) {
-                html += `<div style="padding: 16px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; text-align: center; color: #b45309; font-size: 0.82rem;">No tienes citas programadas para registrar hoy.</div>`;
+                html += `<div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; text-align: center; color: #64748b; font-size: 0.8rem;">No tienes citas para registrar hoy.</div>`;
             } else {
                 todayAppts.forEach((appt, index) => {
                     const client = clientsMap.get(appt.client_id);
                     const isCheckedIn = appt.check_in_time && !appt.check_out_time;
                     const isCompleted = appt.check_out_time;
 
-                    let statusBadge = `<span style="background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">Pendiente</span>`;
-                    let actionButton = `<button type="button" class="btn-checkin" data-appt-id="${appt.id}" style="background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">▶️ Llegué (Iniciar)</button>`;
+                    let statusBadge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
+                    let actionButton = `<button type="button" class="btn-checkin" data-appt-id="${appt.id}" style="background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.7rem; cursor: pointer;">▶️ Llegué</button>`;
 
                     if (isCheckedIn) {
-                        statusBadge = `<span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">🟢 En Visita</span>`;
-                        actionButton = `<button type="button" class="btn-checkout" data-appt-id="${appt.id}" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">⏹️ Terminar Visita</button>`;
+                        statusBadge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
+                        actionButton = `<button type="button" class="btn-checkout" data-appt-id="${appt.id}" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.7rem; cursor: pointer;">⏹️ Terminar</button>`;
                     } else if (isCompleted) {
-                        statusBadge = `<span style="background: #0284c7; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">✅ ${appt.visit_duration_minutes || 0} min (Total: ${appt.total_labor_minutes || 0}m)</span>`;
-                        actionButton = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: bold;">Registrado</span>`;
+                        statusBadge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ ${appt.visit_duration_minutes || 0}m (Total: ${appt.total_labor_minutes || 0}m)</span>`;
+                        actionButton = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Registrado</span>`;
                     }
 
                     html += `
                         <div class="client-card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <strong style="font-size: 0.85rem; color: #1e293b;">#${index + 1} ${client.name}</strong>
+                                <strong style="font-size: 0.82rem; color: #1e293b;">#${index + 1} ${client.name}</strong>
                                 ${statusBadge}
                             </div>
                             <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">📍 ${client.address || 'Sin dirección'}</div>
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.72rem; color: #2563eb; font-weight: bold;">⏰ Programada: ${appt.time_slot || '09:00'}h</span>
+                                <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h</span>
                                 <div>${actionButton}</div>
                             </div>
                         </div>
@@ -564,7 +626,7 @@
                 btn.addEventListener('click', async (e) => {
                     const apptId = e.target.getAttribute('data-appt-id');
                     const now = new Date();
-                    const nowIso = now.toISOString();
+                    const nowIso = new Date().toISOString();
 
                     const appt = allAppointments.find(a => a.id === apptId);
                     let durationMins = 0;
@@ -602,7 +664,7 @@
             });
         }
 
-        initSchedulePortal();
+        initPortal();
     </script>
 </body>
 </html>
