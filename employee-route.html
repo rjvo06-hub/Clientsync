@@ -116,11 +116,11 @@
             
             <svg id="route-svg-overlay">
                 <defs>
-                    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/>
+                    <marker id="arrow-black" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f172a"/>
                     </marker>
                 </defs>
-                <line id="connector-line" x1="0" y1="0" x2="0" y2="0" stroke="#38bdf8" stroke-width="3" stroke-dasharray="4" marker-end="url(#arrow)" />
+                <line id="connector-line" x1="0" y1="0" x2="0" y2="0" stroke="#0f172a" stroke-width="2.5" stroke-dasharray="3" marker-end="url(#arrow-black)" />
             </svg>
 
             <div id="route-info-panel">
@@ -147,7 +147,7 @@
         let allClients = [];
         let allAppointments = [];
         let allEmployees = [];
-        let activeRouteSegment = null; // Guarda el tramo activo para recalcular coordenadas al hacer zoom/pan
+        let activeRouteSegment = null;
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
@@ -164,7 +164,6 @@
 
         dateInput.value = preselectedDate || todayStrSystem;
 
-        // Paleta de colores distintivos para cada tramo de la ruta
         const routeColors = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#dc2626', '#0891b2', '#db2777'];
 
         async function initEmployeeRouteMap() {
@@ -217,8 +216,9 @@
                 if (infoWindow) infoWindow.close();
             });
 
-            // Actualizar la posición de la línea conectora al mover o hacer zoom en el mapa
             map.addListener('bounds_changed', updateConnectorLinePosition);
+            map.addListener('center_changed', updateConnectorLinePosition);
+            map.addListener('zoom_changed', updateConnectorLinePosition);
 
             closePanelBtn.addEventListener('click', () => {
                 infoPanel.style.display = 'none';
@@ -228,47 +228,50 @@
         }
 
         function updateConnectorLinePosition() {
-            if (!activeRouteSegment || !map) return;
+            if (!activeRouteSegment || !map || infoPanel.style.display === 'none') return;
 
-            const projection = map.getProjection();
-            if (!projection) return;
+            const proj = map.getProjection();
+            if (!proj) return;
 
             const mapDiv = document.getElementById('daily-map');
             const mapRect = mapDiv.getBoundingClientRect();
             const panelRect = infoPanel.getBoundingClientRect();
 
-            // Coordenada del punto medio de la ruta en lat/lng
             const latLng = activeRouteSegment.midPoint;
 
-            // Calcular píxeles en pantalla usando la proyección de Google Maps
-            const topRight = map.getBounds().getNorthEast();
-            const bottomLeft = map.getBounds().getSouthWest();
-            
-            // Posición de la esquina superior izquierda del mapa
-            const scale = Math.pow(2, map.getZoom());
-            const worldCoordinateCenter = projection.fromLatLngToPoint(latLng);
-            const pixelCoordinate = projection.fromLatLngToPoint(latLng);
-            
-            // Usar overlay projection para conversión precisa a coordenadas del contenedor
-            const proj = new google.maps.OverlayView();
-            proj.draw = function() {};
-            proj.setMap(map);
-            const divPixel = proj.getProjection().fromLatLngToContainerPixel(latLng);
-            proj.setMap(null);
+            // Obtener píxeles del punto medio de la ruta en la vista actual del mapa
+            const overlay = new google.maps.OverlayView();
+            overlay.draw = function() {};
+            overlay.setMap(map);
+            const divPixel = overlay.getProjection().fromLatLngToContainerPixel(latLng);
+            overlay.setMap(null);
 
             if (divPixel) {
-                // Inicio de la línea: Borde inferior derecho del panel flotante superior izquierdo
+                // Inicio de la línea: Centro del borde inferior del panel flotante
                 const x1 = panelRect.left - mapRect.left + (panelRect.width / 2);
                 const y1 = panelRect.bottom - mapRect.top;
 
-                // Fin de la línea: Punto medio exacto de la ruta
+                // Fin exacto en el punto medio de la ruta
                 const x2 = divPixel.x;
                 const y2 = divPixel.y;
 
+                // Acortar ligeramente el vector final para que la punta de la flecha toque con precisión milimétrica la ruta
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                let targetX = x2;
+                let targetY = y2;
+                if (dist > 10) {
+                    const offsetBack = 8; // Píxeles antes del centro exacto para compensar el marcador de flecha
+                    targetX = x2 - (dx / dist) * offsetBack;
+                    targetY = y2 - (dy / dist) * offsetBack;
+                }
+
                 connectorLine.setAttribute('x1', x1);
                 connectorLine.setAttribute('y1', y1);
-                connectorLine.setAttribute('x2', x2);
-                connectorLine.setAttribute('y2', y2);
+                connectorLine.setAttribute('x2', targetX);
+                connectorLine.setAttribute('y2', targetY);
                 connectorLine.style.display = 'block';
             }
         }
@@ -484,7 +487,6 @@
                         const midIndex = Math.floor(decodedPath.length / 2);
                         const midPoint = decodedPath[midIndex];
 
-                        // Al hacer clic en la ruta, se despliega el panel superior izquierdo y se dibuja la línea SVG conectora exacta
                         routePath.addListener('click', () => {
                             if (infoWindow) infoWindow.close();
 
