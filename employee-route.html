@@ -92,11 +92,11 @@
     <div class="container">
         <!-- Cabecera -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 style="margin: 0; font-size: 1rem; color: #1e293b; font-weight: 800;" id="page-title">🗺️ Ruta del Día</h1>
+            <h1 style="margin: 0; font-size: 1rem; color: #1e293b; font-weight: 800;">🗺️ Ruta del Día</h1>
             <a href="#" id="back-link" style="padding: 4px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">← Volver</a>
         </div>
 
-        <!-- Barra de Controles: Solo selector de fecha (empleado oculto) -->
+        <!-- Barra de Controles: Solo selector de fecha -->
         <div class="controls-bar">
             <div style="flex: 1;">
                 <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">📅 Seleccionar Fecha:</label>
@@ -163,8 +163,9 @@
 
         dateInput.value = preselectedDate || todayStrSystem;
 
-        // Configurar enlace del botón Volver para regresar al portal con el empleado seleccionado
-        backLink.href = `./admin-assignments.html${currentEmployee ? '?employee=' + encodeURIComponent(currentEmployee) : ''}`;
+        // ⚠️ CAMBIA AQUÍ el nombre del archivo si tu pantalla de visualización de citas se llama diferente (ej. 'employee-portal.html')
+        const portalFile = 'admin-assignments.html'; 
+        backLink.href = `./${portalFile}${currentEmployee ? '?employee=' + encodeURIComponent(currentEmployee) : ''}`;
 
         const routeColors = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#dc2626', '#0891b2', '#db2777'];
 
