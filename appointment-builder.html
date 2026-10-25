@@ -909,8 +909,25 @@
                 
                 alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}\n🛠️ Técnico: ${employeeVal}`);
 
-                // Redirección limpia al menú/mapa principal tras confirmar con éxito
-                window.location.href = './index.html';
+                // --- REFRESCAR Y MANTENERSE EN LA VISTA PARA CREAR NUEVA CITA ---
+                document.getElementById('appointment-form').reset();
+                document.getElementById('client-details').style.display = 'none';
+                document.getElementById('date-section').style.display = 'none';
+                document.getElementById('route-suggestions').style.display = 'none';
+                document.getElementById('client-search-input').value = '';
+                document.getElementById('client-select').value = '';
+                
+                actionType = 'new';
+                selectedAppointmentId = null;
+                updateUIModeText();
+
+                btn.textContent = originalBtnText;
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+
+                // Recargar los datos de la base de datos en segundo plano para actualizar el mapa y las sugerencias
+                await initForm();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
 
