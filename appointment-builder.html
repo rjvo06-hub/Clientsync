@@ -323,7 +323,6 @@
             freeDateInput.setAttribute('min', todayStrSystem);
         }
 
-        // Función para consultar la distancia real de conducción mediante Google Routes API (v2)
         async function fetchDrivingDistanceKm(lat1, lon1, lat2, lon2) {
             const apiKey = 'AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ';
             const requestBody = {
@@ -345,7 +344,7 @@
                 const data = await response.json();
                 if (data.routes && data.routes.length > 0) {
                     const meters = data.routes[0].distanceMeters || 0;
-                    return meters / 1000; // Retorna en kilómetros
+                    return meters / 1000;
                 }
             } catch (err) {
                 console.error("Error al calcular distancia vial con Routes API:", err);
@@ -715,7 +714,6 @@
                 for (const dateStr of activeDates) {
                     const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr));
 
-                    // ORDEN CRONOLÓGICO ESTRICTO DE LAS CITAS (De 09:00h en adelante)
                     apptsOnThisDate.sort((a, b) => {
                         const timeA = a.time_slot || '00:00';
                         const timeB = b.time_slot || '00:00';
@@ -911,10 +909,8 @@
                 
                 alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}\n🛠️ Técnico: ${employeeVal}`);
 
-                await resetFormAndReloadMap();
-
-                btn.textContent = originalBtnText;
-                btn.disabled = false;
+                // Redirección limpia al menú/mapa principal tras confirmar con éxito
+                window.location.href = './index.html';
             }
         });
 
