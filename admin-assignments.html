@@ -125,6 +125,13 @@
                 return;
             }
 
+            // ORDENAR CRONOLÓGICAMENTE: De la hora más temprano a la más tarde (Ej: 09:00 -> 13:00)
+            dayAppts.sort((a, b) => {
+                const timeA = a.time_slot || '00:00';
+                const timeB = b.time_slot || '00:00';
+                return timeA.localeCompare(timeB);
+            });
+
             let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
             dayAppts.forEach(appt => {
                 const client = allClients.find(c => c.id === appt.client_id);
