@@ -58,20 +58,31 @@
             height: 100%;
         }
 
-        /* Panel flotante compacto optimizado para móviles */
+        /* Panel flotante compacto y claro en la esquina superior izquierda */
         #route-info-panel {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
+            top: 12px;
+            left: 12px;
             z-index: 10;
-            background: #0f172a;
-            color: #f8fafc;
-            padding: 10px 12px;
-            border-radius: 10px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            background: #ffffff;
+            color: #1e293b;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            width: 240px;
             display: none;
-            border: 1px solid #334155;
+            border: 1px solid #cbd5e0;
+        }
+
+        /* SVG Overlay para la línea conectora precisa */
+        #route-svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -98,19 +109,28 @@
             </div>
         </div>
 
-        <!-- Contenedor del Mapa Interactivo -->
+        <!-- Contenedor del Mapa Interactivo con Panel y Línea SVG -->
         <div class="map-wrapper">
             <div id="daily-map"></div>
+            
+            <svg id="route-svg-overlay">
+                <defs>
+                    <marker id="arrow-dark" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b"/>
+                    </marker>
+                </defs>
+                <line id="connector-line" x1="0" y1="0" x2="0" y2="0" stroke="#1e293b" stroke-width="2.5" stroke-dasharray="3" marker-end="url(#arrow-dark)" />
+            </svg>
 
             <div id="route-info-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span id="segment-color-dot" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
-                        <strong style="color: #38bdf8; font-size: 0.75rem; font-weight: 700;">Detalle del Trayecto</strong>
+                        <strong style="color: #0284c7; font-size: 0.78rem; font-weight: 700;">Detalle del Trayecto</strong>
                     </div>
-                    <button type="button" id="close-panel-btn" style="background: transparent; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; font-weight: bold; padding: 0 4px;">✕</button>
+                    <button type="button" id="close-panel-btn" style="background: transparent; border: none; color: #64748b; font-size: 0.85rem; cursor: pointer; font-weight: bold; padding: 0 4px;">✕</button>
                 </div>
-                <div id="panel-content-body" style="font-size: 0.72rem; color: #f8fafc; line-height: 1.35;"></div>
+                <div id="panel-content-body" style="font-size: 0.72rem; color: #334155; line-height: 1.4;"></div>
             </div>
         </div>
     </div>
@@ -125,10 +145,12 @@
         let markers = [];
         let polylines = [];
         let infoWindow = null;
+        let mapOverlay = null;
         
         let allClients = [];
         let allAppointments = [];
         let allEmployees = [];
+        let activeRouteSegment = null;
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
@@ -138,6 +160,7 @@
         const panelBody = document.getElementById('panel-content-body');
         const closePanelBtn = document.getElementById('close-panel-btn');
         const segmentColorDot = document.getElementById('segment-color-dot');
+        const connectorLine = document.getElementById('connector-line');
 
         const urlParams = new URLSearchParams(window.location.search);
         const preselectedEmployee = urlParams.get('employee');
@@ -191,12 +214,22 @@
                 streetViewControl: false
             });
 
+            mapOverlay = new google.maps.OverlayView();
+            mapOverlay.onAdd = function() {};
+            mapOverlay.draw = function() {};
+            mapOverlay.onRemove = function() {};
+            mapOverlay.setMap(map);
+
             infoWindow = new google.maps.InfoWindow({ maxWidth: 200 });
 
             map.addListener('click', () => {
                 if (infoWindow) infoWindow.close();
                 hideRouteInfoPanel();
             });
+
+            map.addListener('bounds_changed', updateConnectorLinePosition);
+            map.addListener('center_changed', updateConnectorLinePosition);
+            map.addListener('zoom_changed', updateConnectorLinePosition);
 
             closePanelBtn.addEventListener('click', () => {
                 hideRouteInfoPanel();
@@ -205,16 +238,58 @@
 
         function hideRouteInfoPanel() {
             infoPanel.style.display = 'none';
+            connectorLine.style.display = 'none';
+            activeRouteSegment = null;
+        }
+
+        function updateConnectorLinePosition() {
+            if (!activeRouteSegment || !map || infoPanel.style.display === 'none') return;
+
+            const proj = mapOverlay.getProjection();
+            if (!proj) return;
+
+            const mapDiv = document.getElementById('daily-map');
+            const mapRect = mapDiv.getBoundingClientRect();
+            const panelRect = infoPanel.getBoundingClientRect();
+
+            const latLng = activeRouteSegment.midPoint;
+            const divPixel = proj.fromLatLngToContainerPixel(latLng);
+
+            if (divPixel) {
+                const x1 = panelRect.left - mapRect.left + (panelRect.width / 2);
+                const y1 = panelRect.bottom - mapRect.top;
+
+                const x2 = divPixel.x;
+                const y2 = divPixel.y;
+
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                let targetX = x2;
+                let targetY = y2;
+                if (dist > 10) {
+                    const offsetBack = 8;
+                    targetX = x2 - (dx / dist) * offsetBack;
+                    targetY = y2 - (dy / dist) * offsetBack;
+                }
+
+                connectorLine.setAttribute('x1', x1);
+                connectorLine.setAttribute('y1', y1);
+                connectorLine.setAttribute('x2', targetX);
+                connectorLine.setAttribute('y2', targetY);
+                connectorLine.style.display = 'block';
+            }
         }
 
         function setupInfoWindowStyles() {
             google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
                 const iwContainer = document.querySelector('.gm-style-iw-c');
                 if (iwContainer) {
-                    iwContainer.style.background = '#0f172a';
-                    iwContainer.style.padding = '2px 4px 4px 4px';
+                    iwContainer.style.background = '#ffffff';
+                    iwContainer.style.padding = '4px';
                     iwContainer.style.borderRadius = '8px';
-                    iwContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
+                    iwContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
                 }
                 const iwOuter = document.querySelector('.gm-style-iw-d');
                 if (iwOuter) {
@@ -316,16 +391,15 @@
                 });
 
                 const clientPhone = stop.client.phone || 'No registrado';
-                const assignedEmpName = stop.appt.employee_id ? employeesMap.get(stop.appt.employee_id) : (stop.appt.assigned_employee || 'General');
                 
                 const windowContent = `
-                    <div style="font-family: -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 4px; border-radius: 6px; width: 170px;">
-                        <div style="border-bottom: 1px solid #1e293b; padding-bottom: 2px; margin-bottom: 3px; text-align: center;">
-                            <strong style="color: #38bdf8; font-size: 0.72rem;">#${index + 1} - ⏰ ${stop.appt.time_slot || '09:00'}h</strong>
+                    <div style="font-family: -apple-system, sans-serif; background: #ffffff; color: #1e293b; padding: 6px; border-radius: 6px; width: 170px;">
+                        <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 3px; text-align: center;">
+                            <strong style="color: #0284c7; font-size: 0.72rem;">#${index + 1} - ⏰ ${stop.appt.time_slot || '09:00'}h</strong>
                         </div>
-                        <h4 style="margin: 0 0 1px 0; font-size: 0.72rem; color: #ffffff;">${stop.client.name}</h4>
-                        <p style="margin: 0 0 2px 0; font-size: 0.62rem; color: #cbd5e1;">📍 ${stop.client.address || 'Sin dirección'}</p>
-                        <p style="margin: 0; font-size: 0.62rem; color: #cbd5e1;">📞 ${clientPhone}</p>
+                        <h4 style="margin: 0 0 1px 0; font-size: 0.72rem; color: #0f172a;">${stop.client.name}</h4>
+                        <p style="margin: 0 0 2px 0; font-size: 0.62rem; color: #64748b;">📍 ${stop.client.address || 'Sin dirección'}</p>
+                        <p style="margin: 0; font-size: 0.62rem; color: #64748b;">📞 ${clientPhone}</p>
                     </div>
                 `;
 
@@ -398,26 +472,34 @@
                             map: map
                         });
 
+                        const midIndex = Math.floor(decodedPath.length / 2);
+                        const midPoint = decodedPath[midIndex];
+
                         routePath.addListener('click', () => {
                             if (infoWindow) infoWindow.close();
 
                             segmentColorDot.style.background = segmentColor;
                             panelBody.innerHTML = `
                                 <div style="margin-bottom: 4px;">
-                                    <span style="color: #38bdf8; font-weight: 700;">Desde (#${i+1}):</span> <strong>${originStop.client.name}</strong><br>
-                                    <span style="color: #94a3b8; font-size: 0.65rem; padding-left: 10px;">${originStop.client.address || 'Sin dirección'}</span>
+                                    <span style="color: #0284c7; font-weight: 700;">Desde (#${i+1}):</span> <strong>${originStop.client.name}</strong><br>
+                                    <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${originStop.client.address || 'Sin dirección'}</span>
                                 </div>
                                 <div style="margin-bottom: 6px;">
-                                    <span style="color: #f87171; font-weight: 700;">Hasta (#${i+2}):</span> <strong>${destStop.client.name}</strong><br>
-                                    <span style="color: #94a3b8; font-size: 0.65rem; padding-left: 10px;">${destStop.client.address || 'Sin dirección'}</span>
+                                    <span style="color: #dc2626; font-weight: 700;">Hasta (#${i+2}):</span> <strong>${destStop.client.name}</strong><br>
+                                    <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${destStop.client.address || 'Sin dirección'}</span>
                                 </div>
-                                <div style="border-top: 1px solid #1e293b; padding-top: 4px; display: flex; justify-content: space-between; font-size: 0.7rem;">
-                                    <span style="color: #cbd5e1;">📏 <strong>${distanceText}</strong></span>
-                                    <span style="color: #cbd5e1;">⏱️ <strong>${durationText}</strong></span>
+                                <div style="border-top: 1px solid #e2e8f0; padding-top: 4px; display: flex; justify-content: space-between; font-size: 0.7rem;">
+                                    <span style="color: #475569;">📏 <strong>${distanceText}</strong></span>
+                                    <span style="color: #475569;">⏱️ <strong>${durationText}</strong></span>
                                 </div>
                             `;
 
+                            activeRouteSegment = { midPoint };
                             infoPanel.style.display = 'block';
+                            
+                            requestAnimationFrame(() => {
+                                updateConnectorLinePosition();
+                            });
                         });
 
                         polylines.push(routePath);
