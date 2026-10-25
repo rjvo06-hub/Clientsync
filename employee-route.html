@@ -69,7 +69,7 @@
             padding: 12px;
             border-radius: 12px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            width: 240px;
+            width: 250px;
             display: none;
             border: 1px solid #cbd5e0;
         }
@@ -475,6 +475,9 @@
                         const midIndex = Math.floor(decodedPath.length / 2);
                         const midPoint = decodedPath[midIndex];
 
+                        // Enlace oficial de navegación de Google Maps
+                        const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat()},${origin.lng()}&destination=${destination.lat()},${destination.lng()}&travelmode=driving`;
+
                         routePath.addListener('click', () => {
                             if (infoWindow) infoWindow.close();
 
@@ -488,9 +491,10 @@
                                     <span style="color: #dc2626; font-weight: 700;">Hasta (#${i+2}):</span> <strong>${destStop.client.name}</strong><br>
                                     <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${destStop.client.address || 'Sin dirección'}</span>
                                 </div>
-                                <div style="border-top: 1px solid #e2e8f0; padding-top: 4px; display: flex; justify-content: space-between; font-size: 0.7rem;">
+                                <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem;">
                                     <span style="color: #475569;">📏 <strong>${distanceText}</strong></span>
-                                    <span style="color: #475569;">⏱️ <strong>${durationText}</strong></span>
+                                    <span style="color: #475569; text-align: center;">⏱️ <strong>${durationText}</strong></span>
+                                    <a href="${mapsNavUrl}" target="_blank" style="background: #2563eb; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.68rem; display: inline-flex; align-items: center; gap: 2px;">🧭 Navegar</a>
                                 </div>
                             `;
 
