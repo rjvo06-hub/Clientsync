@@ -163,7 +163,6 @@
 
         dateInput.value = preselectedDate || todayStrSystem;
 
-        // Enlace de retorno actualizado a employee-schedule.html
         const portalFile = 'employee-schedule.html'; 
         backLink.href = `./${portalFile}${currentEmployee ? '?employee=' + encodeURIComponent(currentEmployee) : ''}`;
 
@@ -213,9 +212,11 @@
                 hideRouteInfoPanel();
             });
 
+            // Eventos de movimiento, zoom e inactividad (idle) para mantener la línea perfectamente anclada
             map.addListener('bounds_changed', updateConnectorLinePosition);
             map.addListener('center_changed', updateConnectorLinePosition);
             map.addListener('zoom_changed', updateConnectorLinePosition);
+            map.addListener('idle', updateConnectorLinePosition);
 
             closePanelBtn.addEventListener('click', () => {
                 hideRouteInfoPanel();
