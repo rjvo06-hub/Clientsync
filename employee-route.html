@@ -11,34 +11,33 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             background-color: #f1f5f9; 
             margin: 0; 
-            padding: 12px; 
+            padding: 8px; 
         }
         .container { 
-            max-width: 650px; 
-            margin: 10px auto 60px auto; 
+            max-width: 100%; 
+            margin: 0 auto; 
             background: white; 
-            padding: 18px; 
-            border-radius: 16px; 
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06); 
+            padding: 12px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
             border: 1px solid #e2e8f0;
         }
         
         .controls-bar {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
             background: #f8fafc;
             border: 1px solid #cbd5e0;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
+            padding: 8px;
+            border-radius: 10px;
+            margin-bottom: 10px;
         }
         .controls-bar select, .controls-bar input {
-            font-size: 14px;
-            padding: 8px 10px;
+            font-size: 13px;
+            padding: 6px 8px;
             border: 1px solid #cbd5e0;
-            border-radius: 8px;
+            border-radius: 6px;
             background: white;
             outline: none;
             color: #1e293b;
@@ -48,8 +47,8 @@
         .map-wrapper {
             position: relative;
             width: 100%;
-            height: 500px;
-            border-radius: 12px;
+            height: 420px;
+            border-radius: 10px;
             border: 1px solid #cbd5e0;
             overflow: hidden;
         }
@@ -59,31 +58,20 @@
             height: 100%;
         }
 
-        /* Panel flotante estilo Google Maps en el extremo superior izquierdo */
+        /* Panel flotante compacto optimizado para móviles */
         #route-info-panel {
             position: absolute;
-            top: 15px;
-            left: 15px;
+            top: 10px;
+            left: 10px;
+            right: 10px;
             z-index: 10;
             background: #0f172a;
             color: #f8fafc;
-            padding: 14px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            width: 260px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
             display: none;
             border: 1px solid #334155;
-        }
-
-        /* SVG Overlay para la línea conectora */
-        #route-svg-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-            pointer-events: none;
         }
     </style>
 </head>
@@ -91,44 +79,38 @@
 
     <div class="container">
         <!-- Cabecera -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">🗺️ Mapa de Ruta del Día</h1>
-            <a href="./admin-assignments.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">← Volver al Portal</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h1 style="margin: 0; font-size: 1rem; color: #1e293b; font-weight: 800;">🗺️ Ruta del Día</h1>
+            <a href="./admin-assignments.html" style="padding: 4px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">← Volver</a>
         </div>
 
-        <!-- Barra de Controles: Selector de Fecha y Filtro de Empleado -->
+        <!-- Barra de Controles compacta -->
         <div class="controls-bar">
-            <div style="flex: 1; min-width: 140px;">
-                <label style="display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; margin-bottom: 3px;">📅 Fecha Seleccionada:</label>
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">📅 Fecha:</label>
                 <input type="date" id="route-date-input" style="width: 100%;">
             </div>
-            <div style="flex: 1; min-width: 140px;">
-                <label style="display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; margin-bottom: 3px;">👷‍♂️ Empleado:</label>
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">👷‍♂️ Empleado:</label>
                 <select id="employee-filter" style="width: 100%;">
                     <option value="ALL">-- Todos --</option>
                 </select>
             </div>
         </div>
 
-        <!-- Contenedor del Mapa Interactivo con Panel y Línea SVG -->
+        <!-- Contenedor del Mapa Interactivo -->
         <div class="map-wrapper">
             <div id="daily-map"></div>
-            
-            <svg id="route-svg-overlay">
-                <defs>
-                    <marker id="arrow-black" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f172a"/>
-                    </marker>
-                </defs>
-                <line id="connector-line" x1="0" y1="0" x2="0" y2="0" stroke="#0f172a" stroke-width="2.5" stroke-dasharray="3" marker-end="url(#arrow-black)" />
-            </svg>
 
             <div id="route-info-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 6px; margin-bottom: 8px;">
-                    <strong style="color: #38bdf8; font-size: 0.8rem; font-weight: 700;">🚗 Indicaciones del Trayecto</strong>
-                    <button type="button" id="close-panel-btn" style="background: transparent; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; font-weight: bold;">✕</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span id="segment-color-dot" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
+                        <strong style="color: #38bdf8; font-size: 0.75rem; font-weight: 700;">Detalle del Trayecto</strong>
+                    </div>
+                    <button type="button" id="close-panel-btn" style="background: transparent; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; font-weight: bold; padding: 0 4px;">✕</button>
                 </div>
-                <div id="panel-content-body" style="font-size: 0.75rem; color: #f8fafc; line-height: 1.4;"></div>
+                <div id="panel-content-body" style="font-size: 0.72rem; color: #f8fafc; line-height: 1.35;"></div>
             </div>
         </div>
     </div>
@@ -143,12 +125,10 @@
         let markers = [];
         let polylines = [];
         let infoWindow = null;
-        let mapOverlay = null;
         
         let allClients = [];
         let allAppointments = [];
         let allEmployees = [];
-        let activeRouteSegment = null;
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
@@ -157,7 +137,7 @@
         const infoPanel = document.getElementById('route-info-panel');
         const panelBody = document.getElementById('panel-content-body');
         const closePanelBtn = document.getElementById('close-panel-btn');
-        const connectorLine = document.getElementById('connector-line');
+        const segmentColorDot = document.getElementById('segment-color-dot');
 
         const urlParams = new URLSearchParams(window.location.search);
         const preselectedEmployee = urlParams.get('employee');
@@ -211,22 +191,12 @@
                 streetViewControl: false
             });
 
-            mapOverlay = new google.maps.OverlayView();
-            mapOverlay.onAdd = function() {};
-            mapOverlay.draw = function() {};
-            mapOverlay.onRemove = function() {};
-            mapOverlay.setMap(map);
-
-            infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
+            infoWindow = new google.maps.InfoWindow({ maxWidth: 200 });
 
             map.addListener('click', () => {
                 if (infoWindow) infoWindow.close();
                 hideRouteInfoPanel();
             });
-
-            map.addListener('bounds_changed', updateConnectorLinePosition);
-            map.addListener('center_changed', updateConnectorLinePosition);
-            map.addListener('zoom_changed', updateConnectorLinePosition);
 
             closePanelBtn.addEventListener('click', () => {
                 hideRouteInfoPanel();
@@ -235,48 +205,6 @@
 
         function hideRouteInfoPanel() {
             infoPanel.style.display = 'none';
-            connectorLine.style.display = 'none';
-            activeRouteSegment = null;
-        }
-
-        function updateConnectorLinePosition() {
-            if (!activeRouteSegment || !map || infoPanel.style.display === 'none') return;
-
-            const proj = mapOverlay.getProjection();
-            if (!proj) return;
-
-            const mapDiv = document.getElementById('daily-map');
-            const mapRect = mapDiv.getBoundingClientRect();
-            const panelRect = infoPanel.getBoundingClientRect();
-
-            const latLng = activeRouteSegment.midPoint;
-            const divPixel = proj.fromLatLngToContainerPixel(latLng);
-
-            if (divPixel) {
-                const x1 = panelRect.left - mapRect.left + (panelRect.width / 2);
-                const y1 = panelRect.bottom - mapRect.top;
-
-                const x2 = divPixel.x;
-                const y2 = divPixel.y;
-
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                let targetX = x2;
-                let targetY = y2;
-                if (dist > 10) {
-                    const offsetBack = 8;
-                    targetX = x2 - (dx / dist) * offsetBack;
-                    targetY = y2 - (dy / dist) * offsetBack;
-                }
-
-                connectorLine.setAttribute('x1', x1);
-                connectorLine.setAttribute('y1', y1);
-                connectorLine.setAttribute('x2', targetX);
-                connectorLine.setAttribute('y2', targetY);
-                connectorLine.style.display = 'block';
-            }
         }
 
         function setupInfoWindowStyles() {
@@ -286,7 +214,7 @@
                     iwContainer.style.background = '#0f172a';
                     iwContainer.style.padding = '2px 4px 4px 4px';
                     iwContainer.style.borderRadius = '8px';
-                    iwContainer.style.boxShadow = '0 6px 15px rgba(0,0,0,0.4)';
+                    iwContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
                 }
                 const iwOuter = document.querySelector('.gm-style-iw-d');
                 if (iwOuter) {
@@ -296,17 +224,6 @@
                 }
                 const closeBtn = document.querySelector('.gm-ui-hover-effect');
                 if (closeBtn) closeBtn.style.display = 'none';
-
-                let styleTag = document.getElementById('custom-infowindow-dark-style-modal');
-                if (!styleTag) {
-                    styleTag = document.createElement('style');
-                    styleTag.id = 'custom-infowindow-dark-style-modal';
-                    styleTag.innerHTML = `
-                        .gm-style-iw-t::after { background: #0f172a !important; box-shadow: none !important; }
-                        .gm-style-iw-tc::after { background: #0f172a !important; }
-                    `;
-                    document.head.appendChild(styleTag);
-                }
             });
         }
 
@@ -400,19 +317,15 @@
 
                 const clientPhone = stop.client.phone || 'No registrado';
                 const assignedEmpName = stop.appt.employee_id ? employeesMap.get(stop.appt.employee_id) : (stop.appt.assigned_employee || 'General');
-                const techAssigned = `<br>👷‍♂️ Técnico: <strong>${assignedEmpName}</strong>`;
-                const serviceStr = stop.appt.service_requested ? `<br>🛠️ Servicio: <strong>${stop.appt.service_requested}</strong>` : '';
                 
                 const windowContent = `
-                    <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 6px; border-radius: 6px; width: 190px;">
-                        <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                            <strong style="color: #38bdf8; font-size: 0.78rem; font-weight: 700;">Parada #${index + 1} - ⏰ ${stop.appt.time_slot || '09:00'}h</strong>
+                    <div style="font-family: -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 4px; border-radius: 6px; width: 170px;">
+                        <div style="border-bottom: 1px solid #1e293b; padding-bottom: 2px; margin-bottom: 3px; text-align: center;">
+                            <strong style="color: #38bdf8; font-size: 0.72rem;">#${index + 1} - ⏰ ${stop.appt.time_slot || '09:00'}h</strong>
                         </div>
-                        <h4 style="margin: 0 0 2px 0; font-size: 0.78rem; color: #ffffff;">${stop.client.name}</h4>
-                        <p style="margin: 0 0 3px 0; font-size: 0.65rem; color: #cbd5e1;">📍 ${stop.client.address || 'Sin dirección'}</p>
-                        ${serviceStr ? `<span style="font-size: 0.65rem; color: #cbd5e1;">${serviceStr}</span>` : ''}
-                        ${techAssigned ? `<span style="font-size: 0.65rem; color: #cbd5e1;">${techAssigned}</span>` : ''}
-                        <p style="margin: 0 0 2px 0; font-size: 0.65rem; color: #cbd5e1;">📞 Tel: ${clientPhone}</p>
+                        <h4 style="margin: 0 0 1px 0; font-size: 0.72rem; color: #ffffff;">${stop.client.name}</h4>
+                        <p style="margin: 0 0 2px 0; font-size: 0.62rem; color: #cbd5e1;">📍 ${stop.client.address || 'Sin dirección'}</p>
+                        <p style="margin: 0; font-size: 0.62rem; color: #cbd5e1;">📞 ${clientPhone}</p>
                     </div>
                 `;
 
@@ -485,34 +398,26 @@
                             map: map
                         });
 
-                        const midIndex = Math.floor(decodedPath.length / 2);
-                        const midPoint = decodedPath[midIndex];
-
                         routePath.addListener('click', () => {
                             if (infoWindow) infoWindow.close();
 
+                            segmentColorDot.style.background = segmentColor;
                             panelBody.innerHTML = `
+                                <div style="margin-bottom: 4px;">
+                                    <span style="color: #38bdf8; font-weight: 700;">Desde (#${i+1}):</span> <strong>${originStop.client.name}</strong><br>
+                                    <span style="color: #94a3b8; font-size: 0.65rem; padding-left: 10px;">${originStop.client.address || 'Sin dirección'}</span>
+                                </div>
                                 <div style="margin-bottom: 6px;">
-                                    <div style="color: #38bdf8; font-weight: 700;">🟢 #${i+1} ${originStop.client.name}</div>
-                                    <div style="color: #94a3b8; font-size: 0.7rem; padding-left: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${originStop.client.address || 'Sin dirección'}</div>
+                                    <span style="color: #f87171; font-weight: 700;">Hasta (#${i+2}):</span> <strong>${destStop.client.name}</strong><br>
+                                    <span style="color: #94a3b8; font-size: 0.65rem; padding-left: 10px;">${destStop.client.address || 'Sin dirección'}</span>
                                 </div>
-                                <div style="text-align: center; color: #64748b; font-size: 0.9rem; margin: 2px 0;">↓</div>
-                                <div style="margin-bottom: 8px;">
-                                    <div style="color: #f87171; font-weight: 700;">🔴 #${i+2} ${destStop.client.name}</div>
-                                    <div style="color: #94a3b8; font-size: 0.7rem; padding-left: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${destStop.client.address || 'Sin dirección'}</div>
-                                </div>
-                                <div style="border-top: 1px solid #1e293b; padding-top: 6px; display: flex; justify-content: space-between; font-size: 0.72rem;">
+                                <div style="border-top: 1px solid #1e293b; padding-top: 4px; display: flex; justify-content: space-between; font-size: 0.7rem;">
                                     <span style="color: #cbd5e1;">📏 <strong>${distanceText}</strong></span>
                                     <span style="color: #cbd5e1;">⏱️ <strong>${durationText}</strong></span>
                                 </div>
                             `;
 
-                            activeRouteSegment = { midPoint };
                             infoPanel.style.display = 'block';
-                            
-                            requestAnimationFrame(() => {
-                                updateConnectorLinePosition();
-                            });
                         });
 
                         polylines.push(routePath);
