@@ -212,7 +212,6 @@
 
             infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
 
-            // Al hacer clic en cualquier parte vacía del mapa, se ocultan tanto la ventana del cliente como el panel de ruta
             map.addListener('click', () => {
                 if (infoWindow) infoWindow.close();
                 hideRouteInfoPanel();
@@ -375,7 +374,6 @@
                 return;
             }
 
-            // Ordenar cronológicamente
             validStops.sort((a, b) => {
                 const timeA = a.appt.time_slot || '00:00';
                 const timeB = b.appt.time_slot || '00:00';
@@ -384,7 +382,6 @@
 
             const bounds = new google.maps.LatLngBounds();
 
-            // 1. Dibujar marcadores numerados secuencialmente
             validStops.forEach((stop, index) => {
                 bounds.extend(stop.latLng);
 
@@ -417,7 +414,6 @@
                     </div>
                 `;
 
-                // Al hacer clic en un cliente, se muestra su info y se oculta el panel de ruta anterior
                 marker.addListener('click', (e) => {
                     e.stop();
                     hideRouteInfoPanel();
@@ -431,7 +427,6 @@
 
             map.fitBounds(bounds);
 
-            // 2. Trazar tramos viales usando Google Routes API (v2)
             const apiKey = 'AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ';
 
             for (let i = 0; i < validStops.length - 1; i++) {
@@ -489,7 +484,6 @@
                         const midIndex = Math.floor(decodedPath.length / 2);
                         const midPoint = decodedPath[midIndex];
 
-                        // Al hacer clic en un tramo, se cierra cualquier ventana de cliente abierta y se muestra el panel de ruta
                         routePath.addListener('click', () => {
                             if (infoWindow) infoWindow.close();
 
@@ -501,7 +495,11 @@
 
                             activeRouteSegment = { midPoint };
                             infoPanel.style.display = 'block';
-                            updateConnectorLinePosition();
+                            
+                            // Forzar renderizado y cálculo inmediato de la línea desde el primer clic
+                            requestAnimationFrame(() => {
+                                updateConnectorLinePosition();
+                            });
                         });
 
                         polylines.push(routePath);
