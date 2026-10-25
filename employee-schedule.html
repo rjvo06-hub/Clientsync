@@ -23,19 +23,6 @@
             border: 1px solid #e2e8f0;
         }
         
-        select, input { 
-            font-size: 15px; 
-            width: 100%; 
-            padding: 10px 12px; 
-            border: 1px solid #cbd5e0; 
-            border-radius: 8px; 
-            background: white; 
-            outline: none;
-            color: #1e293b;
-            font-weight: 600;
-        }
-
-        /* Submenú de Citas (Hoy / Calendario) */
         .sub-menu-citas {
             display: flex;
             gap: 10px;
@@ -82,7 +69,7 @@
 <body>
 
     <div class="container">
-        <!-- Cabecera con bienvenida al empleado y botón de cambiar -->
+        <!-- Cabecera -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
             <div>
                 <h1 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">👷‍♂️ Portal de <span id="employee-title-name" style="color: #2563eb;">...</span></h1>
@@ -122,17 +109,14 @@
         const todayStrSystem = new Date().toISOString().split('T')[0];
         const STORAGE_KEY = 'clientSync_saved_employee';
 
-        // Obtener el empleado desde la URL (?employee=...) o desde el almacenamiento local
         const urlParams = new URLSearchParams(window.location.search);
         selectedEmployee = urlParams.get('employee') || localStorage.getItem(STORAGE_KEY) || '';
 
         if (!selectedEmployee) {
-            // Si no hay empleado identificado, redirigir al index para que lo seleccione
-            alert('Por favor, selecciona tu nombre de empleado en la página principal primero.');
+            alert('Por favor, inicia sesión en la página principal primero.');
             window.location.href = './index.html';
         } else {
             document.getElementById('employee-title-name').textContent = selectedEmployee;
-            // Asegurar que esté sincronizado en localStorage
             localStorage.setItem(STORAGE_KEY, selectedEmployee);
         }
 
@@ -152,14 +136,12 @@
                 allClients = clients || [];
                 allAppointments = appointments || [];
 
-                // Cargar por defecto las citas de hoy
                 activateCitasSubTab('today');
             } catch (err) {
                 console.error('Error al inicializar portal:', err);
             }
         }
 
-        // Sub-pestañas de Citas
         document.getElementById('sub-btn-today').addEventListener('click', () => activateCitasSubTab('today'));
         document.getElementById('sub-btn-calendar').addEventListener('click', () => activateCitasSubTab('calendar'));
 
@@ -183,7 +165,12 @@
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
             return allAppointments.filter(appt => {
                 if (!appt.scheduled_date || appt.scheduled_date.split('T')[0] !== dateStr) return false;
-                if (appt.assigned_employee !== selectedEmployee) return false;
+                if (!appt.assigned_employee) return false;
+                
+                // Comprobar si el empleado actual está incluido en los asignados (separados por comas)
+                const assignedList = appt.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                if (!assignedList.includes(selectedEmployee.toLowerCase())) return false;
+
                 return clientsMap.has(appt.client_id);
             });
         }
@@ -223,6 +210,15 @@
                 const timeStr = appt.time_slot || '09:00';
                 const serviceStr = appt.service_requested ? `<span style="font-size: 0.75rem; color: #2563eb; font-weight: 700; margin-left: 6px;">[${appt.service_requested}]</span>` : '';
                 
+                // Extraer compañeros de equipo (todos los asignados excepto el empleado actual)
+                const assignedList = (appt.assigned_employee || '').split(',').map(e => e.trim()).filter(Boolean);
+                const colleagues = assignedList.filter(e => e.toLowerCase() !== selectedEmployee.toLowerCase());
+                
+                let colleaguesHtml = '';
+                if (colleagues.length > 0) {
+                    colleaguesHtml = `<div style="font-size: 0.72rem; color: #d97706; font-weight: 700; margin-top: 2px;">👥 Compañero(s) en esta cita: ${colleagues.join(', ')}</div>`;
+                }
+
                 let phoneHtml = '';
                 if (client.phone && client.phone.trim() !== '' && client.phone.toLowerCase() !== 'no registrado') {
                     phoneHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.name}" style="font-size: 1rem; text-decoration: none; padding: 1px 5px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe; margin-left: 8px; flex-shrink: 0;">📞</a>`;
@@ -237,8 +233,9 @@
                             <span style="font-size: 0.8rem; font-weight: 700; color: #2563eb;">⏰ ${timeStr}h</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;">
+                            <div style="font-size: 0.8rem; color: #64748b; padding-right: 8px; overflow: hidden;">
                                 📍 ${client.address || 'Sin dirección'}${postalCodeText}
+                                ${colleaguesHtml}
                             </div>
                             <div style="display: flex; align-items: center; flex-shrink: 0;">
                                 ${phoneHtml}
