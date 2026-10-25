@@ -153,7 +153,11 @@
                 streetViewControl: false
             });
 
-            infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
+            // Se añade pixelOffset para desplazar el globo lateralmente y evitar superposición directa con la ruta
+            infoWindow = new google.maps.InfoWindow({ 
+                maxWidth: 220,
+                pixelOffset: new google.maps.Size(40, -30)
+            });
 
             map.addListener('click', () => {
                 if (infoWindow) {
@@ -347,7 +351,6 @@
                         headers: {
                             'Content-Type': 'application/json',
                             'X-Goog-Api-Key': apiKey,
-                            // Solicitamos polilínea, distancia en metros y duración estimada en segundos
                             'X-Goog-FieldMask': 'routes.polyline.encodedPolyline,routes.distanceMeters,routes.duration'
                         },
                         body: JSON.stringify(requestBody)
