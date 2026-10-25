@@ -59,7 +59,6 @@
             height: 100%;
         }
 
-        /* Panel flotante compacto y claro en la esquina superior izquierda */
         #route-info-panel {
             position: absolute;
             top: 12px;
@@ -75,7 +74,6 @@
             border: 1px solid #cbd5e0;
         }
 
-        /* SVG Overlay para la línea conectora precisa */
         #route-svg-overlay {
             position: absolute;
             top: 0;
@@ -96,7 +94,7 @@
             <a href="#" id="back-link" style="padding: 4px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">← Volver</a>
         </div>
 
-        <!-- Barra de Controles: Solo selector de fecha -->
+        <!-- Barra de Controles: Selector de fecha -->
         <div class="controls-bar">
             <div style="flex: 1;">
                 <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">📅 Seleccionar Fecha:</label>
@@ -104,7 +102,7 @@
             </div>
         </div>
 
-        <!-- Contenedor del Mapa Interactivo con Panel y Línea SVG -->
+        <!-- Contenedor del Mapa Interactivo -->
         <div class="map-wrapper">
             <div id="daily-map"></div>
             
@@ -212,7 +210,6 @@
                 hideRouteInfoPanel();
             });
 
-            // Eventos de movimiento, zoom e inactividad (idle) para mantener la línea perfectamente anclada
             map.addListener('bounds_changed', updateConnectorLinePosition);
             map.addListener('center_changed', updateConnectorLinePosition);
             map.addListener('zoom_changed', updateConnectorLinePosition);
@@ -300,24 +297,18 @@
 
             const selectedDate = dateInput.value;
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
-            const employeesMap = new Map(allEmployees.map(e => [e.id, e.name]));
 
             const dayAppointments = allAppointments.filter(appt => {
                 if (!appt.scheduled_date) return false;
                 const apptDateOnly = appt.scheduled_date.includes('T') ? appt.scheduled_date.split('T')[0] : appt.scheduled_date;
                 if (apptDateOnly !== selectedDate) return false;
+                if (!appt.assigned_employee) return false;
 
                 if (!currentEmployee) return clientsMap.has(appt.client_id);
 
-                let assignedEmpName = '';
-                if (appt.employee_id) {
-                    assignedEmpName = employeesMap.get(appt.employee_id) || '';
-                }
-                if (!assignedEmpName && appt.assigned_employee) {
-                    assignedEmpName = appt.assigned_employee;
-                }
-
-                if (!assignedEmpName || assignedEmpName.toLowerCase() !== currentEmployee.toLowerCase()) {
+                // Verificar si el empleado actual está incluido en la lista de asignados (separados por comas)
+                const assignedList = appt.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                if (!assignedList.includes(currentEmployee.toLowerCase())) {
                     return false;
                 }
 
