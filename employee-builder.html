@@ -99,6 +99,12 @@
             </div>
 
             <div class="form-group">
+                <label>Contraseña:</label>
+                <input type="password" id="employee-password" placeholder="••••••••" autocomplete="new-password">
+                <small style="font-size: 0.68rem; color: #64748b; display: block; margin-top: 3px;">Si estás editando y dejas este campo en blanco, se mantendrá la contraseña actual.</small>
+            </div>
+
+            <div class="form-group">
                 <label>Rol / Puesto:</label>
                 <input type="text" id="employee-role" placeholder="Ej. Técnico, Supervisor">
             </div>
@@ -130,6 +136,7 @@
         const employeeIdInput = document.getElementById('employee-id');
         const nameInput = document.getElementById('employee-name');
         const emailInput = document.getElementById('employee-email');
+        const passwordInput = document.getElementById('employee-password');
         const roleInput = document.getElementById('employee-role');
         const levelInput = document.getElementById('employee-level');
         const saveBtn = document.getElementById('save-btn');
@@ -154,8 +161,9 @@
                             <div>
                                 <strong style="font-size: 0.88rem; color: #1e293b; display: block;">${emp.name}</strong>
                                 <span style="font-size: 0.72rem; color: #64748b;">✉️ ${emp.email || 'Sin correo'} | 🏷️ ${emp.role || 'Sin rol'}</span>
-                                <div style="margin-top: 3px;">
+                                <div style="margin-top: 3px; display: flex; gap: 6px; align-items: center;">
                                     <span style="font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; padding: 1px 6px; border-radius: 4px; border: 1px solid #bfdbfe; font-weight: 700;">Nivel ${level}</span>
+                                    <span style="font-size: 0.65rem; color: #64748b;">🔑 ${emp.password ? '••••••••' : 'Sin contraseña'}</span>
                                 </div>
                             </div>
                             <div style="display: flex; gap: 6px;">
@@ -174,6 +182,7 @@
                         employeeIdInput.value = ds.id;
                         nameInput.value = ds.name;
                         emailInput.value = ds.email;
+                        passwordInput.value = ''; // Se deja en blanco por seguridad al editar
                         roleInput.value = ds.role;
                         levelInput.value = ds.level;
                         saveBtn.textContent = 'Actualizar Empleado';
@@ -209,6 +218,11 @@
                 role: roleInput.value.trim() || null,
                 user_level: parseInt(levelInput.value) || 1
             };
+
+            const passwordVal = passwordInput.value.trim();
+            if (passwordVal) {
+                payload.password = passwordVal;
+            }
 
             try {
                 if (id) {
