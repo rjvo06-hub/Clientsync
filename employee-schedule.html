@@ -374,10 +374,9 @@
 
                 html += `
                     <div class="client-card">
-                        <!-- Línea 1: #1, Nombre y Hora -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 4px;">
-                            <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">#${index + 1} — ${client.name} ${serviceStr}</span>
-                            <span style="font-size: 0.8rem; font-weight: 700; color: #2563eb;">⏰ ${timeStr}h</span>
+                        <!-- Línea 1: Solo la Hora y el servicio -->
+                        <div style="display: flex; justify-content: flex-end; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 4px;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #2563eb;">⏰ ${timeStr}h ${serviceStr}</span>
                         </div>
                         <!-- Línea 2: Dirección y Código Postal a la izquierda, Teléfono a la derecha -->
                         <div style="display: flex; justify-content: space-between; align-items: center;">
