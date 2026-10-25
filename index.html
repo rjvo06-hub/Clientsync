@@ -63,6 +63,26 @@
             border: 1px solid var(--border-subtle);
         }
 
+        /* Selector de Empleado Global en el Menú */
+        .global-employee-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            padding: 12px;
+            border-radius: var(--radius-xl);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .global-employee-box select {
+            font-size: 14px;
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            background: #f8fafc;
+            outline: none;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
         /* Navegación Moderna Estilo App Móvil */
         .nav-buttons {
             display: grid;
@@ -102,7 +122,6 @@
             font-size: 1.1rem;
         }
 
-        /* Adaptación perfecta para pantallas pequeñas */
         @media (max-width: 768px) {
             .nav-buttons {
                 grid-template-columns: repeat(2, 1fr);
@@ -124,30 +143,93 @@
             <span class="badge-brand">WerkSolutions</span>
         </header>
 
+        <!-- Selector de Empleado Global -->
+        <div class="global-employee-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 0.78rem; font-weight: 700; color: #475569;">👷‍♂️ Identifícate como Empleado:</label>
+                <button type="button" id="btn-clear-employee" style="display: none; background: #fee2e2; color: #991b1b; border: none; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">Cambiar</button>
+            </div>
+            <select id="index-employee-selector">
+                <option value="">-- Selecciona tu nombre (Opcional para Admin) --</option>
+            </select>
+        </div>
+
         <!-- Barra de navegación tipo app moderna -->
         <nav class="nav-buttons">
             <a href="./client-builder.html"><span>🏢</span> Cliente</a>
             <a href="./appointment-builder.html"><span>📅</span> Agendar</a>
             <a href="./admin-assignments.html"><span>🛠️</span> Admin</a>
-            <a href="./employee-schedule.html"><span>👷‍♂️</span> Equipo</a>
-            
-            <!-- ENLACE DIRECTO AL NUEVO ARCHIVO DE MAPA -->
-            <a href="./client-map.html" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;"><span>🗺️</span> Ver Mapa</a>
-
-            <!-- Botón exclusivo de Administrador (Oculto por defecto) -->
-            <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; background: #faf5ff; color: #7c3aed; border: 1px dashed #c084fc;"><span>📄</span> Generar Reporte PDF Admin</a>
+            <a href="./employee-schedule.html" id="link-employee-portal"><span>👷‍♂️</span> Equipo</a>
+            <a href="./client-map.html" id="link-client-map"><span>🗺️</span> Ver Mapa</a>
+            <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; background: #faf5ff; color: #7c3aed; border: 1px dashed #c084fc;"><span>📄</span> Reporte PDF</a>
         </nav>
     </div>
 
-    <!-- Script de validación para mostrar el botón de admin PDF -->
-    <script>
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        const STORAGE_KEY = 'clientSync_saved_employee';
+        const selector = document.getElementById('index-employee-selector');
+        const clearBtn = document.getElementById('btn-clear-employee');
+        const linkTeam = document.getElementById('link-employee-portal');
+        const linkMap = document.getElementById('link-client-map');
+
+        async function initIndex() {
+            try {
+                const { data: employees } = await supabase.from('employees').select('*').order('name', { ascending: true });
+                if (employees) {
+                    employees.forEach(emp => {
+                        selector.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
+                    });
+                }
+
+                const savedEmp = localStorage.getItem(STORAGE_KEY);
+                if (savedEmp) {
+                    selector.value = savedEmp;
+                    clearBtn.style.display = 'inline-block';
+                    updateDynamicLinks(savedEmp);
+                }
+            } catch (err) {
+                console.error('Error cargando empleados:', err);
+            }
+        }
+
+        function updateDynamicLinks(empName) {
+            if (empName) {
+                linkTeam.href = `./employee-schedule.html?employee=${encodeURIComponent(empName)}`;
+                linkMap.href = `./employee-route.html?employee=${encodeURIComponent(empName)}`;
+            } else {
+                linkTeam.href = `./employee-schedule.html`;
+                linkMap.href = `./client-map.html`;
+            }
+        }
+
+        selector.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val) {
+                localStorage.setItem(STORAGE_KEY, val);
+                clearBtn.style.display = 'inline-block';
+                updateDynamicLinks(val);
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+                clearBtn.style.display = 'none';
+                updateDynamicLinks('');
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            selector.value = '';
+            localStorage.removeItem(STORAGE_KEY);
+            clearBtn.style.display = 'none';
+            updateDynamicLinks('');
+        });
+
         window.addEventListener('DOMContentLoaded', () => {
+            initIndex();
             const acceso = localStorage.getItem('usuario_acceso');
             if (Number(acceso) === 1) {
                 const pdfLink = document.getElementById('navAdminPdf');
-                if (pdfLink) {
-                    pdfLink.style.display = 'flex';
-                }
+                if (pdfLink) pdfLink.style.display = 'flex';
             }
         });
     </script>
