@@ -42,7 +42,7 @@
             font-weight: 600;
         }
 
-        /* Menú principal del empleado (2 Botones) */
+        /* Menú principal del empleado (Ahora con un solo botón centralizado) */
         .employee-menu-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -116,16 +116,6 @@
             border-color: #2563eb;
         }
 
-        /* Selector de fecha rápido para el mapa */
-        .date-picker-box {
-            background: #f8fafc;
-            border: 1px solid #cbd5e0;
-            padding: 14px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-            text-align: center;
-        }
-
         /* Tarjeta de cliente en cuadro limpio de dos líneas */
         .client-card { 
             background: #ffffff; 
@@ -165,23 +155,14 @@
             </select>
         </div>
 
-        <!-- MENÚ PRINCIPAL DEL EMPLEADO (Aparece al seleccionar empleado) -->
+        <!-- MENÚ PRINCIPAL DEL EMPLEADO -->
         <div id="employee-menu" class="employee-menu-grid" style="display: none;">
-            <!-- Botón A: Visualizar Citas (Solo lista / sin mapa) -->
+            <!-- Botón Único: Visualizar Citas (Incluye el acceso directo al mapa si hay citas) -->
             <button type="button" class="action-card" id="btn-menu-citas">
                 <div class="action-icon">📋</div>
                 <div class="action-info">
-                    <h3>Visualizar Citas</h3>
-                    <p>Revisa tus tareas programadas para hoy o consulta el calendario mensual.</p>
-                </div>
-            </button>
-
-            <!-- Botón B: Visualizar Mapa (Selección de fecha y abre el mapa) -->
-            <button type="button" class="action-card" id="btn-menu-mapa">
-                <div class="action-icon">🗺️</div>
-                <div class="action-info">
-                    <h3>Visualizar Mapa</h3>
-                    <p>Abre el mapa interactivo por fecha con pines numerados (1, 2, 3...).</p>
+                    <h3>Visualizar Citas y Ruta</h3>
+                    <p>Revisa tus tareas programadas para hoy, consulta el calendario mensual y accede al mapa de ruta.</p>
                 </div>
             </button>
         </div>
@@ -195,13 +176,6 @@
         <div id="sub-menu-citas-container" class="sub-menu-citas" style="display: none;">
             <button type="button" class="sub-btn active" id="sub-btn-today">📅 Citas de Hoy</button>
             <button type="button" class="sub-btn" id="sub-btn-calendar">🗓️ Calendario Mensual</button>
-        </div>
-
-        <!-- Selector de fecha para el Mapa -->
-        <div id="date-picker-map-container" class="date-picker-box" style="display: none;">
-            <label style="display: block; font-size: 0.82rem; color: #1e293b; font-weight: 700; margin-bottom: 6px;">Selecciona la fecha para ver en el mapa:</label>
-            <input type="date" id="map-target-date" style="margin-bottom: 10px;">
-            <button type="button" id="btn-launch-map" style="background: #2563eb; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%;">🚀 Abrir Mapa Interactivo</button>
         </div>
 
         <!-- Área dinámica de contenido para citas -->
@@ -229,7 +203,6 @@
         let selectedMonthDate = new Date();
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
-        document.getElementById('map-target-date').value = todayStrSystem;
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
@@ -264,13 +237,11 @@
             const contentArea = document.getElementById('dynamic-content-area');
             const backBtnContainer = document.getElementById('back-to-menu-container');
             const subMenuCitas = document.getElementById('sub-menu-citas-container');
-            const datePickerBox = document.getElementById('date-picker-map-container');
 
             if (!selectedEmployee) {
                 empMenu.style.display = 'none';
                 backBtnContainer.style.display = 'none';
                 subMenuCitas.style.display = 'none';
-                datePickerBox.style.display = 'none';
                 contentArea.innerHTML = '';
                 return;
             }
@@ -278,32 +249,15 @@
             empMenu.style.display = 'grid';
             backBtnContainer.style.display = 'none';
             subMenuCitas.style.display = 'none';
-            datePickerBox.style.display = 'none';
             contentArea.innerHTML = '';
         });
 
-        // Botón 1: Visualizar Citas
+        // Botón único del menú: Visualizar Citas
         document.getElementById('btn-menu-citas').addEventListener('click', () => {
             document.getElementById('employee-menu').style.display = 'none';
             document.getElementById('back-to-menu-container').style.display = 'block';
             document.getElementById('sub-menu-citas-container').style.display = 'flex';
-            document.getElementById('date-picker-map-container').style.display = 'none';
             activateCitasSubTab('today');
-        });
-
-        // Botón 2: Visualizar Mapa (Muestra selector de fecha antes de ir al mapa)
-        document.getElementById('btn-menu-mapa').addEventListener('click', () => {
-            document.getElementById('employee-menu').style.display = 'none';
-            document.getElementById('back-to-menu-container').style.display = 'block';
-            document.getElementById('sub-menu-citas-container').style.display = 'none';
-            document.getElementById('date-picker-map-container').style.display = 'block';
-            document.getElementById('dynamic-content-area').innerHTML = '';
-        });
-
-        // Lanzar Mapa con la fecha y empleado seleccionados
-        document.getElementById('btn-launch-map').addEventListener('click', () => {
-            const chosenDate = document.getElementById('map-target-date').value || todayStrSystem;
-            window.location.href = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${chosenDate}`;
         });
 
         // Sub-pestañas de Citas
@@ -331,7 +285,6 @@
             document.getElementById('dynamic-content-area').innerHTML = '';
             document.getElementById('back-to-menu-container').style.display = 'none';
             document.getElementById('sub-menu-citas-container').style.display = 'none';
-            document.getElementById('date-picker-map-container').style.display = 'none';
             document.getElementById('employee-menu').style.display = 'grid';
         });
 
@@ -350,7 +303,7 @@
 
             const mapRouteUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}`;
 
-            // ⚠️ FILTRAR BOTÓN DE MAPA: Si hay citas se muestra, si NO hay citas se oculta por completo
+            // Botón de mapa integrado (solo se muestra si hay citas)
             let mapButtonHtml = '';
             if (dayAppointments.length > 0) {
                 mapButtonHtml = `<a href="${mapRouteUrl}" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px;">🗺️ Ver Mapa</a>`;
