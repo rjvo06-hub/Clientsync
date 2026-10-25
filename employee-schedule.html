@@ -364,7 +364,7 @@
                 const timeStr = appt.time_slot || '09:00';
                 const serviceStr = appt.service_requested ? `<span style="font-size: 0.75rem; color: #2563eb; font-weight: 700; margin-left: 6px;">[${appt.service_requested}]</span>` : '';
                 
-                // Teléfono e icono de llamada alineado a la derecha
+                // Teléfono e icono de llamada alineado a la derecha en la línea 2
                 let phoneHtml = '';
                 if (client.phone && client.phone.trim() !== '' && client.phone.toLowerCase() !== 'no registrado') {
                     phoneHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.name}" style="font-size: 1rem; text-decoration: none; padding: 1px 5px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe; margin-left: 8px; flex-shrink: 0;">📞</a>`;
@@ -374,14 +374,14 @@
 
                 html += `
                     <div class="client-card">
-                        <!-- Línea 1: Nombre del cliente a la izquierda, Hora a la derecha -->
+                        <!-- Línea 1: Número (#1) y Nombre del cliente a la izquierda, Hora a la derecha -->
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 4px;">
-                            <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">${client.name} ${serviceStr}</span>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">#${index + 1} ${client.name} ${serviceStr}</span>
                             <span style="font-size: 0.8rem; font-weight: 700; color: #2563eb;">⏰ ${timeStr}h</span>
                         </div>
-                        <!-- Línea 2: Dirección y Código Postal a la izquierda, Teléfono a la derecha -->
+                        <!-- Línea 2: Dirección y código postal a la izquierda, teléfono a la derecha -->
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <div style="font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px;">
                                 📍 ${client.address || 'Sin dirección'}${postalCodeText}
                             </div>
                             <div style="display: flex; align-items: center; flex-shrink: 0;">
