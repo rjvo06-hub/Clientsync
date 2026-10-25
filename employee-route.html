@@ -33,7 +33,7 @@
             border-radius: 10px;
             margin-bottom: 10px;
         }
-        .controls-bar select, .controls-bar input {
+        .controls-bar input {
             font-size: 13px;
             padding: 6px 8px;
             border: 1px solid #cbd5e0;
@@ -42,6 +42,7 @@
             outline: none;
             color: #1e293b;
             font-weight: 600;
+            width: 100%;
         }
 
         .map-wrapper {
@@ -91,21 +92,15 @@
     <div class="container">
         <!-- Cabecera -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 style="margin: 0; font-size: 1rem; color: #1e293b; font-weight: 800;">🗺️ Ruta del Día</h1>
-            <a href="./admin-assignments.html" style="padding: 4px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">← Volver</a>
+            <h1 style="margin: 0; font-size: 1rem; color: #1e293b; font-weight: 800;" id="page-title">🗺️ Ruta del Día</h1>
+            <a href="#" id="back-link" style="padding: 4px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">← Volver</a>
         </div>
 
-        <!-- Barra de Controles compacta -->
+        <!-- Barra de Controles: Solo selector de fecha (empleado oculto) -->
         <div class="controls-bar">
             <div style="flex: 1;">
-                <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">📅 Fecha:</label>
-                <input type="date" id="route-date-input" style="width: 100%;">
-            </div>
-            <div style="flex: 1;">
-                <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">👷‍♂️ Empleado:</label>
-                <select id="employee-filter" style="width: 100%;">
-                    <option value="ALL">-- Todos --</option>
-                </select>
+                <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">📅 Seleccionar Fecha:</label>
+                <input type="date" id="route-date-input">
             </div>
         </div>
 
@@ -155,18 +150,21 @@
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const dateInput = document.getElementById('route-date-input');
-        const employeeFilter = document.getElementById('employee-filter');
         const infoPanel = document.getElementById('route-info-panel');
         const panelBody = document.getElementById('panel-content-body');
         const closePanelBtn = document.getElementById('close-panel-btn');
         const segmentColorDot = document.getElementById('segment-color-dot');
         const connectorLine = document.getElementById('connector-line');
+        const backLink = document.getElementById('back-link');
 
         const urlParams = new URLSearchParams(window.location.search);
-        const preselectedEmployee = urlParams.get('employee');
+        const currentEmployee = urlParams.get('employee') || '';
         const preselectedDate = urlParams.get('date');
 
         dateInput.value = preselectedDate || todayStrSystem;
+
+        // Configurar enlace del botón Volver para regresar al portal con el empleado seleccionado
+        backLink.href = `./admin-assignments.html${currentEmployee ? '?employee=' + encodeURIComponent(currentEmployee) : ''}`;
 
         const routeColors = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#dc2626', '#0891b2', '#db2777'];
 
@@ -181,19 +179,6 @@
                 allClients = clients || [];
                 allAppointments = appointments || [];
                 allEmployees = employees || [];
-
-                allEmployees.forEach(emp => {
-                    employeeFilter.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
-                });
-
-                if (preselectedEmployee) {
-                    const matchedEmp = allEmployees.find(e => e.name.toLowerCase() === preselectedEmployee.toLowerCase());
-                    if (matchedEmp) {
-                        employeeFilter.value = matchedEmp.name;
-                    } else {
-                        employeeFilter.value = preselectedEmployee;
-                    }
-                }
 
                 initMapObject();
                 renderSelectedDayData();
@@ -312,7 +297,6 @@
             if (!map) return;
 
             const selectedDate = dateInput.value;
-            const selectedEmployeeName = employeeFilter.value;
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
             const employeesMap = new Map(allEmployees.map(e => [e.id, e.name]));
 
@@ -321,9 +305,7 @@
                 const apptDateOnly = appt.scheduled_date.includes('T') ? appt.scheduled_date.split('T')[0] : appt.scheduled_date;
                 if (apptDateOnly !== selectedDate) return false;
 
-                if (selectedEmployeeName === 'ALL') {
-                    return clientsMap.has(appt.client_id);
-                }
+                if (!currentEmployee) return clientsMap.has(appt.client_id);
 
                 let assignedEmpName = '';
                 if (appt.employee_id) {
@@ -333,7 +315,7 @@
                     assignedEmpName = appt.assigned_employee;
                 }
 
-                if (!assignedEmpName || assignedEmpName.toLowerCase() !== selectedEmployeeName.toLowerCase()) {
+                if (!assignedEmpName || assignedEmpName.toLowerCase() !== currentEmployee.toLowerCase()) {
                     return false;
                 }
 
@@ -345,7 +327,7 @@
             clearPreviousRoutes();
 
             if (dayAppointments.length === 0) {
-                alert('No hay citas programadas para esta fecha y empleado.');
+                alert('No hay citas programadas para esta fecha.');
                 map.setCenter({ lat: 48.0664, lng: 11.6611 });
                 map.setZoom(13);
                 return;
@@ -475,7 +457,6 @@
                         const midIndex = Math.floor(decodedPath.length / 2);
                         const midPoint = decodedPath[midIndex];
 
-                        // Construcción de la URL de navegación de Google Maps usando las direcciones reales
                         const originQuery = encodeURIComponent(originStop.client.address || `${origin.lat()},${origin.lng()}`);
                         const destQuery = encodeURIComponent(destStop.client.address || `${destination.lat()},${destination.lng()}`);
                         const mapsNavUrl = `https://www.google.com/maps/dir/?api=1&origin=${originQuery}&destination=${destQuery}&travelmode=driving`;
@@ -516,9 +497,7 @@
             }
         }
 
-        dateInput.value = preselectedDate || todayStrSystem;
         dateInput.addEventListener('change', renderSelectedDayData);
-        employeeFilter.addEventListener('change', renderSelectedDayData);
 
         if (window.google && window.google.maps) {
             initEmployeeRouteMap();
