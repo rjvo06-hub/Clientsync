@@ -59,7 +59,7 @@
             height: 100%;
         }
 
-        /* Panel flotante en el extremo superior izquierdo */
+        /* Panel flotante estilo Google Maps en el extremo superior izquierdo */
         #route-info-panel {
             position: absolute;
             top: 15px;
@@ -67,10 +67,10 @@
             z-index: 10;
             background: #0f172a;
             color: #f8fafc;
-            padding: 12px 14px;
+            padding: 14px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            width: 210px;
+            width: 260px;
             display: none;
             border: 1px solid #334155;
         }
@@ -124,8 +124,8 @@
             </svg>
 
             <div id="route-info-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 6px; margin-bottom: 6px;">
-                    <strong style="color: #38bdf8; font-size: 0.8rem; font-weight: 700;">🚗 Detalle del Tramo</strong>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 6px; margin-bottom: 8px;">
+                    <strong style="color: #38bdf8; font-size: 0.8rem; font-weight: 700;">🚗 Indicaciones del Trayecto</strong>
                     <button type="button" id="close-panel-btn" style="background: transparent; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; font-weight: bold;">✕</button>
                 </div>
                 <div id="panel-content-body" style="font-size: 0.75rem; color: #f8fafc; line-height: 1.4;"></div>
@@ -211,7 +211,6 @@
                 streetViewControl: false
             });
 
-            // Crear OverlayView persistente para conversiones de coordenadas fiables desde el primer clic
             mapOverlay = new google.maps.OverlayView();
             mapOverlay.onAdd = function() {};
             mapOverlay.draw = function() {};
@@ -433,8 +432,11 @@
             const apiKey = 'AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ';
 
             for (let i = 0; i < validStops.length - 1; i++) {
-                const origin = validStops[i].latLng;
-                const destination = validStops[i + 1].latLng;
+                const originStop = validStops[i];
+                const destStop = validStops[i + 1];
+
+                const origin = originStop.latLng;
+                const destination = destStop.latLng;
                 const segmentColor = routeColors[i % routeColors.length];
 
                 const requestBody = {
@@ -483,7 +485,6 @@
                             map: map
                         });
 
-                        const segmentName = `Trayecto Parada #${i+1} ➔ #${i+2}`;
                         const midIndex = Math.floor(decodedPath.length / 2);
                         const midPoint = decodedPath[midIndex];
 
@@ -491,9 +492,19 @@
                             if (infoWindow) infoWindow.close();
 
                             panelBody.innerHTML = `
-                                <div style="color: #ffffff; font-weight: 700; margin-bottom: 4px; text-align: center;">${segmentName}</div>
-                                <div style="color: #cbd5e1;">📏 Distancia: <strong style="color: #f8fafc;">${distanceText}</strong></div>
-                                <div style="color: #cbd5e1;">⏱️ Tiempo est.: <strong style="color: #f8fafc;">${durationText}</strong></div>
+                                <div style="margin-bottom: 6px;">
+                                    <div style="color: #38bdf8; font-weight: 700;">🟢 #${i+1} ${originStop.client.name}</div>
+                                    <div style="color: #94a3b8; font-size: 0.7rem; padding-left: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${originStop.client.address || 'Sin dirección'}</div>
+                                </div>
+                                <div style="text-align: center; color: #64748b; font-size: 0.9rem; margin: 2px 0;">↓</div>
+                                <div style="margin-bottom: 8px;">
+                                    <div style="color: #f87171; font-weight: 700;">🔴 #${i+2} ${destStop.client.name}</div>
+                                    <div style="color: #94a3b8; font-size: 0.7rem; padding-left: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${destStop.client.address || 'Sin dirección'}</div>
+                                </div>
+                                <div style="border-top: 1px solid #1e293b; padding-top: 6px; display: flex; justify-content: space-between; font-size: 0.72rem;">
+                                    <span style="color: #cbd5e1;">📏 <strong>${distanceText}</strong></span>
+                                    <span style="color: #cbd5e1;">⏱️ <strong>${durationText}</strong></span>
+                                </div>
                             `;
 
                             activeRouteSegment = { midPoint };
