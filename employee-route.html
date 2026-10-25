@@ -143,6 +143,7 @@
         let markers = [];
         let polylines = [];
         let infoWindow = null;
+        let mapOverlay = null;
         
         let allClients = [];
         let allAppointments = [];
@@ -210,6 +211,13 @@
                 streetViewControl: false
             });
 
+            // Crear OverlayView persistente para conversiones de coordenadas fiables desde el primer clic
+            mapOverlay = new google.maps.OverlayView();
+            mapOverlay.onAdd = function() {};
+            mapOverlay.draw = function() {};
+            mapOverlay.onRemove = function() {};
+            mapOverlay.setMap(map);
+
             infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
 
             map.addListener('click', () => {
@@ -235,7 +243,7 @@
         function updateConnectorLinePosition() {
             if (!activeRouteSegment || !map || infoPanel.style.display === 'none') return;
 
-            const proj = map.getProjection();
+            const proj = mapOverlay.getProjection();
             if (!proj) return;
 
             const mapDiv = document.getElementById('daily-map');
@@ -243,12 +251,7 @@
             const panelRect = infoPanel.getBoundingClientRect();
 
             const latLng = activeRouteSegment.midPoint;
-
-            const overlay = new google.maps.OverlayView();
-            overlay.draw = function() {};
-            overlay.setMap(map);
-            const divPixel = overlay.getProjection().fromLatLngToContainerPixel(latLng);
-            overlay.setMap(null);
+            const divPixel = proj.fromLatLngToContainerPixel(latLng);
 
             if (divPixel) {
                 const x1 = panelRect.left - mapRect.left + (panelRect.width / 2);
@@ -496,7 +499,6 @@
                             activeRouteSegment = { midPoint };
                             infoPanel.style.display = 'block';
                             
-                            // Forzar renderizado y cálculo inmediato de la línea desde el primer clic
                             requestAnimationFrame(() => {
                                 updateConnectorLinePosition();
                             });
