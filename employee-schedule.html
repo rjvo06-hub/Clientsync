@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Portal del Empleado</title>
+    <title>ClientSync | Portal del Empleado y Control de Tiempos</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
@@ -14,7 +14,7 @@
             padding: 12px; 
         }
         .container { 
-            max-width: 500px; 
+            max-width: 520px; 
             margin: 10px auto 60px auto; 
             background: white; 
             padding: 20px; 
@@ -25,18 +25,18 @@
         
         .sub-menu-citas {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             margin-bottom: 16px;
         }
         .sub-btn {
             flex: 1;
-            padding: 10px;
+            padding: 9px 4px;
             border-radius: 8px;
             border: 1px solid #cbd5e0;
             background: white;
             color: #475569;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             cursor: pointer;
             text-align: center;
         }
@@ -49,10 +49,18 @@
         .client-card { 
             background: #ffffff; 
             border: 1px solid #cbd5e0;
-            padding: 10px 12px; 
+            padding: 12px; 
             border-radius: 10px; 
-            margin-bottom: 8px; 
+            margin-bottom: 10px; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
+        }
+
+        .time-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 16px;
         }
 
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
@@ -77,17 +85,18 @@
             <a href="./index.html" style="padding: 5px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">🏠 Inicio</a>
         </div>
 
-        <!-- Submenú de Citas (Hoy / Calendario) -->
-        <div id="sub-menu-citas-container" class="sub-menu-citas">
-            <button type="button" class="sub-btn active" id="sub-btn-today">📅 Citas de Hoy</button>
-            <button type="button" class="sub-btn" id="sub-btn-calendar">🗓️ Calendario Mensual</button>
+        <!-- Submenú de Opciones -->
+        <div class="sub-menu-citas">
+            <button type="button" class="sub-btn active" id="sub-btn-today">📅 Hoy</button>
+            <button type="button" class="sub-btn" id="sub-btn-calendar">🗓️ Mes</button>
+            <button type="button" class="sub-btn" id="sub-btn-timetrack">⏱️ Tiempos</button>
         </div>
 
-        <!-- Área dinámica de contenido para citas -->
+        <!-- Área dinámica de contenido -->
         <div id="dynamic-content-area"></div>
     </div>
 
-    <!-- Modal para ver citas de un día seleccionado en el calendario -->
+    <!-- Modal para ver citas de un día seleccionado -->
     <div id="day-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
@@ -103,6 +112,7 @@
 
         let allClients = [];
         let allAppointments = [];
+        let employeeDailyLog = null;
         let selectedEmployee = '';
         let selectedMonthDate = new Date();
 
@@ -138,8 +148,9 @@
                 allClients = clients || [];
                 allAppointments = appointments || [];
 
+                await fetchEmployeeDailyLog();
+
                 if (viewMode === 'calendar' && returnDate) {
-                    // Si venimos del mapa con una fecha de calendario, activar la pestaña de calendario y abrir el modal de ese día
                     selectedMonthDate = new Date(returnDate + 'T00:00:00');
                     activateCitasSubTab('calendar');
                     openDayModal(returnDate);
@@ -151,22 +162,35 @@
             }
         }
 
+        async function fetchEmployeeDailyLog() {
+            const { data, error } = await supabase.from('employee_daily_logs')
+                .select('*')
+                .eq('employee_name', selectedEmployee)
+                .eq('work_date', todayStrSystem)
+                .maybeSingle();
+
+            if (!error) {
+                employeeDailyLog = data;
+            }
+        }
+
         document.getElementById('sub-btn-today').addEventListener('click', () => activateCitasSubTab('today'));
         document.getElementById('sub-btn-calendar').addEventListener('click', () => activateCitasSubTab('calendar'));
+        document.getElementById('sub-btn-timetrack').addEventListener('click', () => activateCitasSubTab('timetrack'));
 
         function activateCitasSubTab(tabName) {
-            const btnToday = document.getElementById('sub-btn-today');
-            const btnCalendar = document.getElementById('sub-btn-calendar');
+            document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
             const contentArea = document.getElementById('dynamic-content-area');
 
             if (tabName === 'today') {
-                btnToday.classList.add('active');
-                btnCalendar.classList.remove('active');
+                document.getElementById('sub-btn-today').classList.add('active');
                 renderDaySchedule(contentArea, todayStrSystem, "Citas de Hoy");
-            } else {
-                btnCalendar.classList.add('active');
-                btnToday.classList.remove('active');
+            } else if (tabName === 'calendar') {
+                document.getElementById('sub-btn-calendar').classList.add('active');
                 renderMonthCalendar(contentArea);
+            } else if (tabName === 'timetrack') {
+                document.getElementById('sub-btn-timetrack').classList.add('active');
+                renderTimeTrackingView(contentArea);
             }
         }
 
@@ -186,14 +210,11 @@
         function renderDaySchedule(container, dateStr, titleText) {
             const dayAppointments = getEmployeeAppointmentsForDate(dateStr);
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
-
-            // Pasar la fecha y la vista al mapa para poder regresar exactamente aquí
             const mapRouteUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}&view=calendar`;
 
-            let mapButtonHtml = '';
-            if (dayAppointments.length > 0) {
-                mapButtonHtml = `<a href="${mapRouteUrl}" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px;">🗺️ Ver Mapa</a>`;
-            }
+            let mapButtonHtml = dayAppointments.length > 0 
+                ? `<a href="${mapRouteUrl}" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px;">🗺️ Ver Mapa</a>` 
+                : '';
 
             let headerHtml = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -213,7 +234,6 @@
             }
 
             let html = headerHtml;
-
             dayAppointments.forEach((appt, index) => {
                 const client = clientsMap.get(appt.client_id);
                 const timeStr = appt.time_slot || '09:00';
@@ -222,17 +242,13 @@
                 const assignedList = (appt.assigned_employee || '').split(',').map(e => e.trim()).filter(Boolean);
                 const colleagues = assignedList.filter(e => e.toLowerCase() !== selectedEmployee.toLowerCase());
                 
-                let colleaguesHtml = '';
-                if (colleagues.length > 0) {
-                    colleaguesHtml = `<div style="font-size: 0.72rem; color: #d97706; font-weight: 700; margin-top: 2px;">👥 Compañero(s) en esta cita: ${colleagues.join(', ')}</div>`;
-                }
+                let colleaguesHtml = colleagues.length > 0 
+                    ? `<div style="font-size: 0.72rem; color: #d97706; font-weight: 700; margin-top: 2px;">👥 Compañero(s): ${colleagues.join(', ')}</div>` 
+                    : '';
 
-                let phoneHtml = '';
-                if (client.phone && client.phone.trim() !== '' && client.phone.toLowerCase() !== 'no registrado') {
-                    phoneHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.name}" style="font-size: 1rem; text-decoration: none; padding: 1px 5px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe; margin-left: 8px; flex-shrink: 0;">📞</a>`;
-                }
-
-                const postalCodeText = client.postal_code ? `, ${client.postal_code}` : '';
+                let phoneHtml = (client.phone && client.phone.trim() !== '' && client.phone.toLowerCase() !== 'no registrado') 
+                    ? `<a href="tel:${client.phone}" title="Llamar" style="font-size: 1rem; text-decoration: none; padding: 1px 5px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe; margin-left: 8px; flex-shrink: 0;">📞</a>` 
+                    : '';
 
                 html += `
                     <div class="client-card">
@@ -241,8 +257,8 @@
                             <span style="font-size: 0.8rem; font-weight: 700; color: #2563eb;">⏰ ${timeStr}h</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-size: 0.8rem; color: #64748b; padding-right: 8px; overflow: hidden;">
-                                📍 ${client.address || 'Sin dirección'}${postalCodeText}
+                            <div style="font-size: 0.8rem; color: #64748b; padding-right: 8px;">
+                                📍 ${client.address || 'Sin dirección'}
                                 ${colleaguesHtml}
                             </div>
                             <div style="display: flex; align-items: center; flex-shrink: 0;">
@@ -252,8 +268,199 @@
                     </div>
                 `;
             });
+            container.innerHTML = html;
+        }
+
+        function renderTimeTrackingView(container) {
+            const todayAppts = getEmployeeAppointmentsForDate(todayStrSystem);
+            const clientsMap = new Map(allClients.map(c => [c.id, c]));
+
+            let statusText = 'Jornada no iniciada';
+            if (employeeDailyLog) {
+                if (employeeDailyLog.status === 'activo') statusText = '🟢 Jornada en curso';
+                else if (employeeDailyLog.status === 'almuerzo') statusText = '☕ En pausa de almuerzo';
+                else if (employeeDailyLog.status === 'finalizado') statusText = '✅ Jornada finalizada';
+            }
+
+            let html = `
+                <h3 style="font-size: 0.95rem; color: #1e293b; margin-top: 0; margin-bottom: 10px;">⏱️ Control de Jornada y Visitas (${formatDateToDDMMYYYY(todayStrSystem)})</h3>
+                
+                <div class="time-box">
+                    <strong style="font-size: 0.82rem; color: #1e293b; display: block; margin-bottom: 4px;">🏢 Estado de Jornada Laboral:</strong>
+                    <div id="global-status-text" style="font-size: 0.75rem; color: #2563eb; font-weight: bold; margin-bottom: 8px;">Estado: ${statusText}</div>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" id="btn-start-work" style="flex:1; background: #16a34a; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">▶️ Iniciar</button>
+                        <button type="button" id="btn-lunch-work" style="flex:1; background: #d97706; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">☕ Almuerzo</button>
+                        <button type="button" id="btn-end-work" style="flex:1; background: #dc2626; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">⏹️ Finalizar</button>
+                    </div>
+                </div>
+
+                <strong style="font-size: 0.82rem; color: #1e293b; display: block; margin-bottom: 8px;">📍 Clientes Asignados Hoy (Control por Visita):</strong>
+            `;
+
+            if (todayAppts.length === 0) {
+                html += `<div style="padding: 12px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; text-align: center; color: #b45309; font-size: 0.8rem;">No tienes citas para registrar hoy.</div>`;
+            } else {
+                todayAppts.forEach((appt, index) => {
+                    const client = clientsMap.get(appt.client_id);
+                    const isCheckedIn = appt.check_in_time && !appt.check_out_time;
+                    const isCompleted = appt.check_out_time;
+
+                    let statusBadge = `<span style="background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">Pendiente</span>`;
+                    let actionButton = `<button type="button" class="btn-checkin" data-appt-id="${appt.id}" style="background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">▶️ Llegué (Iniciar)</button>`;
+
+                    if (isCheckedIn) {
+                        statusBadge = `<span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">🟢 En Visita</span>`;
+                        actionButton = `<button type="button" class="btn-checkout" data-appt-id="${appt.id}" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">⏹️ Terminar Visita</button>`;
+                    } else if (isCompleted) {
+                        statusBadge = `<span style="background: #0284c7; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">✅ ${appt.visit_duration_minutes || 0} min (Total: ${appt.total_labor_minutes || 0}m)</span>`;
+                        actionButton = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: bold;">Registrado</span>`;
+                    }
+
+                    html += `
+                        <div class="client-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <strong style="font-size: 0.82rem; color: #1e293b;">#${index + 1} ${client.name}</strong>
+                                ${statusBadge}
+                            </div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">📍 ${client.address || 'Sin dirección'}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.72rem; color: #2563eb; font-weight: bold;">⏰ Programada: ${appt.time_slot || '09:00'}h</span>
+                                <div>${actionButton}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
 
             container.innerHTML = html;
+            attachTimeTrackingListeners();
+        }
+
+        function attachTimeTrackingListeners() {
+            const btnStart = document.getElementById('btn-start-work');
+            const btnLunch = document.getElementById('btn-lunch-work');
+            const btnEnd = document.getElementById('btn-end-work');
+
+            if (btnStart) {
+                btnStart.addEventListener('click', async () => {
+                    const nowIso = new Date().toISOString();
+                    if (!employeeDailyLog) {
+                        const { data, error } = await supabase.from('employee_daily_logs').insert([{
+                            employee_name: selectedEmployee,
+                            work_date: todayStrSystem,
+                            clock_in_time: nowIso,
+                            status: 'activo'
+                        }]).select().single();
+                        if (!error) employeeDailyLog = data;
+                    } else {
+                        const { data, error } = await supabase.from('employee_daily_logs')
+                            .update({ clock_in_time: nowIso, status: 'activo' })
+                            .eq('id', employeeDailyLog.id)
+                            .select().single();
+                        if (!error) employeeDailyLog = data;
+                    }
+                    renderTimeTrackingView(document.getElementById('dynamic-content-area'));
+                });
+            }
+
+            if (btnLunch) {
+                btnLunch.addEventListener('click', async () => {
+                    if (!employeeDailyLog) {
+                        alert('Primero debes iniciar tu jornada laboral.');
+                        return;
+                    }
+                    const nowIso = new Date().toISOString();
+                    const nextStatus = employeeDailyLog.status === 'almuerzo' ? 'activo' : 'almuerzo';
+                    const updateData = nextStatus === 'almuerzo' 
+                        ? { lunch_start_time: nowIso, status: 'almuerzo' }
+                        : { lunch_end_time: nowIso, status: 'activo' };
+
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update(updateData)
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+
+                    if (!error) employeeDailyLog = data;
+                    renderTimeTrackingView(document.getElementById('dynamic-content-area'));
+                });
+            }
+
+            if (btnEnd) {
+                btnEnd.addEventListener('click', async () => {
+                    if (!employeeDailyLog) {
+                        alert('No hay una jornada activa iniciada.');
+                        return;
+                    }
+                    const nowIso = new Date().toISOString();
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update({ clock_out_time: nowIso, status: 'finalizado' })
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+
+                    if (!error) employeeDailyLog = data;
+                    renderTimeTrackingView(document.getElementById('dynamic-content-area'));
+                });
+            }
+
+            document.querySelectorAll('.btn-checkin').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    const nowIso = new Date().toISOString();
+
+                    const { error } = await supabase.from('appointments')
+                        .update({ check_in_time: nowIso })
+                        .eq('id', apptId);
+
+                    if (!error) {
+                        const appt = allAppointments.find(a => a.id === apptId);
+                        if (appt) appt.check_in_time = nowIso;
+                        renderTimeTrackingView(document.getElementById('dynamic-content-area'));
+                    } else {
+                        alert('Error al registrar la llegada: ' + error.message);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btn-checkout').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    const now = new Date();
+                    const nowIso = now.toISOString();
+
+                    const appt = allAppointments.find(a => a.id === apptId);
+                    let durationMins = 0;
+                    if (appt && appt.check_in_time) {
+                        const checkInDate = new Date(appt.check_in_time);
+                        durationMins = Math.round((now - checkInDate) / 60000);
+                    }
+                    const visitMins = durationMins > 0 ? durationMins : 1;
+
+                    // Multiplicar por la cantidad de empleados asignados
+                    const assignedList = (appt.assigned_employee || '').split(',').map(el => el.trim()).filter(Boolean);
+                    const employeeCount = Math.max(1, assignedList.length);
+                    const totalLaborMins = visitMins * employeeCount;
+
+                    const { error } = await supabase.from('appointments')
+                        .update({ 
+                            check_out_time: nowIso,
+                            visit_duration_minutes: visitMins,
+                            total_labor_minutes: totalLaborMins
+                        })
+                        .eq('id', apptId);
+
+                    if (!error) {
+                        if (appt) {
+                            appt.check_out_time = nowIso;
+                            appt.visit_duration_minutes = visitMins;
+                            appt.total_labor_minutes = totalLaborMins;
+                        }
+                        renderTimeTrackingView(document.getElementById('dynamic-content-area'));
+                    } else {
+                        alert('Error al finalizar la visita: ' + error.message);
+                    }
+                });
+            });
         }
 
         function renderMonthCalendar(container) {
