@@ -126,14 +126,14 @@
             text-align: center;
         }
 
-        /* Tarjeta de cliente en cuadro limpio */
+        /* Tarjeta de cliente en cuadro limpio de dos líneas */
         .client-card { 
             background: #ffffff; 
             border: 1px solid #cbd5e0;
-            padding: 12px 14px; 
-            border-radius: 12px; 
-            margin-bottom: 10px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02); 
+            padding: 10px 12px; 
+            border-radius: 10px; 
+            margin-bottom: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
         }
 
         /* Calendario mensual */
@@ -364,28 +364,25 @@
                 const timeStr = appt.time_slot || '09:00';
                 const serviceStr = appt.service_requested ? `<span style="font-size: 0.75rem; color: #2563eb; font-weight: 700; margin-left: 6px;">[${appt.service_requested}]</span>` : '';
                 
-                // Teléfono e icono de llamada
+                // Teléfono e icono de llamada en el extremo derecho
                 let phoneHtml = '';
                 if (client.phone && client.phone.trim() !== '' && client.phone.toLowerCase() !== 'no registrado') {
-                    phoneHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.name}" style="font-size: 1.2rem; text-decoration: none; padding: 2px 6px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe;">📞</a>`;
+                    phoneHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.name}" style="font-size: 1.1rem; text-decoration: none; padding: 2px 6px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe; margin-left: 8px; flex-shrink: 0;">📞</a>`;
                 }
 
                 html += `
                     <div class="client-card">
                         <!-- Línea 1: Número, Hora y Código Postal -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 6px;">
-                            <span style="font-size: 0.9rem; font-weight: 700; color: #1e293b;">#${index + 1} &nbsp;|&nbsp; ⏰ ${timeStr}h ${serviceStr}</span>
-                            <span style="font-size: 0.75rem; background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-weight: 700; color: #475569; border: 1px solid #e2e8f0;">CP: ${client.postal_code || 'N/A'}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 4px;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">#${index + 1} &nbsp;|&nbsp; ⏰ ${timeStr}h ${serviceStr}</span>
+                            <span style="font-size: 0.72rem; background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-weight: 700; color: #475569; border: 1px solid #e2e8f0;">CP: ${client.postal_code || 'N/A'}</span>
                         </div>
-                        <!-- Línea 2: Nombre, Dirección y Teléfono a la derecha -->
+                        <!-- Línea 2: Nombre del cliente, Dirección al lado y Teléfono en el extremo derecho -->
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="overflow: hidden; padding-right: 8px;">
-                                <div style="font-size: 0.9rem; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${client.name}</div>
-                                <div style="font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📍 ${client.address || 'Sin dirección'}</div>
+                            <div style="font-size: 0.85rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
+                                <strong style="color: #0f172a;">${client.name}</strong> <span style="color: #64748b; font-weight: 400; margin-left: 4px;">— 📍 ${client.address || 'Sin dirección'}</span>
                             </div>
-                            <div style="flex-shrink: 0;">
-                                ${phoneHtml}
-                            </div>
+                            ${phoneHtml}
                         </div>
                     </div>
                 `;
