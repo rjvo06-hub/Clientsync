@@ -212,8 +212,10 @@
 
             infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
 
+            // Al hacer clic en cualquier parte vacía del mapa, se ocultan tanto la ventana del cliente como el panel de ruta
             map.addListener('click', () => {
                 if (infoWindow) infoWindow.close();
+                hideRouteInfoPanel();
             });
 
             map.addListener('bounds_changed', updateConnectorLinePosition);
@@ -221,10 +223,14 @@
             map.addListener('zoom_changed', updateConnectorLinePosition);
 
             closePanelBtn.addEventListener('click', () => {
-                infoPanel.style.display = 'none';
-                connectorLine.style.display = 'none';
-                activeRouteSegment = null;
+                hideRouteInfoPanel();
             });
+        }
+
+        function hideRouteInfoPanel() {
+            infoPanel.style.display = 'none';
+            connectorLine.style.display = 'none';
+            activeRouteSegment = null;
         }
 
         function updateConnectorLinePosition() {
@@ -239,7 +245,6 @@
 
             const latLng = activeRouteSegment.midPoint;
 
-            // Obtener píxeles del punto medio de la ruta en la vista actual del mapa
             const overlay = new google.maps.OverlayView();
             overlay.draw = function() {};
             overlay.setMap(map);
@@ -247,15 +252,12 @@
             overlay.setMap(null);
 
             if (divPixel) {
-                // Inicio de la línea: Centro del borde inferior del panel flotante
                 const x1 = panelRect.left - mapRect.left + (panelRect.width / 2);
                 const y1 = panelRect.bottom - mapRect.top;
 
-                // Fin exacto en el punto medio de la ruta
                 const x2 = divPixel.x;
                 const y2 = divPixel.y;
 
-                // Acortar ligeramente el vector final para que la punta de la flecha toque con precisión milimétrica la ruta
                 const dx = x2 - x1;
                 const dy = y2 - y1;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -263,7 +265,7 @@
                 let targetX = x2;
                 let targetY = y2;
                 if (dist > 10) {
-                    const offsetBack = 8; // Píxeles antes del centro exacto para compensar el marcador de flecha
+                    const offsetBack = 8;
                     targetX = x2 - (dx / dist) * offsetBack;
                     targetY = y2 - (dy / dist) * offsetBack;
                 }
@@ -310,9 +312,7 @@
         function clearPreviousRoutes() {
             polylines.forEach(poly => poly.setMap(null));
             polylines = [];
-            infoPanel.style.display = 'none';
-            connectorLine.style.display = 'none';
-            activeRouteSegment = null;
+            hideRouteInfoPanel();
         }
 
         async function renderSelectedDayData() {
@@ -417,8 +417,10 @@
                     </div>
                 `;
 
+                // Al hacer clic en un cliente, se muestra su info y se oculta el panel de ruta anterior
                 marker.addListener('click', (e) => {
                     e.stop();
+                    hideRouteInfoPanel();
                     infoWindow.setContent(windowContent);
                     infoWindow.open(map, marker);
                     setupInfoWindowStyles();
@@ -487,6 +489,7 @@
                         const midIndex = Math.floor(decodedPath.length / 2);
                         const midPoint = decodedPath[midIndex];
 
+                        // Al hacer clic en un tramo, se cierra cualquier ventana de cliente abierta y se muestra el panel de ruta
                         routePath.addListener('click', () => {
                             if (infoWindow) infoWindow.close();
 
