@@ -23,13 +23,6 @@
             border: 1px solid #e2e8f0;
         }
         
-        .selector-box {
-            background: #f8fafc;
-            border: 1px solid #cbd5e0;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 16px;
-        }
         select, input { 
             font-size: 15px; 
             width: 100%; 
@@ -42,57 +35,7 @@
             font-weight: 600;
         }
 
-        /* Menú principal del empleado (Ahora con un solo botón centralizado) */
-        .employee-menu-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-        .action-card {
-            display: flex;
-            align-items: center;
-            background: #f8fafc;
-            border: 1px solid #cbd5e0;
-            padding: 16px;
-            border-radius: 14px;
-            text-decoration: none;
-            transition: all 0.2s;
-            cursor: pointer;
-            text-align: left;
-            width: 100%;
-        }
-        .action-card:hover {
-            background: #ebf8ff;
-            border-color: #2563eb;
-            transform: translateY(-1px);
-        }
-        .action-icon {
-            font-size: 1.8rem;
-            width: 48px;
-            height: 48px;
-            background: #e2e8f0;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 14px;
-            flex-shrink: 0;
-        }
-        .action-info h3 {
-            margin: 0 0 3px 0;
-            font-size: 1rem;
-            color: #1e293b;
-            font-weight: 700;
-        }
-        .action-info p {
-            margin: 0;
-            font-size: 0.78rem;
-            color: #64748b;
-            line-height: 1.3;
-        }
-
-        /* Submenú de Citas (Hoy o Calendario) */
+        /* Submenú de Citas (Hoy / Calendario) */
         .sub-menu-citas {
             display: flex;
             gap: 10px;
@@ -116,7 +59,6 @@
             border-color: #2563eb;
         }
 
-        /* Tarjeta de cliente en cuadro limpio de dos líneas */
         .client-card { 
             background: #ffffff; 
             border: 1px solid #cbd5e0;
@@ -126,7 +68,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
         }
 
-        /* Calendario mensual */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
         .cal-header { text-align: center; font-weight: bold; font-size: 0.75rem; color: #64748b; padding: 4px 0; }
         .cal-day { min-height: 44px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #334155; }
@@ -141,39 +82,16 @@
 <body>
 
     <div class="container">
-        <!-- Cabecera -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">👷‍♂️ Portal del Empleado</h1>
-            <a href="./index.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">Menú Principal</a>
-        </div>
-
-        <!-- 1. Selección de Empleado (Obligatorio primero) -->
-        <div class="selector-box">
-            <label style="display: block; font-weight: 700; margin-bottom: 6px; color: #475569; font-size: 0.82rem;">1. Selecciona tu nombre (Empleado):</label>
-            <select id="employee-selector">
-                <option value="">-- Elige quién eres --</option>
-            </select>
-        </div>
-
-        <!-- MENÚ PRINCIPAL DEL EMPLEADO -->
-        <div id="employee-menu" class="employee-menu-grid" style="display: none;">
-            <!-- Botón Único: Visualizar Citas (Incluye el acceso directo al mapa si hay citas) -->
-            <button type="button" class="action-card" id="btn-menu-citas">
-                <div class="action-icon">📋</div>
-                <div class="action-info">
-                    <h3>Visualizar Citas y Ruta</h3>
-                    <p>Revisa tus tareas programadas para hoy, consulta el calendario mensual y accede al mapa de ruta.</p>
-                </div>
-            </button>
-        </div>
-
-        <!-- Botón para regresar al menú -->
-        <div id="back-to-menu-container" style="display: none; margin-bottom: 12px;">
-            <button type="button" id="btn-back-menu" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: bold; cursor: pointer; color: #475569;">← Volver al Menú</button>
+        <!-- Cabecera con bienvenida al empleado y botón de cambiar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+            <div>
+                <h1 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">👷‍♂️ Portal de <span id="employee-title-name" style="color: #2563eb;">...</span></h1>
+            </div>
+            <a href="./index.html" style="padding: 5px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">🏠 Inicio</a>
         </div>
 
         <!-- Submenú de Citas (Hoy / Calendario) -->
-        <div id="sub-menu-citas-container" class="sub-menu-citas" style="display: none;">
+        <div id="sub-menu-citas-container" class="sub-menu-citas">
             <button type="button" class="sub-btn active" id="sub-btn-today">📅 Citas de Hoy</button>
             <button type="button" class="sub-btn" id="sub-btn-calendar">🗓️ Calendario Mensual</button>
         </div>
@@ -198,11 +116,25 @@
 
         let allClients = [];
         let allAppointments = [];
-        let allEmployees = [];
         let selectedEmployee = '';
         let selectedMonthDate = new Date();
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
+        const STORAGE_KEY = 'clientSync_saved_employee';
+
+        // Obtener el empleado desde la URL (?employee=...) o desde el almacenamiento local
+        const urlParams = new URLSearchParams(window.location.search);
+        selectedEmployee = urlParams.get('employee') || localStorage.getItem(STORAGE_KEY) || '';
+
+        if (!selectedEmployee) {
+            // Si no hay empleado identificado, redirigir al index para que lo seleccione
+            alert('Por favor, selecciona tu nombre de empleado en la página principal primero.');
+            window.location.href = './index.html';
+        } else {
+            document.getElementById('employee-title-name').textContent = selectedEmployee;
+            // Asegurar que esté sincronizado en localStorage
+            localStorage.setItem(STORAGE_KEY, selectedEmployee);
+        }
 
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
@@ -212,53 +144,20 @@
 
         async function initSchedulePortal() {
             try {
-                const [{ data: clients }, { data: appointments }, { data: employees }] = await Promise.all([
+                const [{ data: clients }, { data: appointments }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
-                    supabase.from('appointments').select('*').order('time_slot', { ascending: true }),
-                    supabase.from('employees').select('*').order('name', { ascending: true })
+                    supabase.from('appointments').select('*').order('time_slot', { ascending: true })
                 ]);
 
                 allClients = clients || [];
                 allAppointments = appointments || [];
-                allEmployees = employees || [];
 
-                const selector = document.getElementById('employee-selector');
-                allEmployees.forEach(emp => {
-                    selector.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
-                });
+                // Cargar por defecto las citas de hoy
+                activateCitasSubTab('today');
             } catch (err) {
-                console.error('Error al inicializar:', err);
+                console.error('Error al inicializar portal:', err);
             }
         }
-
-        document.getElementById('employee-selector').addEventListener('change', (e) => {
-            selectedEmployee = e.target.value;
-            const empMenu = document.getElementById('employee-menu');
-            const contentArea = document.getElementById('dynamic-content-area');
-            const backBtnContainer = document.getElementById('back-to-menu-container');
-            const subMenuCitas = document.getElementById('sub-menu-citas-container');
-
-            if (!selectedEmployee) {
-                empMenu.style.display = 'none';
-                backBtnContainer.style.display = 'none';
-                subMenuCitas.style.display = 'none';
-                contentArea.innerHTML = '';
-                return;
-            }
-
-            empMenu.style.display = 'grid';
-            backBtnContainer.style.display = 'none';
-            subMenuCitas.style.display = 'none';
-            contentArea.innerHTML = '';
-        });
-
-        // Botón único del menú: Visualizar Citas
-        document.getElementById('btn-menu-citas').addEventListener('click', () => {
-            document.getElementById('employee-menu').style.display = 'none';
-            document.getElementById('back-to-menu-container').style.display = 'block';
-            document.getElementById('sub-menu-citas-container').style.display = 'flex';
-            activateCitasSubTab('today');
-        });
 
         // Sub-pestañas de Citas
         document.getElementById('sub-btn-today').addEventListener('click', () => activateCitasSubTab('today'));
@@ -280,14 +179,6 @@
             }
         }
 
-        // Volver al Menú
-        document.getElementById('btn-back-menu').addEventListener('click', () => {
-            document.getElementById('dynamic-content-area').innerHTML = '';
-            document.getElementById('back-to-menu-container').style.display = 'none';
-            document.getElementById('sub-menu-citas-container').style.display = 'none';
-            document.getElementById('employee-menu').style.display = 'grid';
-        });
-
         function getEmployeeAppointmentsForDate(dateStr) {
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
             return allAppointments.filter(appt => {
@@ -303,7 +194,6 @@
 
             const mapRouteUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}`;
 
-            // Botón de mapa integrado (solo se muestra si hay citas)
             let mapButtonHtml = '';
             if (dayAppointments.length > 0) {
                 mapButtonHtml = `<a href="${mapRouteUrl}" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px;">🗺️ Ver Mapa</a>`;
