@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ClientSync | Control de Tiempos y Jornada</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #f1f5f9; 
+            margin: 0; 
+            padding: 12px; 
+        }
+        .container { 
+            max-width: 500px; 
+            margin: 10px auto 60px auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06); 
+            border: 1px solid #e2e8f0;
+        }
+        .client-card { 
+            background: #ffffff; 
+            border: 1px solid #cbd5e0;
+            padding: 12px; 
+            border-radius: 10px; 
+            margin-bottom: 10px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
+        }
+        .time-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 14px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Cabecera -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+            <div>
+                <h1 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 800;">⏱️ Tiempos de <span id="employee-title-name" style="color: #2563eb;">...</span></h1>
+            </div>
+            <a href="#" id="back-link" style="padding: 5px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.75rem; font-weight: 600;">← Volver</a>
+        </div>
+
+        <!-- Área dinámica de contenido -->
+        <div id="timetrack-content-area">
+            <p style="text-align: center; color: #64748b;">Cargando información de tiempos...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        let allClients = [];
+        let allAppointments = [];
+        let employeeDailyLog = null;
+        let selectedEmployee = '';
+
+        const todayStrSystem = new Date().toISOString().split('T')[0];
+        const STORAGE_KEY = 'clientSync_saved_employee';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        selectedEmployee = urlParams.get('employee') || localStorage.getItem(STORAGE_KEY) || '';
+        const backLink = document.getElementById('back-link');
+
+        if (!selectedEmployee) {
+            alert('Por favor, inicia sesión en la página principal primero.');
+            window.location.href = './index.html';
+        } else {
+            document.getElementById('employee-title-name').textContent = selectedEmployee;
+            localStorage.setItem(STORAGE_KEY, selectedEmployee);
+            backLink.href = `./employee-schedule.html?employee=${encodeURIComponent(selectedEmployee)}`;
+        }
+
+        function formatDateToDDMMYYYY(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
+        }
+
+        async function initTimeTrackModule() {
+            try {
+                const [{ data: clients }, { data: appointments }] = await Promise.all([
+                    supabase.from('clients').select('*').order('name', { ascending: true }),
+                    supabase.from('appointments').select('*').order('time_slot', { ascending: true })
+                ]);
+
+                allClients = clients || [];
+                allAppointments = appointments || [];
+
+                await fetchEmployeeDailyLog();
+                renderTimeTrackingView();
+            } catch (err) {
+                console.error('Error al inicializar control de tiempos:', err);
+            }
+        }
+
+        async function fetchEmployeeDailyLog() {
+            const { data, error } = await supabase.from('employee_daily_logs')
+                .select('*')
+                .eq('employee_name', selectedEmployee)
+                .eq('work_date', todayStrSystem)
+                .maybeSingle();
+
+            if (!error) {
+                employeeDailyLog = data;
+            }
+        }
+
+        function getTodayAppointments() {
+            const clientsMap = new Map(allClients.map(c => [c.id, c]));
+            return allAppointments.filter(appt => {
+                if (!appt.scheduled_date || appt.scheduled_date.split('T')[0] !== todayStrSystem) return false;
+                if (!appt.assigned_employee) return false;
+                
+                const assignedList = appt.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                if (!assignedList.includes(selectedEmployee.toLowerCase())) return false;
+
+                return clientsMap.has(appt.client_id);
+            });
+        }
+
+        function renderTimeTrackingView() {
+            const container = document.getElementById('timetrack-content-area');
+            const todayAppts = getTodayAppointments();
+            const clientsMap = new Map(allClients.map(c => [c.id, c]));
+
+            let statusText = 'Jornada no iniciada';
+            if (employeeDailyLog) {
+                if (employeeDailyLog.status === 'activo') statusText = '🟢 Jornada en curso';
+                else if (employeeDailyLog.status === 'almuerzo') statusText = '☕ En pausa de almuerzo';
+                else if (employeeDailyLog.status === 'finalizado') statusText = '✅ Jornada finalizada';
+            }
+
+            let html = `
+                <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 12px; font-weight: 600;">📅 Fecha: ${formatDateToDDMMYYYY(todayStrSystem)}</div>
+                
+                <!-- Panel de Fichaje Global -->
+                <div class="time-box">
+                    <strong style="font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 4px;">🏢 Estado de Jornada Laboral:</strong>
+                    <div id="global-status-text" style="font-size: 0.78rem; color: #2563eb; font-weight: bold; margin-bottom: 10px;">Estado: ${statusText}</div>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" id="btn-start-work" style="flex:1; background: #16a34a; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">▶️ Iniciar</button>
+                        <button type="button" id="btn-lunch-work" style="flex:1; background: #d97706; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">☕ Almuerzo</button>
+                        <button type="button" id="btn-end-work" style="flex:1; background: #dc2626; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">⏹️ Finalizar</button>
+                    </div>
+                </div>
+
+                <strong style="font-size: 0.85rem; color: #1e293b; display: block; margin-bottom: 8px;">📍 Clientes Asignados Hoy (Control por Visita):</strong>
+            `;
+
+            if (todayAppts.length === 0) {
+                html += `<div style="padding: 16px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; text-align: center; color: #b45309; font-size: 0.82rem;">No tienes citas programadas para registrar hoy.</div>`;
+            } else {
+                todayAppts.forEach((appt, index) => {
+                    const client = clientsMap.get(appt.client_id);
+                    const isCheckedIn = appt.check_in_time && !appt.check_out_time;
+                    const isCompleted = appt.check_out_time;
+
+                    let statusBadge = `<span style="background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">Pendiente</span>`;
+                    let actionButton = `<button type="button" class="btn-checkin" data-appt-id="${appt.id}" style="background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">▶️ Llegué (Iniciar)</button>`;
+
+                    if (isCheckedIn) {
+                        statusBadge = `<span style="background: #16a34a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">🟢 En Visita</span>`;
+                        actionButton = `<button type="button" class="btn-checkout" data-appt-id="${appt.id}" style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.72rem; cursor: pointer;">⏹️ Terminar Visita</button>`;
+                    } else if (isCompleted) {
+                        statusBadge = `<span style="background: #0284c7; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold;">✅ ${appt.visit_duration_minutes || 0} min (Total Mano de Obra: ${appt.total_labor_minutes || 0}m)</span>`;
+                        actionButton = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: bold;">Registrado</span>`;
+                    }
+
+                    html += `
+                        <div class="client-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <strong style="font-size: 0.85rem; color: #1e293b;">#${index + 1} ${client.name}</strong>
+                                ${statusBadge}
+                            </div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">📍 ${client.address || 'Sin dirección'}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.72rem; color: #2563eb; font-weight: bold;">⏰ Programada: ${appt.time_slot || '09:00'}h</span>
+                                <div>${actionButton}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+            attachListeners();
+        }
+
+        function attachListeners() {
+            const btnStart = document.getElementById('btn-start-work');
+            const btnLunch = document.getElementById('btn-lunch-work');
+            const btnEnd = document.getElementById('btn-end-work');
+
+            if (btnStart) {
+                btnStart.addEventListener('click', async () => {
+                    const nowIso = new Date().toISOString();
+                    if (!employeeDailyLog) {
+                        const { data, error } = await supabase.from('employee_daily_logs').insert([{
+                            employee_name: selectedEmployee,
+                            work_date: todayStrSystem,
+                            clock_in_time: nowIso,
+                            status: 'activo'
+                        }]).select().single();
+                        if (!error) employeeDailyLog = data;
+                    } else {
+                        const { data, error } = await supabase.from('employee_daily_logs')
+                            .update({ clock_in_time: nowIso, status: 'activo' })
+                            .eq('id', employeeDailyLog.id)
+                            .select().single();
+                        if (!error) employeeDailyLog = data;
+                    }
+                    renderTimeTrackingView();
+                });
+            }
+
+            if (btnLunch) {
+                btnLunch.addEventListener('click', async () => {
+                    if (!employeeDailyLog) {
+                        alert('Primero debes iniciar tu jornada laboral.');
+                        return;
+                    }
+                    const nowIso = new Date().toISOString();
+                    const nextStatus = employeeDailyLog.status === 'almuerzo' ? 'activo' : 'almuerzo';
+                    const updateData = nextStatus === 'almuerzo' 
+                        ? { lunch_start_time: nowIso, status: 'almuerzo' }
+                        : { lunch_end_time: nowIso, status: 'activo' };
+
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update(updateData)
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+
+                    if (!error) employeeDailyLog = data;
+                    renderTimeTrackingView();
+                });
+            }
+
+            if (btnEnd) {
+                btnEnd.addEventListener('click', async () => {
+                    if (!employeeDailyLog) {
+                        alert('No hay una jornada activa iniciada.');
+                        return;
+                    }
+                    const nowIso = new Date().toISOString();
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update({ clock_out_time: nowIso, status: 'finalizado' })
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+
+                    if (!error) employeeDailyLog = data;
+                    renderTimeTrackingView();
+                });
+            }
+
+            document.querySelectorAll('.btn-checkin').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    const nowIso = new Date().toISOString();
+
+                    const { error } = await supabase.from('appointments')
+                        .update({ check_in_time: nowIso })
+                        .eq('id', apptId);
+
+                    if (!error) {
+                        const appt = allAppointments.find(a => a.id === apptId);
+                        if (appt) appt.check_in_time = nowIso;
+                        renderTimeTrackingView();
+                    } else {
+                        alert('Error al registrar la llegada: ' + error.message);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btn-checkout').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    const now = new Date();
+                    const nowIso = now.toISOString();
+
+                    const appt = allAppointments.find(a => a.id === apptId);
+                    let durationMins = 0;
+                    if (appt && appt.check_in_time) {
+                        const checkInDate = new Date(appt.check_in_time);
+                        durationMins = Math.round((now - checkInDate) / 60000);
+                    }
+                    const visitMins = durationMins > 0 ? durationMins : 1;
+
+                    // Multiplicar por la cantidad de empleados asignados
+                    const assignedList = (appt.assigned_employee || '').split(',').map(el => el.trim()).filter(Boolean);
+                    const employeeCount = Math.max(1, assignedList.length);
+                    const totalLaborMins = visitMins * employeeCount;
+
+                    const { error } = await supabase.from('appointments')
+                        .update({ 
+                            check_out_time: nowIso,
+                            visit_duration_minutes: visitMins,
+                            total_labor_minutes: totalLaborMins
+                        })
+                        .eq('id', apptId);
+
+                    if (!error) {
+                        if (appt) {
+                            appt.check_out_time = nowIso;
+                            appt.visit_duration_minutes = visitMins;
+                            appt.total_labor_minutes = totalLaborMins;
+                        }
+                        renderTimeTrackingView();
+                    } else {
+                        alert('Error al finalizar la visita: ' + error.message);
+                    }
+                });
+            });
+        }
+
+        initTimeTrackModule();
+    </script>
+</body>
+</html>
