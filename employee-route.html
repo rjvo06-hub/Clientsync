@@ -45,11 +45,45 @@
             font-weight: 600;
         }
 
-        #daily-map {
+        .map-wrapper {
+            position: relative;
             width: 100%;
             height: 500px;
             border-radius: 12px;
             border: 1px solid #cbd5e0;
+            overflow: hidden;
+        }
+
+        #daily-map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Panel flotante en el extremo superior izquierdo */
+        #route-info-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 10;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 12px 14px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 210px;
+            display: none;
+            border: 1px solid #334155;
+        }
+
+        /* SVG Overlay para la línea conectora */
+        #route-svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -76,8 +110,27 @@
             </div>
         </div>
 
-        <!-- Contenedor del Mapa Interactivo -->
-        <div id="daily-map"></div>
+        <!-- Contenedor del Mapa Interactivo con Panel y Línea SVG -->
+        <div class="map-wrapper">
+            <div id="daily-map"></div>
+            
+            <svg id="route-svg-overlay">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/>
+                    </marker>
+                </defs>
+                <line id="connector-line" x1="0" y1="0" x2="0" y2="0" stroke="#38bdf8" stroke-width="3" stroke-dasharray="4" marker-end="url(#arrow)" />
+            </svg>
+
+            <div id="route-info-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 6px; margin-bottom: 6px;">
+                    <strong style="color: #38bdf8; font-size: 0.8rem; font-weight: 700;">🚗 Detalle del Tramo</strong>
+                    <button type="button" id="close-panel-btn" style="background: transparent; border: none; color: #94a3b8; font-size: 0.8rem; cursor: pointer; font-weight: bold;">✕</button>
+                </div>
+                <div id="panel-content-body" style="font-size: 0.75rem; color: #f8fafc; line-height: 1.4;"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Google Maps JS API con librería geometry -->
@@ -94,11 +147,16 @@
         let allClients = [];
         let allAppointments = [];
         let allEmployees = [];
+        let activeRouteSegment = null; // Guarda el tramo activo para recalcular coordenadas al hacer zoom/pan
 
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const dateInput = document.getElementById('route-date-input');
         const employeeFilter = document.getElementById('employee-filter');
+        const infoPanel = document.getElementById('route-info-panel');
+        const panelBody = document.getElementById('panel-content-body');
+        const closePanelBtn = document.getElementById('close-panel-btn');
+        const connectorLine = document.getElementById('connector-line');
 
         const urlParams = new URLSearchParams(window.location.search);
         const preselectedEmployee = urlParams.get('employee');
@@ -153,16 +211,66 @@
                 streetViewControl: false
             });
 
-            infoWindow = new google.maps.InfoWindow({ 
-                maxWidth: 220,
-                pixelOffset: new google.maps.Size(0, -10)
-            });
+            infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
 
             map.addListener('click', () => {
-                if (infoWindow) {
-                    infoWindow.close();
-                }
+                if (infoWindow) infoWindow.close();
             });
+
+            // Actualizar la posición de la línea conectora al mover o hacer zoom en el mapa
+            map.addListener('bounds_changed', updateConnectorLinePosition);
+
+            closePanelBtn.addEventListener('click', () => {
+                infoPanel.style.display = 'none';
+                connectorLine.style.display = 'none';
+                activeRouteSegment = null;
+            });
+        }
+
+        function updateConnectorLinePosition() {
+            if (!activeRouteSegment || !map) return;
+
+            const projection = map.getProjection();
+            if (!projection) return;
+
+            const mapDiv = document.getElementById('daily-map');
+            const mapRect = mapDiv.getBoundingClientRect();
+            const panelRect = infoPanel.getBoundingClientRect();
+
+            // Coordenada del punto medio de la ruta en lat/lng
+            const latLng = activeRouteSegment.midPoint;
+
+            // Calcular píxeles en pantalla usando la proyección de Google Maps
+            const topRight = map.getBounds().getNorthEast();
+            const bottomLeft = map.getBounds().getSouthWest();
+            
+            // Posición de la esquina superior izquierda del mapa
+            const scale = Math.pow(2, map.getZoom());
+            const worldCoordinateCenter = projection.fromLatLngToPoint(latLng);
+            const pixelCoordinate = projection.fromLatLngToPoint(latLng);
+            
+            // Usar overlay projection para conversión precisa a coordenadas del contenedor
+            const proj = new google.maps.OverlayView();
+            proj.draw = function() {};
+            proj.setMap(map);
+            const divPixel = proj.getProjection().fromLatLngToContainerPixel(latLng);
+            proj.setMap(null);
+
+            if (divPixel) {
+                // Inicio de la línea: Borde inferior derecho del panel flotante superior izquierdo
+                const x1 = panelRect.left - mapRect.left + (panelRect.width / 2);
+                const y1 = panelRect.bottom - mapRect.top;
+
+                // Fin de la línea: Punto medio exacto de la ruta
+                const x2 = divPixel.x;
+                const y2 = divPixel.y;
+
+                connectorLine.setAttribute('x1', x1);
+                connectorLine.setAttribute('y1', y1);
+                connectorLine.setAttribute('x2', x2);
+                connectorLine.setAttribute('y2', y2);
+                connectorLine.style.display = 'block';
+            }
         }
 
         function setupInfoWindowStyles() {
@@ -199,6 +307,9 @@
         function clearPreviousRoutes() {
             polylines.forEach(poly => poly.setMap(null));
             polylines = [];
+            infoPanel.style.display = 'none';
+            connectorLine.style.display = 'none';
+            activeRouteSegment = null;
         }
 
         async function renderSelectedDayData() {
@@ -370,29 +481,25 @@
                         });
 
                         const segmentName = `Trayecto Parada #${i+1} ➔ #${i+2}`;
-                        const routeInfoContent = `
-                            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 6px; border-radius: 6px; width: 190px;">
-                                <div style="border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; text-align: center;">
-                                    <strong style="color: #38bdf8; font-size: 0.78rem; font-weight: 700;">🚗 Detalle del Tramo</strong>
-                                </div>
-                                <p style="margin: 0 0 3px 0; font-size: 0.7rem; color: #ffffff; text-align: center;">${segmentName}</p>
-                                <p style="margin: 0 0 3px 0; font-size: 0.7rem; color: #cbd5e1;">📏 Distancia: <strong>${distanceText}</strong></p>
-                                <p style="margin: 0 0 2px 0; font-size: 0.7rem; color: #cbd5e1;">⏱️ Tiempo est.: <strong>${durationText}</strong></p>
-                            </div>
-                        `;
+                        const midIndex = Math.floor(decodedPath.length / 2);
+                        const midPoint = decodedPath[midIndex];
 
-                        // Al hacer clic en cualquier parte de la ruta, el globo se posiciona automáticamente en el punto medio exacto de ese tramo
+                        // Al hacer clic en la ruta, se despliega el panel superior izquierdo y se dibuja la línea SVG conectora exacta
                         routePath.addListener('click', () => {
-                            const midIndex = Math.floor(decodedPath.length / 2);
-                            const midPoint = decodedPath[midIndex];
-                            infoWindow.setContent(routeInfoContent);
-                            infoWindow.setPosition(midPoint);
-                            infoWindow.open(map);
-                            setupInfoWindowStyles();
+                            if (infoWindow) infoWindow.close();
+
+                            panelBody.innerHTML = `
+                                <div style="color: #ffffff; font-weight: 700; margin-bottom: 4px; text-align: center;">${segmentName}</div>
+                                <div style="color: #cbd5e1;">📏 Distancia: <strong style="color: #f8fafc;">${distanceText}</strong></div>
+                                <div style="color: #cbd5e1;">⏱️ Tiempo est.: <strong style="color: #f8fafc;">${durationText}</strong></div>
+                            `;
+
+                            activeRouteSegment = { midPoint };
+                            infoPanel.style.display = 'block';
+                            updateConnectorLinePosition();
                         });
 
                         polylines.push(routePath);
-
                     }
                 } catch (error) {
                     console.error(`Error al conectar tramo ${i+1} -> ${i+2}:`, error);
