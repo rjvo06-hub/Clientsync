@@ -348,8 +348,18 @@
             const dayAppointments = getEmployeeAppointmentsForDate(dateStr);
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
 
+            const mapRouteUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}`;
+
+            let headerHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="font-size: 0.95rem; color: #1e293b; margin: 0;">📅 ${titleText} (${formatDateToDDMMYYYY(dateStr)}):</h3>
+                    <a href="${mapRouteUrl}" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px;">🗺️ Ver Mapa</a>
+                </div>
+            `;
+
             if (dayAppointments.length === 0) {
                 container.innerHTML = `
+                    ${headerHtml}
                     <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 10px; text-align: center; color: #b45309; margin-top: 10px;">
                         <strong>No tienes citas programadas para el ${formatDateToDDMMYYYY(dateStr)}.</strong>
                     </div>
@@ -357,14 +367,14 @@
                 return;
             }
 
-            let html = `<h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 10px;">📅 ${titleText} (${formatDateToDDMMYYYY(dateStr)}):</h3>`;
+            let html = headerHtml;
 
             dayAppointments.forEach((appt, index) => {
                 const client = clientsMap.get(appt.client_id);
                 const timeStr = appt.time_slot || '09:00';
                 const serviceStr = appt.service_requested ? `<span style="font-size: 0.75rem; color: #2563eb; font-weight: 700; margin-left: 6px;">[${appt.service_requested}]</span>` : '';
                 
-                // Teléfono e icono de llamada alineado a la derecha en la línea 2
+                // Teléfono e icono de llamada alineado a la derecha
                 let phoneHtml = '';
                 if (client.phone && client.phone.trim() !== '' && client.phone.toLowerCase() !== 'no registrado') {
                     phoneHtml = `<a href="tel:${client.phone}" title="Llamar a ${client.name}" style="font-size: 1rem; text-decoration: none; padding: 1px 5px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe; margin-left: 8px; flex-shrink: 0;">📞</a>`;
