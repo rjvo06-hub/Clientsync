@@ -157,12 +157,17 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const currentEmployee = urlParams.get('employee') || '';
-        const preselectedDate = urlParams.get('date');
+        const preselectedDate = urlParams.get('date') || todayStrSystem;
+        const viewMode = urlParams.get('view');
 
-        dateInput.value = preselectedDate || todayStrSystem;
+        dateInput.value = preselectedDate;
 
-        const portalFile = 'employee-schedule.html'; 
-        backLink.href = `./${portalFile}${currentEmployee ? '?employee=' + encodeURIComponent(currentEmployee) : ''}`;
+        // Configurar el enlace "Volver" para que devuelva al empleado exactamente a la misma vista y fecha
+        let backUrl = `./employee-schedule.html?employee=${encodeURIComponent(currentEmployee)}`;
+        if (viewMode === 'calendar') {
+            backUrl += `&date=${preselectedDate}&view=calendar`;
+        }
+        backLink.href = backUrl;
 
         const routeColors = ['#2563eb', '#16a34a', '#d97706', '#9333ea', '#dc2626', '#0891b2', '#db2777'];
 
@@ -366,7 +371,6 @@
 
                 const clientPhone = stop.client.phone || 'No registrado';
                 
-                // NUEVO FORMATO: Línea única con #Número y Nombre del cliente, y hora alineada a la derecha
                 const windowContent = `
                     <div style="font-family: -apple-system, sans-serif; background: #ffffff; color: #1e293b; padding: 8px; border-radius: 8px; width: 200px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 6px;">
