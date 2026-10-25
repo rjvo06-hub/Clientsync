@@ -51,6 +51,19 @@
             border-radius: 12px;
             border: 1px solid #cbd5e0;
         }
+
+        /* Estilo para las etiquetas de distancia flotantes sobre el mapa */
+        .route-distance-badge {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -59,7 +72,7 @@
         <!-- Cabecera -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
             <h1 style="margin: 0; font-size: 1.2rem; color: #1e293b; font-weight: 800;">🗺️ Mapa de Ruta del Día</h1>
-            <a href="./employee-schedule.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">← Volver al Portal</a>
+            <a href="./admin-assignments.html" style="padding: 6px 10px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600;">← Volver al Portal</a>
         </div>
 
         <!-- Barra de Controles: Selector de Fecha y Filtro de Empleado -->
@@ -80,7 +93,7 @@
         <div id="daily-map"></div>
     </div>
 
-    <!-- Google Maps JS API con librería geometry para decodificar las polilíneas de Routes API -->
+    <!-- Google Maps JS API con librería geometry -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ&libraries=geometry" async defer></script>
 
     <script type="module">
@@ -89,6 +102,7 @@
         let map = null;
         let markers = [];
         let polylines = [];
+        let distanceLabels = []; // Almacenará las etiquetas de distancia flotantes
         let infoWindow = null;
         
         let allClients = [];
@@ -121,7 +135,6 @@
                 allAppointments = appointments || [];
                 allEmployees = employees || [];
 
-                // Llenar el desplegable con los nombres de los empleados
                 allEmployees.forEach(emp => {
                     employeeFilter.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
@@ -197,6 +210,9 @@
         function clearPreviousRoutes() {
             polylines.forEach(poly => poly.setMap(null));
             polylines = [];
+            // Limpiar etiquetas de distancia anteriores
+            distanceLabels.forEach(label => label.setMap(null));
+            distanceLabels = [];
         }
 
         async function renderSelectedDayData() {
@@ -212,12 +228,10 @@
                 const apptDateOnly = appt.scheduled_date.includes('T') ? appt.scheduled_date.split('T')[0] : appt.scheduled_date;
                 if (apptDateOnly !== selectedDate) return false;
 
-                // Si está en 'ALL', pasan todas
                 if (selectedEmployeeName === 'ALL') {
                     return clientsMap.has(appt.client_id);
                 }
 
-                // Obtener el nombre del empleado asignado ya sea por UUID o por nombre directo
                 let assignedEmpName = '';
                 if (appt.employee_id) {
                     assignedEmpName = employeesMap.get(appt.employee_id) || '';
@@ -226,7 +240,6 @@
                     assignedEmpName = appt.assigned_employee;
                 }
 
-                // Filtrar comparando nombres (ignorando mayúsculas/minúsculas)
                 if (!assignedEmpName || assignedEmpName.toLowerCase() !== selectedEmployeeName.toLowerCase()) {
                     return false;
                 }
@@ -261,6 +274,13 @@
                 alert('Las citas de este día no tienen coordenadas geográficas válidas registradas.');
                 return;
             }
+
+            // Ordenar cronológicamente de la hora más temprano a la más tarde
+            validStops.sort((a, b) => {
+                const timeA = a.appt.time_slot || '00:00';
+                const timeB = b.appt.time_slot || '00:00';
+                return timeA.localeCompare(timeB);
+            });
 
             const bounds = new google.maps.LatLngBounds();
 
@@ -309,7 +329,7 @@
 
             map.fitBounds(bounds);
 
-            // 2. Trazar tramos viales de cliente a cliente usando Google Routes API (v2)
+            // 2. Trazar tramos viales usando Google Routes API (v2) y mostrar la distancia en cada trayecto
             const apiKey = 'AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ';
 
             for (let i = 0; i < validStops.length - 1; i++) {
@@ -344,7 +364,8 @@
                         headers: {
                             'Content-Type': 'application/json',
                             'X-Goog-Api-Key': apiKey,
-                            'X-Goog-FieldMask': 'routes.polyline.encodedPolyline'
+                            // Solicitamos la polilínea y los metros de distancia del trayecto
+                            'X-Goog-FieldMask': 'routes.polyline.encodedPolyline,routes.distanceMeters'
                         },
                         body: JSON.stringify(requestBody)
                     });
@@ -352,9 +373,18 @@
                     const data = await response.json();
 
                     if (data.routes && data.routes.length > 0) {
-                        const encodedPolyline = data.routes[0].polyline.encodedPolyline;
+                        const route = data.routes[0];
+                        const encodedPolyline = route.polyline.encodedPolyline;
+                        const distanceMeters = route.distanceMeters || 0;
+
+                        // Formatear distancia (si es mayor a 1000m muestra en km con 1 decimal, sino en metros)
+                        const distanceText = distanceMeters >= 1000 
+                            ? `${(distanceMeters / 1000).toFixed(1)} km` 
+                            : `${distanceMeters} m`;
+
                         const decodedPath = google.maps.geometry.encoding.decodePath(encodedPolyline);
 
+                        // Dibujar línea de ruta
                         const routePath = new google.maps.Polyline({
                             path: decodedPath,
                             geodesic: true,
@@ -363,8 +393,31 @@
                             strokeWeight: 6,
                             map: map
                         });
-
                         polylines.push(routePath);
+
+                        // Calcular el punto medio exacto del trayecto para colocar la etiqueta de distancia
+                        const midIndex = Math.floor(decodedPath.length / 2);
+                        const midPoint = decodedPath[midIndex] || origin;
+
+                        // Crear etiqueta HTML flotante personalizada para la distancia
+                        const distanceLabel = new google.maps.Marker({
+                            position: midPoint,
+                            map: map,
+                            icon: {
+                                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="26">
+                                        <rect width="80" height="26" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+                                        <text x="40" y="17" fill="#38bdf8" font-size="11" font-weight="bold" font-family="sans-serif" text-anchor="middle">🚗 ${distanceText}</text>
+                                    </svg>
+                               `),
+                                anchor: new google.maps.Point(40, 13)
+                            },
+                            zIndex: 1000,
+                            title: `Distancia tramo #${i+1} ➔ #${i+2}: ${distanceText}`
+                        });
+
+                        distanceLabels.push(distanceLabel);
+
                     } else {
                         console.warn(`⚠️ No se encontró ruta en el tramo ${i+1} -> ${i+2}`);
                     }
@@ -374,6 +427,7 @@
             }
         }
 
+        dateInput.value = preselectedDate || todayStrSystem;
         dateInput.addEventListener('change', renderSelectedDayData);
         employeeFilter.addEventListener('change', renderSelectedDayData);
 
