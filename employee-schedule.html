@@ -111,6 +111,8 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         selectedEmployee = urlParams.get('employee') || localStorage.getItem(STORAGE_KEY) || '';
+        const returnDate = urlParams.get('date');
+        const viewMode = urlParams.get('view');
 
         if (!selectedEmployee) {
             alert('Por favor, inicia sesión en la página principal primero.');
@@ -136,7 +138,14 @@
                 allClients = clients || [];
                 allAppointments = appointments || [];
 
-                activateCitasSubTab('today');
+                if (viewMode === 'calendar' && returnDate) {
+                    // Si venimos del mapa con una fecha de calendario, activar la pestaña de calendario y abrir el modal de ese día
+                    selectedMonthDate = new Date(returnDate + 'T00:00:00');
+                    activateCitasSubTab('calendar');
+                    openDayModal(returnDate);
+                } else {
+                    activateCitasSubTab('today');
+                }
             } catch (err) {
                 console.error('Error al inicializar portal:', err);
             }
@@ -167,7 +176,6 @@
                 if (!appt.scheduled_date || appt.scheduled_date.split('T')[0] !== dateStr) return false;
                 if (!appt.assigned_employee) return false;
                 
-                // Comprobar si el empleado actual está incluido en los asignados (separados por comas)
                 const assignedList = appt.assigned_employee.split(',').map(e => e.trim().toLowerCase());
                 if (!assignedList.includes(selectedEmployee.toLowerCase())) return false;
 
@@ -179,7 +187,8 @@
             const dayAppointments = getEmployeeAppointmentsForDate(dateStr);
             const clientsMap = new Map(allClients.map(c => [c.id, c]));
 
-            const mapRouteUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}`;
+            // Pasar la fecha y la vista al mapa para poder regresar exactamente aquí
+            const mapRouteUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}&view=calendar`;
 
             let mapButtonHtml = '';
             if (dayAppointments.length > 0) {
@@ -210,7 +219,6 @@
                 const timeStr = appt.time_slot || '09:00';
                 const serviceStr = appt.service_requested ? `<span style="font-size: 0.75rem; color: #2563eb; font-weight: 700; margin-left: 6px;">[${appt.service_requested}]</span>` : '';
                 
-                // Extraer compañeros de equipo (todos los asignados excepto el empleado actual)
                 const assignedList = (appt.assigned_employee || '').split(',').map(e => e.trim()).filter(Boolean);
                 const colleagues = assignedList.filter(e => e.toLowerCase() !== selectedEmployee.toLowerCase());
                 
