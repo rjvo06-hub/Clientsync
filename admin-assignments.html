@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
-        .container { max-width: 700px; margin: 15px auto 60px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
+        .container { max-width: 750px; margin: 15px auto 60px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
         
         .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; background: #edf2f7; padding: 4px; border-radius: 8px; }
         .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-weight: bold; color: #4a5568; border-radius: 6px; cursor: pointer; font-size: 0.9rem; text-align: center; }
@@ -16,7 +16,7 @@
         select, input, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; box-sizing: border-box; }
         
         .client-row { background: #ffffff; border: 1px solid #cbd5e0; border-left: 5px solid #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
-        .client-row-content { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+        .client-row-content { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
 
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
         .cal-header { text-align: center; font-weight: bold; font-size: 0.8rem; color: #718096; padding: 6px 0; }
@@ -37,8 +37,8 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">🛠️ Control de Citas</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Mapa</a>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">🛠️ Control de Citas y Asignaciones</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">🏠 Inicio</a>
         </div>
 
         <div class="tab-buttons">
@@ -125,14 +125,13 @@
                 return;
             }
 
-            // ORDENAR CRONOLÓGICAMENTE: De la hora más temprano a la más tarde (Ej: 09:00 -> 13:00)
             dayAppts.sort((a, b) => {
                 const timeA = a.time_slot || '00:00';
                 const timeB = b.time_slot || '00:00';
                 return timeA.localeCompare(timeB);
             });
 
-            let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${dateStr})</h3>`;
+            let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${formatDateToDDMMYYYY(dateStr)})</h3>`;
             dayAppts.forEach(appt => {
                 const client = allClients.find(c => c.id === appt.client_id);
                 if (client) html += buildAppointmentCardHtml(client, appt);
@@ -152,9 +151,9 @@
 
             let calendarHtml = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <button type="button" id="prev-month">◀</button>
+                    <button type="button" id="prev-month" style="padding: 6px 10px; font-weight: bold; cursor: pointer;">◀</button>
                     <strong>${monthNames[month]} ${year}</strong>
-                    <button type="button" id="next-month">▶</button>
+                    <button type="button" id="next-month" style="padding: 6px 10px; font-weight: bold; cursor: pointer;">▶</button>
                 </div>
                 <div class="calendar-grid">
                     <div class="cal-header">Lun</div><div class="cal-header">Mar</div><div class="cal-header">Mié</div><div class="cal-header">Jue</div><div class="cal-header">Vie</div><div class="cal-header">Sáb</div><div class="cal-header">Dom</div>
@@ -196,7 +195,7 @@
                 <div style="position: relative; margin-bottom: 20px;">
                     <label style="font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px;">🔍 Buscar Cliente:</label>
                     <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Nombre o calle..." autocomplete="off" style="width: 100%; padding: 12px;">
-                    <div id="client-results-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e0; display: none; z-index: 100;"></div>
+                    <div id="client-results-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e0; display: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 6px;"></div>
                 </div>
                 <div id="selected-client-result-area"></div>
             `;
@@ -213,6 +212,7 @@
                     const item = document.createElement('div');
                     item.style.padding = '10px';
                     item.style.cursor = 'pointer';
+                    item.style.borderBottom = '1px solid #edf2f7';
                     item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || ''}</span>`;
                     item.addEventListener('click', () => {
                         searchInput.value = client.name;
@@ -230,15 +230,27 @@
         function buildAppointmentCardHtml(client, appt) {
             const dateStr = appt.scheduled_date || '';
             const timeStr = appt.time_slot || '09:00';
-            const dateStrFormatted = dateStr ? `${dateStr.split('T')[0].split('-').reverse().join('/')} a las ${timeStr}h` : 'Pendiente';
+            const dateStrFormatted = dateStr ? `${formatDateToDDMMYYYY(dateStr.split('T')[0])} a las ${timeStr}h` : 'Pendiente';
             
-            const currentEmp = appt.assigned_employee || 'General';
-            const hoursInfo = appt.estimated_hours ? ` (${appt.estimated_hours}h est.)` : '';
+            const currentEmpsRaw = appt.assigned_employee || '';
+            const assignedList = currentEmpsRaw.split(',').map(e => e.trim()).filter(Boolean);
 
-            let employeeOptions = `<option value="General" ${currentEmp === 'General' ? 'selected' : ''}>Sin asignar</option>`;
-            allEmployees.forEach(emp => {
-                employeeOptions += `<option value="${emp.name}" ${currentEmp === emp.name ? 'selected' : ''}>${emp.name}</option>`;
-            });
+            let employeesCheckboxesHtml = `<div style="max-height: 130px; overflow-y: auto; border: 1px solid #cbd5e0; padding: 8px; border-radius: 6px; background: white;">`;
+            
+            if (allEmployees.length === 0) {
+                employeesCheckboxesHtml += `<span style="font-size: 0.75rem; color: #718096;">No hay empleados registrados.</span>`;
+            } else {
+                allEmployees.forEach(emp => {
+                    const isChecked = assignedList.includes(emp.name) ? 'checked' : '';
+                    employeesCheckboxesHtml += `
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-bottom: 5px; cursor: pointer;">
+                            <input type="checkbox" class="emp-checkbox" data-appt-id="${appt.id}" value="${emp.name}" ${isChecked}>
+                            ${emp.name}
+                        </label>
+                    `;
+                });
+            }
+            employeesCheckboxesHtml += `</div>`;
 
             return `
                 <div class="client-row" id="card-${appt.id}">
@@ -246,11 +258,11 @@
                         <div style="flex: 2; min-width: 200px;">
                             <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
                             <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'}</span><br>
-                            <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}${hoursInfo}</span>
+                            <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}</span>
                         </div>
-                        <div style="flex: 1; min-width: 150px;">
-                            <label style="font-size: 0.75rem; color: #718096; display: block; margin-bottom: 2px;">Técnico Asignado:</label>
-                            <select class="emp-dropdown" data-appt-id="${appt.id}" style="width: 100%;">${employeeOptions}</select>
+                        <div style="flex: 1.5; min-width: 180px;">
+                            <label style="font-size: 0.75rem; color: #2d3748; display: block; margin-bottom: 3px; font-weight: bold;">👥 Técnicos Asignados (Varios):</label>
+                            ${employeesCheckboxesHtml}
                         </div>
                         <div style="display: flex; align-items: flex-end;">
                             <button type="button" class="goto-reschedule-btn" data-client-id="${client.id}" data-appt-id="${appt.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Modificar</button>
@@ -261,11 +273,18 @@
         }
 
         function attachEventListeners() {
-            document.querySelectorAll('.emp-dropdown').forEach(sel => {
-                sel.addEventListener('change', async (e) => {
+            document.querySelectorAll('.emp-checkbox').forEach(chk => {
+                chk.addEventListener('change', async (e) => {
                     const apptId = e.target.getAttribute('data-appt-id');
-                    const newEmp = e.target.value;
-                    await supabase.from('appointments').update({ assigned_employee: newEmp !== 'General' ? newEmp : null }).eq('id', apptId);
+                    const card = document.getElementById(`card-${apptId}`);
+                    const checkedBoxes = card.querySelectorAll('.emp-checkbox:checked');
+                    const selectedNames = Array.from(checkedBoxes).map(cb => cb.value);
+
+                    const assignedEmployeeValue = selectedNames.length > 0 ? selectedNames.join(', ') : null;
+
+                    await supabase.from('appointments')
+                        .update({ assigned_employee: assignedEmployeeValue })
+                        .eq('id', apptId);
                 });
             });
 
