@@ -124,13 +124,22 @@
             gap: 12px;
         }
 
-        /* Navegación Moderna Estilo App Móvil */
+        /* Sección de navegación */
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 4px 0 2px 4px;
+        }
+
         .nav-buttons {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 8px;
             background: var(--card-bg);
-            padding: 10px;
+            padding: 12px;
             border-radius: var(--radius-xl);
             border: 1px solid var(--border-subtle);
             box-shadow: 0 4px 16px rgba(0,0,0,0.06);
@@ -217,18 +226,32 @@
                 <button type="button" id="btn-logout" style="background: #fee2e2; color: #991b1b; border: none; padding: 6px 10px; border-radius: 8px; font-size: 0.72rem; font-weight: bold; cursor: pointer;">🚪 Cerrar Sesión</button>
             </div>
 
-            <!-- Botones de Navegación -->
-            <nav class="nav-buttons">
-                <a href="#" id="link-employee-portal" style="grid-column: span 2; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;">
-                    <span>👷‍♂️</span> Mi Portal de Citas y Ruta
-                </a>
-                <a href="./client-builder.html"><span>🏢</span> Clientes</a>
-                <a href="./appointment-builder.html"><span>📅</span> Agendar Citas</a>
-                <a href="./admin-assignments.html"><span>🛠️</span> Administrador</a>
-                <a href="./employee-builder.html"><span>👨‍🔧</span> Empleados</a>
-                <a href="#" id="link-client-map"><span>🗺️</span> Mapa General</a>
-                <a href="./admin-pdf.html" id="navAdminPdf" style="display: none; background: #faf5ff; color: #7c3aed; border-color: #c084fc;"><span>📄</span> Reporte PDF</a>
-            </nav>
+            <!-- Portal de Empleado (Visible para todos) -->
+            <div>
+                <div class="nav-section-title">Portal de Trabajo</div>
+                <nav class="nav-buttons" style="grid-template-columns: 1fr;">
+                    <a href="#" id="link-employee-portal" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; flex-direction: row; justify-content: flex-start; padding: 12px 16px; gap: 12px;">
+                        <span style="font-size: 1.3rem;">👷‍♂️</span>
+                        <div style="text-align: left;">
+                            <div style="font-size: 0.88rem; font-weight: 800;">Mi Portal de Citas y Ruta</div>
+                            <div style="font-size: 0.7rem; color: #3b82f6; font-weight: 600;">Gestiona tus visitas y tiempos diarios</div>
+                        </div>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Panel de Administración (Visible solo para administradores) -->
+            <div id="admin-section-container" style="display: none;">
+                <div class="nav-section-title">Panel de Administración</div>
+                <nav class="nav-buttons">
+                    <a href="./client-builder.html"><span>🏢</span> Clientes</a>
+                    <a href="./appointment-builder.html"><span>📅</span> Agendar Citas</a>
+                    <a href="./admin-assignments.html"><span>🛠️</span> Administrador</a>
+                    <a href="./employee-builder.html"><span>👨‍🔧</span> Empleados</a>
+                    <a href="#" id="link-client-map" style="grid-column: span 2; flex-direction: row; justify-content: center; gap: 8px; background: #f8fafc;"><span>🗺️</span> Mapa General de Clientes</a>
+                    <a href="./admin-pdf.html" id="navAdminPdf" style="grid-column: span 2; background: #faf5ff; color: #7c3aed; border-color: #c084fc; flex-direction: row; justify-content: center; gap: 8px;"><span>📄</span> Reporte PDF Gerencial</a>
+                </nav>
+            </div>
         </div>
     </div>
 
@@ -250,6 +273,8 @@
 
         const linkTeam = document.getElementById('link-employee-portal');
         const linkMap = document.getElementById('link-client-map');
+        const adminSectionContainer = document.getElementById('admin-section-container');
+        const pdfLink = document.getElementById('navAdminPdf');
 
         async function initApp() {
             try {
@@ -292,7 +317,7 @@
                 return;
             }
 
-            // Guardar sesión
+            // Guardar sesión y nivel
             localStorage.setItem(STORAGE_KEY, employeeObj.name);
             localStorage.setItem(LEVEL_KEY, employeeObj.user_level || 1);
 
@@ -308,12 +333,15 @@
             linkTeam.href = `./employee-schedule.html?employee=${encodeURIComponent(empName)}`;
             linkMap.href = `./employee-route.html?employee=${encodeURIComponent(empName)}&date=${new Date().toISOString().split('T')[0]}`;
 
-            // Validar nivel de usuario para mostrar reportes admin si corresponde
+            // Validar nivel de usuario para mostrar u ocultar la sección de administración
             const userLevel = Number(localStorage.getItem(LEVEL_KEY)) || 1;
             const accesoAdmin = localStorage.getItem('usuario_acceso');
+
             if (userLevel >= 3 || Number(accesoAdmin) === 1) {
-                const pdfLink = document.getElementById('navAdminPdf');
+                adminSectionContainer.style.display = 'block';
                 if (pdfLink) pdfLink.style.display = 'flex';
+            } else {
+                adminSectionContainer.style.display = 'none';
             }
         }
 
