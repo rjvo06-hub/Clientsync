@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ClientSync | Reporte y Auditoría de Jornadas</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-secondary: #64748b;
+            --border-subtle: #e2e8f0;
+            --radius-xl: 16px;
+            --radius-md: 10px;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 12px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            background: var(--card-bg);
+            padding: 16px 20px;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        }
+
+        .header h1 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin: 0;
+            color: #0f172a;
+        }
+
+        .icon-btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #475569;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .icon-btn:hover { background: #e2e8f0; }
+
+        .filter-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            padding: 16px 20px;
+            border-radius: var(--radius-xl);
+            margin-bottom: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #475569;
+        }
+
+        select, input {
+            font-size: 14px;
+            padding: 9px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background: #f8fafc;
+            outline: none;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .btn-query {
+            background: #2563eb;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: bold;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-query:hover { background: #1d4ed8; }
+
+        .report-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .employee-summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .badge {
+            font-size: 0.68rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #475569;
+            padding: 8px 10px;
+            font-weight: 700;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+        }
+
+        tr:last-child td { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>📊 Auditoría y Reportes de Jornadas</h1>
+            <a href="./index.html" class="icon-btn">← Menú Principal</a>
+        </div>
+
+        <!-- Filtros de Consulta -->
+        <div class="filter-card">
+            <div class="form-group">
+                <label>Empleado:</label>
+                <select id="filter-employee">
+                    <option value="ALL">Todos los empleados</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fecha Desde (o Día Único):</label>
+                <input type="date" id="filter-start-date">
+            </div>
+            <div class="form-group">
+                <label>Fecha Hasta:</label>
+                <input type="date" id="filter-end-date">
+            </div>
+            <button type="button" class="btn-query" id="btn-search">🔍 Consultar Registros</button>
+        </div>
+
+        <!-- Contenedor de Resultados -->
+        <div id="report-results" class="report-section">
+            <div style="text-align: center; padding: 40px; color: #64748b; background: white; border-radius: 16px; border: 1px solid #e2e8f0;">
+                Selecciona los filtros y haz clic en "Consultar Registros" para ver la actividad.
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabaseClient.js';
+
+        const employeeSelect = document.getElementById('filter-employee');
+        const startDateInput = document.getElementById('filter-start-date');
+        const endDateInput = document.getElementById('filter-end-date');
+        const btnSearch = document.getElementById('btn-search');
+        const reportResults = document.getElementById('report-results');
+
+        // Establecer fecha de hoy por defecto en los inputs de fecha
+        const nowLocalDate = new Date();
+        const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
+        startDateInput.value = todayStr;
+        endDateInput.value = todayStr;
+
+        function formatHoursAndMinutes(totalMinutes) {
+            if (!totalMinutes || isNaN(totalMinutes)) return '0m';
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            if (hours === 0) return `${minutes}m`;
+            if (minutes === 0) return `${hours}h`;
+            return `${hours}h ${minutes}m`;
+        }
+
+        function formatTimeOnly(isoString) {
+            if (!isoString) return '--:--';
+            const d = new Date(isoString);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatDate(str) {
+            if (!str) return '';
+            const p = str.split('-');
+            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
+        }
+
+        async function init() {
+            try {
+                const { data: employees } = await supabase.from('employees').select('name').order('name');
+                if (employees) {
+                    employees.forEach(e => {
+                        employeeSelect.innerHTML += `<option value="${e.name}">${e.name}</option>`;
+                    });
+                }
+                loadReport();
+            } catch (err) {
+                console.error('Error al inicializar filtros:', err);
+            }
+        }
+
+        async function loadReport() {
+            const selectedEmp = employeeSelect.value;
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+
+            reportResults.innerHTML = `<div style="text-align: center; padding: 30px; color: #64748b;">Cargando registros...</div>`;
+
+            try {
+                // 1. Obtener registros diarios de empleados según filtros
+                let logsQuery = supabase.from('employee_daily_logs').select('*').gte('work_date', startDate).lte('work_date', endDate).order('work_date', { ascending: false });
+                if (selectedEmp !== 'ALL') {
+                    logsQuery = logsQuery.eq('employee_name', selectedEmp);
+                }
+
+                // 2. Obtener citas (appointments) y clientes para cruzar información
+                let apptsQuery = supabase.from('appointments').select('*').gte('scheduled_date', startDate).lte('scheduled_date', endDate);
+                
+                const [{ data: logsData, error: logsErr }, { data: apptsData, error: apptsErr }, { data: clientsData }] = await Promise.all([
+                    logsQuery,
+                    apptsQuery,
+                    supabase.from('clients').select('*')
+                ]);
+
+                if (logsErr) throw logsErr;
+                if (apptsErr) throw apptsErr;
+
+                const clientsMap = new Map((clientsData || []).map(c => [c.id, c]));
+                const logs = logsData || [];
+                const appts = apptsData || [];
+
+                if (logs.length === 0 && appts.length === 0) {
+                    reportResults.innerHTML = `<div style="padding: 30px; text-align: center; color: #64748b; background: white; border-radius: 16px; border: 1px solid #e2e8f0;">No se encontraron registros de jornadas ni citas en el rango seleccionado.</div>`;
+                    return;
+                }
+
+                // Agrupar por empleado y fecha para presentar una vista limpia
+                // Recopilar lista única de parejas (empleado + fecha)
+                const reportMap = new Map();
+
+                logs.forEach(l => {
+                    const key = `${l.employee_name}_${l.work_date}`;
+                    if (!reportMap.has(key)) reportMap.set(key, { employee: l.employee_name, date: l.work_date, log: l, appointments: [] });
+                    else reportMap.get(key).log = l;
+                });
+
+                appts.forEach(a => {
+                    if (!a.assigned_employee) return;
+                    const assignedList = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                    
+                    // Si hay un empleado seleccionado, filtramos solo sus citas
+                    if (selectedEmp !== 'ALL' && !assignedList.includes(selectedEmp.toLowerCase())) return;
+
+                    const apptDate = a.scheduled_date.split('T')[0];
+                    
+                    // Asignar esta cita a cada empleado involucrado en esa fecha
+                    assignedList.forEach(empLower => {
+                        // Buscar el nombre original del empleado en mayúsculas/minúsculas correctas si existe en los logs o en la lista
+                        const empObj = employeesListMatch(empLower, logs, selectedEmp);
+                        const key = `${empObj}_${apptDate}`;
+                        if (!reportMap.has(key)) {
+                            reportMap.set(key, { employee: empObj, date: apptDate, log: null, appointments: [] });
+                        }
+                        reportMap.get(key).appointments.push(a);
+                    });
+                });
+
+                if (reportMap.size === 0) {
+                    reportResults.innerHTML = `<div style="padding: 30px; text-align: center; color: #64748b; background: white; border-radius: 16px; border: 1px solid #e2e8f0;">No hay actividad registrada para los criterios seleccionados.</div>`;
+                    return;
+                }
+
+                let html = '';
+                // Ordenar por fecha descendente
+                const sortedKeys = Array.from(reportMap.keys()).sort().reverse();
+
+                sortedKeys.forEach(key => {
+                    const item = reportMap.get(key);
+                    const log = item.log;
+                    const dayAppts = item.appointments;
+
+                    let statusBadge = `<span class="badge" style="background:#f1f5f9; color:#475569;">Sin fichaje de jornada</span>`;
+                    let clockIn = '--:--';
+                    let clockOut = '--:--';
+                    let lunchInfo = 'No registrada';
+
+                    if (log) {
+                        clockIn = formatTimeOnly(log.clock_in_time);
+                        clockOut = log.clock_out_time ? formatTimeOnly(log.clock_out_time) : 'En curso';
+                        if (log.status === 'activo') statusBadge = `<span class="badge" style="background:#dcfce7; color:#166534;">🟢 Activo</span>`;
+                        else if (log.status === 'pausa') statusBadge = `<span class="badge" style="background:#fef9c3; color:#854d0e;">⏸️ En Pausa</span>`;
+                        else if (log.status === 'almuerzo') statusBadge = `<span class="badge" style="background:#fef3c7; color:#b45309;">☕ En Almuerzo</span>`;
+                        else if (log.status === 'finalizado') statusBadge = `<span class="badge" style="background:#e0f2fe; color:#0369a1;">✅ Finalizado</span>`;
+                    }
+
+                    html += `
+                        <div class="card-box">
+                            <div class="employee-summary-header">
+                                <div>
+                                    <strong style="font-size: 0.95rem; color: #0f172a;">👤 ${item.employee}</strong>
+                                    <span style="font-size: 0.75rem; color: #64748b; margin-left: 8px;">📅 Fecha: ${formatDate(item.date)}</span>
+                                </div>
+                                ${statusBadge}
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; background: #f8fafc; padding: 10px 12px; border-radius: 10px; font-size: 0.78rem;">
+                                <div><strong>▶️ Inicio:</strong> ${clockIn}</div>
+                                <div><strong>⏹️ Fin:</strong> ${clockOut}</div>
+                                <div><strong>☕ Estado Jornada:</strong> ${log ? log.status : 'N/A'}</div>
+                            </div>
+
+                            <div style="font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: #1e293b;">📍 Visitas a Clientes Registradas:</div>
+                    `;
+
+                    if (dayAppts.length === 0) {
+                        html += `<div style="font-size: 0.75rem; color: #64748b; font-style: italic; padding: 6px 0;">No hubo citas asignadas/ejecutadas este día para este empleado.</div>`;
+                    } else {
+                        html += `
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Cliente</th>
+                                            <th>Hora Prog.</th>
+                                            <th>Llegada (Check-in)</th>
+                                            <th>Salida (Check-out)</th>
+                                            <th>Duración Visita</th>
+                                            <th>Labor Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        dayAppts.forEach(a => {
+                            const client = clientsMap.get(a.client_id) || { name: 'Cliente Desconocido' };
+                            const checkInTime = formatTimeOnly(a.check_in_time);
+                            const checkOutTime = formatTimeOnly(a.check_out_time);
+                            const duration = formatHoursAndMinutes(a.visit_duration_minutes);
+                            const totalLabor = formatHoursAndMinutes(a.total_labor_minutes);
+
+                            html += `
+                                <tr>
+                                    <td><strong>${client.name}</strong><br><span style="font-size: 0.68rem; color: #64748b;">${client.address || ''}</span></td>
+                                    <td>${a.time_slot || '--:--'}</td>
+                                    <td>${checkInTime}</td>
+                                    <td>${checkOutTime}</td>
+                                    <td><span style="color: #2563eb; font-weight: 700;">${duration}</span></td>
+                                    <td><span style="color: #16a34a; font-weight: 700;">${totalLabor}</span></td>
+                                </tr>
+                            `;
+                        });
+                        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    }
+
+                    html += `</div>`;
+                });
+
+                reportResults.innerHTML = html;
+
+            } catch (err) {
+                console.error('Error al generar reporte:', err);
+                reportResults.innerHTML = `<div style="padding: 20px; color: #dc2626; text-align: center;">Error al cargar los datos: ${err.message}</div>`;
+            }
+        }
+
+        function employeesListMatch(empLower, logs, selectedEmp) {
+            if (selectedEmp !== 'ALL') return selectedEmp;
+            const found = logs.find(l => l.employee_name.toLowerCase() === empLower);
+            if (found) return found.employee_name;
+            return empLower.charAt(0).toUpperCase() + empLower.slice(1);
+        }
+
+        btnSearch.addEventListener('click', loadReport);
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
