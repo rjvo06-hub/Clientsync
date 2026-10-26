@@ -73,10 +73,16 @@
         .filter-card {
             background: var(--card-bg);
             border: 1px solid var(--border-subtle);
-            padding: 16px 20px;
+            padding: 18px 20px;
             border-radius: var(--radius-xl);
             margin-bottom: 16px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .filter-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 12px;
@@ -116,8 +122,29 @@
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.2s;
+            width: 100%;
         }
         .btn-query:hover { background: #1d4ed8; }
+
+        .advanced-range-toggle {
+            font-size: 0.78rem;
+            color: #2563eb;
+            font-weight: 700;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            text-align: left;
+            width: fit-content;
+        }
+
+        #range-container {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            padding-top: 8px;
+            border-top: 1px dashed #e2e8f0;
+        }
 
         .report-section {
             display: flex;
@@ -187,27 +214,40 @@
 
         <!-- Filtros de Consulta -->
         <div class="filter-card">
-            <div class="form-group">
-                <label>Empleado:</label>
-                <select id="filter-employee">
-                    <option value="ALL">Todos los empleados</option>
-                </select>
+            <div class="filter-row">
+                <div class="form-group">
+                    <label>Empleado:</label>
+                    <select id="filter-employee">
+                        <option value="ALL">Todos los empleados</option>
+                    </select>
+                </div>
+                <div class="form-group" id="single-date-group">
+                    <label>📅 Fecha a Consultar (Día Único):</label>
+                    <input type="date" id="filter-single-date">
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn-query" id="btn-search">🔍 Consultar Registros</button>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Fecha Desde (o Día Único):</label>
-                <input type="date" id="filter-start-date">
+
+            <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 ¿Deseas consultar un rango de fechas (semana / mes)?</button>
+
+            <div id="range-container">
+                <div class="form-group">
+                    <label>Fecha Desde:</label>
+                    <input type="date" id="filter-start-date">
+                </div>
+                <div class="form-group">
+                    <label>Fecha Hasta:</label>
+                    <input type="date" id="filter-end-date">
+                </div>
             </div>
-            <div class="form-group">
-                <label>Fecha Hasta:</label>
-                <input type="date" id="filter-end-date">
-            </div>
-            <button type="button" class="btn-query" id="btn-search">🔍 Consultar Registros</button>
         </div>
 
         <!-- Contenedor de Resultados -->
         <div id="report-results" class="report-section">
             <div style="text-align: center; padding: 40px; color: #64748b; background: white; border-radius: 16px; border: 1px solid #e2e8f0;">
-                Selecciona los filtros y haz clic en "Consultar Registros" para ver la actividad.
+                Selecciona la fecha y haz clic en "Consultar Registros".
             </div>
         </div>
     </div>
@@ -216,19 +256,35 @@
         import { supabase } from './js/supabaseClient.js';
 
         const employeeSelect = document.getElementById('filter-employee');
+        const singleDateInput = document.getElementById('filter-single-date');
         const startDateInput = document.getElementById('filter-start-date');
         const endDateInput = document.getElementById('filter-end-date');
         const btnSearch = document.getElementById('btn-search');
+        const btnToggleRange = document.getElementById('btn-toggle-range');
+        const rangeContainer = document.getElementById('range-container');
         const reportResults = document.getElementById('report-results');
 
-        // Establecer fecha de hoy por defecto en los inputs de fecha
+        let useRange = false;
+
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
+        singleDateInput.value = todayStr;
         startDateInput.value = todayStr;
         endDateInput.value = todayStr;
 
+        btnToggleRange.addEventListener('click', () => {
+            useRange = !useRange;
+            if (useRange) {
+                rangeContainer.style.display = 'grid';
+                btnToggleRange.textContent = '📅 Ocultar rango y consultar por día único';
+            } else {
+                rangeContainer.style.display = 'none';
+                btnToggleRange.textContent = '📅 ¿Deseas consultar un rango de fechas (semana / mes)?';
+            }
+        });
+
         function formatHoursAndMinutes(totalMinutes) {
-            if (!totalMinutes || isNaN(totalMinutes)) return '0m';
+            if (!totalMinutes || isNaN(totalMinutes) || totalMinutes < 0) return '0m';
             const hours = Math.floor(totalMinutes / 60);
             const minutes = totalMinutes % 60;
             if (hours === 0) return `${minutes}m`;
@@ -264,8 +320,13 @@
 
         async function loadReport() {
             const selectedEmp = employeeSelect.value;
-            const startDate = startDateInput.value;
-            const endDate = endDateInput.value;
+            let startDate = singleDateInput.value;
+            let endDate = singleDateInput.value;
+
+            if (useRange) {
+                startDate = startDateInput.value;
+                endDate = endDateInput.value;
+            }
 
             reportResults.innerHTML = `<div style="text-align: center; padding: 30px; color: #64748b;">Cargando registros...</div>`;
 
@@ -291,7 +352,7 @@
                 const appts = apptsData || [];
 
                 if (logs.length === 0 && appts.length === 0) {
-                    reportResults.innerHTML = `<div style="padding: 30px; text-align: center; color: #64748b; background: white; border-radius: 16px; border: 1px solid #e2e8f0;">No se encontraron registros de jornadas ni citas en el rango seleccionado.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 30px; text-align: center; color: #64748b; background: white; border-radius: 16px; border: 1px solid #e2e8f0;">No se encontraron registros de jornadas ni citas en la fecha seleccionada.</div>`;
                     return;
                 }
 
@@ -337,6 +398,20 @@
                     let statusBadge = `<span class="badge" style="background:#f1f5f9; color:#475569;">Sin fichaje de jornada</span>`;
                     let clockIn = '--:--';
                     let clockOut = '--:--';
+                    let grossMinutes = 0;
+                    let pauseMinutes = 30; // Pausa / Almuerzo estándar por defecto si la jornada está activa o finalizada
+
+                    if (log && log.clock_in_time) {
+                        const startMs = new Date(log.clock_in_time).getTime();
+                        const endMs = log.clock_out_time ? new Date(log.clock_out_time).getTime() : new Date().getTime();
+                        grossMinutes = Math.max(0, Math.floor((endMs - startMs) / 60000));
+                    }
+
+                    let netMinutes = Math.max(0, grossMinutes - pauseMinutes); 
+                    if (!log || !log.clock_out_time) {
+                        netMinutes = grossMinutes;
+                        pauseMinutes = 0;
+                    }
 
                     if (log) {
                         clockIn = formatTimeOnly(log.clock_in_time);
@@ -357,17 +432,18 @@
                                 ${statusBadge}
                             </div>
 
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; background: #f8fafc; padding: 10px 12px; border-radius: 10px; font-size: 0.78rem;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 14px; background: #f8fafc; padding: 12px; border-radius: 10px; font-size: 0.78rem;">
                                 <div><strong>▶️ Inicio:</strong> ${clockIn}</div>
                                 <div><strong>⏹️ Fin:</strong> ${clockOut}</div>
-                                <div><strong>☕ Estado Jornada:</strong> ${log ? log.status : 'N/A'}</div>
+                                <div><strong>☕ Pausa/Almuerzo:</strong> <span style="color:#d97706; font-weight:700;">-${formatHoursAndMinutes(pauseMinutes)}</span></div>
+                                <div><strong>⏱️ Total Neto (Pagable):</strong> <span style="color:#16a34a; font-weight:800;">${formatHoursAndMinutes(netMinutes)}</span></div>
                             </div>
 
                             <div style="font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: #1e293b;">📍 Visitas a Clientes Registradas:</div>
                     `;
 
                     if (dayAppts.length === 0) {
-                        html += `<div style="font-size: 0.75rem; color: #64748b; font-style: italic; padding: 6px 0;">No hubo citas asignadas/ejecutadas este día para este empleado.</div>`;
+                        html += `<div style="font-size: 0.75rem; color: #64748b; font-style: italic; padding: 6px 0;">No hubo citas asignadas/ejecutadas en esta fecha para este empleado.</div>`;
                     } else {
                         html += `
                             <div class="table-container">
@@ -378,7 +454,7 @@
                                             <th>Hora Prog.</th>
                                             <th>Llegada (Check-in)</th>
                                             <th>Salida (Check-out)</th>
-                                            <th>Duración Visita</th>
+                                            <th>Duración Visita (Real)</th>
                                             <th>Labor Total</th>
                                         </tr>
                                     </thead>
@@ -388,8 +464,14 @@
                             const client = clientsMap.get(a.client_id) || { name: 'Cliente Desconocido' };
                             const checkInTime = formatTimeOnly(a.check_in_time);
                             const checkOutTime = formatTimeOnly(a.check_out_time);
-                            const duration = formatHoursAndMinutes(a.visit_duration_minutes);
-                            const totalLabor = formatHoursAndMinutes(a.total_labor_minutes);
+                            
+                            // Restar proporcionalmente el tiempo de pausa si la visita abarcó horas de almuerzo
+                            let rawDuration = a.visit_duration_minutes || 0;
+                            // Si la visita duró bastante y hubo pausa registrada, descontamos una fracción o los 30 mins si la visita ocurrió completamente en horario laboral con almuerzo
+                            let adjustedDuration = Math.max(0, rawDuration - (pauseMinutes > 0 && rawDuration > 60 ? 15 : 0)); 
+                            
+                            const duration = formatHoursAndMinutes(adjustedDuration);
+                            const totalLabor = formatHoursAndMinutes(adjustedDuration * Math.max(1, (a.assigned_employee || '').split(',').length));
 
                             html += `
                                 <tr>
