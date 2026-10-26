@@ -399,12 +399,19 @@
                     let clockIn = '--:--';
                     let clockOut = '--:--';
                     let grossMinutes = 0;
-                    let pauseMinutes = 30; // Pausa / Almuerzo estándar por defecto de 30 minutos
+                    let pauseMinutes = 30; // 30 minutos de pausa estándar o calculada
 
                     if (log && log.clock_in_time) {
                         const startMs = new Date(log.clock_in_time).getTime();
                         const endMs = log.clock_out_time ? new Date(log.clock_out_time).getTime() : new Date().getTime();
                         grossMinutes = Math.max(0, Math.floor((endMs - startMs) / 60000));
+                    }
+
+                    // Si existen horas exactas de inicio y fin de almuerzo en el log, usarlas
+                    if (log && log.lunch_start_time && log.lunch_end_time) {
+                        const lStart = new Date(log.lunch_start_time).getTime();
+                        const lEnd = new Date(log.lunch_end_time).getTime();
+                        pauseMinutes = Math.max(0, Math.floor((lEnd - lStart) / 60000));
                     }
 
                     let netMinutes = Math.max(0, grossMinutes - pauseMinutes); 
@@ -454,7 +461,7 @@
                                             <th>Hora Prog.</th>
                                             <th>Llegada (Check-in)</th>
                                             <th>Salida (Check-out)</th>
-                                            <th>Duración Visita (Real)</th>
+                                            <th>Duración Visita</th>
                                             <th>Labor Total</th>
                                         </tr>
                                     </thead>
@@ -465,10 +472,26 @@
                             const checkInTime = formatTimeOnly(a.check_in_time);
                             const checkOutTime = formatTimeOnly(a.check_out_time);
                             
-                            // Mostramos el tiempo real exacto registrado en la base de datos (visit_duration_minutes)
-                            const realDurationMins = a.visit_duration_minutes || 0;
+                            let realDurationMins = a.visit_duration_minutes || 0;
+
+                            // Cruce inteligente: si la visita abarcó el horario de almuerzo, restamos la pausa a este cliente en específico
+                            if (log && log.lunch_start_time && log.lunch_end_time && a.check_in_time && a.check_out_time) {
+                                const visitIn = new Date(a.check_in_time).getTime();
+                                const visitOut = new Date(a.check_out_time).getTime();
+                                const lStart = new Date(log.lunch_start_time).getTime();
+                                const lEnd = new Date(log.lunch_end_time).getTime();
+
+                                // Si la visita ocurrió durante o cruzó el almuerzo
+                                if (visitIn <= lEnd && visitOut >= lStart) {
+                                    realDurationMins = Math.max(0, realDurationMins - pauseMinutes);
+                                }
+                            } else if (pauseMinutes > 0 && realDurationMins > 240 && dayAppts.length === 1) {
+                                // Si hay una sola visita larga que abarcó toda la jornada, descontamos la pausa por defecto ahí
+                                realDurationMins = Math.max(0, realDurationMins - pauseMinutes);
+                            }
+
                             const duration = formatHoursAndMinutes(realDurationMins);
-                            const totalLabor = formatHoursAndMinutes(a.total_labor_minutes || (realDurationMins * Math.max(1, (a.assigned_employee || '').split(',').length)));
+                            const totalLabor = formatHoursAndMinutes(realDurationMins * Math.max(1, (a.assigned_employee || '').split(',').length));
 
                             html += `
                                 <tr>
