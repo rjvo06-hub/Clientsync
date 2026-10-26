@@ -234,7 +234,6 @@
         function renderClientsList(appts, map) {
             const listContainer = document.getElementById('clients-timetrack-list');
             
-            // FILTRO CLAVE: Ocultar los clientes que ya tienen check_out_time (finalizados)
             const activeAppts = appts.filter(a => !a.check_out_time);
 
             if (activeAppts.length === 0) {
@@ -349,15 +348,33 @@
                 }
             });
 
+            // BOTÓN DE ALMUERZO ACTUALIZADO CON REGISTRO DE HORA INICIO Y HORA FIN
             document.getElementById('btn-lunch').addEventListener('click', async () => {
                 if (!employeeDailyLog) {
                     alert('Primero debes iniciar tu jornada.');
                     return;
                 }
-                const nextStatus = employeeDailyLog.status === 'almuerzo' ? 'activo' : 'almuerzo';
+
+                const nowIso = new Date().toISOString();
+                let updatePayload = {};
+
+                if (employeeDailyLog.status === 'almuerzo') {
+                    // Si ya estaba en almuerzo, al hacer clic sale del almuerzo y guarda la hora de fin
+                    updatePayload = {
+                        status: 'activo',
+                        lunch_end_time: nowIso
+                    };
+                } else {
+                    // Si pasa a almuerzo, guarda la hora de inicio
+                    updatePayload = {
+                        status: 'almuerzo',
+                        lunch_start_time: nowIso
+                    };
+                }
+
                 try {
                     const { data, error } = await supabase.from('employee_daily_logs')
-                        .update({ status: nextStatus })
+                        .update(updatePayload)
                         .eq('id', employeeDailyLog.id)
                         .select().single();
                     if (error) throw error;
@@ -424,7 +441,6 @@
                             a.visit_duration_minutes = mins;
                             a.total_labor_minutes = totalLabor;
                         }
-                        // Al terminar, se vuelve a renderizar y el cliente desaparecerá automáticamente de la lista activa
                         renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
                     } else alert('Error: ' + error.message);
                 });
