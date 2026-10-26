@@ -270,13 +270,11 @@
             reportResults.innerHTML = `<div style="text-align: center; padding: 30px; color: #64748b;">Cargando registros...</div>`;
 
             try {
-                // 1. Obtener registros diarios de empleados según filtros
                 let logsQuery = supabase.from('employee_daily_logs').select('*').gte('work_date', startDate).lte('work_date', endDate).order('work_date', { ascending: false });
                 if (selectedEmp !== 'ALL') {
                     logsQuery = logsQuery.eq('employee_name', selectedEmp);
                 }
 
-                // 2. Obtener citas (appointments) y clientes para cruzar información
                 let apptsQuery = supabase.from('appointments').select('*').gte('scheduled_date', startDate).lte('scheduled_date', endDate);
                 
                 const [{ data: logsData, error: logsErr }, { data: apptsData, error: apptsErr }, { data: clientsData }] = await Promise.all([
@@ -297,8 +295,6 @@
                     return;
                 }
 
-                // Agrupar por empleado y fecha para presentar una vista limpia
-                // Recopilar lista única de parejas (empleado + fecha)
                 const reportMap = new Map();
 
                 logs.forEach(l => {
@@ -311,14 +307,11 @@
                     if (!a.assigned_employee) return;
                     const assignedList = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
                     
-                    // Si hay un empleado seleccionado, filtramos solo sus citas
                     if (selectedEmp !== 'ALL' && !assignedList.includes(selectedEmp.toLowerCase())) return;
 
                     const apptDate = a.scheduled_date.split('T')[0];
                     
-                    // Asignar esta cita a cada empleado involucrado en esa fecha
                     assignedList.forEach(empLower => {
-                        // Buscar el nombre original del empleado en mayúsculas/minúsculas correctas si existe en los logs o en la lista
                         const empObj = employeesListMatch(empLower, logs, selectedEmp);
                         const key = `${empObj}_${apptDate}`;
                         if (!reportMap.has(key)) {
@@ -334,7 +327,6 @@
                 }
 
                 let html = '';
-                // Ordenar por fecha descendente
                 const sortedKeys = Array.from(reportMap.keys()).sort().reverse();
 
                 sortedKeys.forEach(key => {
@@ -345,7 +337,6 @@
                     let statusBadge = `<span class="badge" style="background:#f1f5f9; color:#475569;">Sin fichaje de jornada</span>`;
                     let clockIn = '--:--';
                     let clockOut = '--:--';
-                    let lunchInfo = 'No registrada';
 
                     if (log) {
                         clockIn = formatTimeOnly(log.clock_in_time);
