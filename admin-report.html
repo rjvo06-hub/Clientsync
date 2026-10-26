@@ -399,7 +399,7 @@
                     let clockIn = '--:--';
                     let clockOut = '--:--';
                     let grossMinutes = 0;
-                    let pauseMinutes = 30; // Pausa / Almuerzo estándar por defecto si la jornada está activa o finalizada
+                    let pauseMinutes = 30; // Pausa / Almuerzo estándar por defecto de 30 minutos
 
                     if (log && log.clock_in_time) {
                         const startMs = new Date(log.clock_in_time).getTime();
@@ -465,13 +465,10 @@
                             const checkInTime = formatTimeOnly(a.check_in_time);
                             const checkOutTime = formatTimeOnly(a.check_out_time);
                             
-                            // Restar proporcionalmente el tiempo de pausa si la visita abarcó horas de almuerzo
-                            let rawDuration = a.visit_duration_minutes || 0;
-                            // Si la visita duró bastante y hubo pausa registrada, descontamos una fracción o los 30 mins si la visita ocurrió completamente en horario laboral con almuerzo
-                            let adjustedDuration = Math.max(0, rawDuration - (pauseMinutes > 0 && rawDuration > 60 ? 15 : 0)); 
-                            
-                            const duration = formatHoursAndMinutes(adjustedDuration);
-                            const totalLabor = formatHoursAndMinutes(adjustedDuration * Math.max(1, (a.assigned_employee || '').split(',').length));
+                            // Mostramos el tiempo real exacto registrado en la base de datos (visit_duration_minutes)
+                            const realDurationMins = a.visit_duration_minutes || 0;
+                            const duration = formatHoursAndMinutes(realDurationMins);
+                            const totalLabor = formatHoursAndMinutes(a.total_labor_minutes || (realDurationMins * Math.max(1, (a.assigned_employee || '').split(',').length)));
 
                             html += `
                                 <tr>
