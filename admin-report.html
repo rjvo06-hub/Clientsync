@@ -292,16 +292,35 @@
             return `${hours}h ${minutes}m`;
         }
 
-        function formatTimeOnly(isoString) {
-            if (!isoString) return '--:--';
-            const d = new Date(isoString);
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // FUNCIÓN CLAVE: Extrae la hora plana directamente de la cadena de texto de la base de datos sin alterar husos horarios
+        function formatFlatTime(timestampStr) {
+            if (!timestampStr) return '--:--';
+            if (timestampStr.includes('T')) {
+                const timePart = timestampStr.split('T')[1];
+                return timePart ? timePart.substring(0, 5) : '--:--';
+            }
+            if (timestampStr.length >= 16) {
+                return timestampStr.substring(11, 16);
+            }
+            return timestampStr;
         }
 
         function formatDate(str) {
             if (!str) return '';
             const p = str.split('-');
             return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
+        }
+
+        // Función auxiliar para calcular minutos directos entre dos horas planas (YYYY-MM-DDTHH:MM:SS)
+        function getFlatMinutesDifference(startStr, endStr) {
+            if (!startStr || !endStr) return 0;
+            const parseTime = (s) => {
+                const timePart = s.includes('T') ? s.split('T')[1] : s.substring(11);
+                const parts = timePart.split(':');
+                return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+            };
+            const diff = parseTime(endStr) - parseTime(startStr);
+            return diff > 0 ? diff : 0;
         }
 
         async function init() {
@@ -402,20 +421,15 @@
                     let pauseMinutes = 0;
 
                     if (log && log.clock_in_time) {
-                        const startMs = new Date(log.clock_in_time).getTime();
-                        const endMs = log.clock_out_time ? new Date(log.clock_out_time).getTime() : new Date().getTime();
-                        grossMinutes = Math.max(0, Math.floor((endMs - startMs) / 60000));
+                        const currentRefTime = log.clock_out_time || `${item.date}T23:59:59`;
+                        grossMinutes = getFlatMinutesDifference(log.clock_in_time, currentRefTime);
                     }
 
-                    // CALCULO DE PAUSA: Con tope máximo de 30 minutos
+                    // CALCULO DE PAUSA: Con tope máximo estricto de 30 minutos
                     if (log && log.lunch_start_time && log.lunch_end_time) {
-                        const lStart = new Date(log.lunch_start_time).getTime();
-                        const lEnd = new Date(log.lunch_end_time).getTime();
-                        const rawPauseMins = Math.max(0, Math.floor((lEnd - lStart) / 60000));
-                        // Si excede los 30 minutos, se limita automáticamente a 30 minutos
+                        const rawPauseMins = getFlatMinutesDifference(log.lunch_start_time, log.lunch_end_time);
                         pauseMinutes = Math.min(30, rawPauseMins);
                     } else if (log && log.lunch_start_time && !log.lunch_end_time && log.status === 'activo') {
-                        // Si está activo pero el almuerzo superó o llegó a 30 minutos sin cerrar, se topa a 30
                         pauseMinutes = 30;
                     }
 
@@ -426,8 +440,8 @@
                     }
 
                     if (log) {
-                        clockIn = formatTimeOnly(log.clock_in_time);
-                        clockOut = log.clock_out_time ? formatTimeOnly(log.clock_out_time) : 'En curso';
+                        clockIn = formatFlatTime(log.clock_in_time);
+                        clockOut = log.clock_out_time ? formatFlatTime(log.clock_out_time) : 'En curso';
                         if (log.status === 'activo') statusBadge = `<span class="badge" style="background:#dcfce7; color:#166534;">🟢 Activo</span>`;
                         else if (log.status === 'pausa') statusBadge = `<span class="badge" style="background:#fef9c3; color:#854d0e;">⏸️ En Pausa</span>`;
                         else if (log.status === 'almuerzo') statusBadge = `<span class="badge" style="background:#fef3c7; color:#b45309;">☕ En Almuerzo</span>`;
@@ -474,19 +488,18 @@
                         `;
                         dayAppts.forEach(a => {
                             const client = clientsMap.get(a.client_id) || { name: 'Cliente Desconocido' };
-                            const checkInTime = formatTimeOnly(a.check_in_time);
-                            const checkOutTime = formatTimeOnly(a.check_out_time);
+                            const checkInTime = formatFlatTime(a.check_in_time);
+                            const checkOutTime = formatFlatTime(a.check_out_time);
                             
                             let realDurationMins = a.visit_duration_minutes || 0;
 
-                            // CRUCE INTELIGENTE DE ALMUERZO CON TOPE DE 30 MINUTOS:
+                            // CRUCE INTELIGENTE DE ALMUERZO CON TOPE DE 30 MINUTOS (COMPARACIÓN PLANA)
                             if (log && log.lunch_start_time && a.check_in_time && a.check_out_time) {
-                                const visitIn = new Date(a.check_in_time).getTime();
-                                const visitOut = new Date(a.check_out_time).getTime();
-                                const lStart = new Date(log.lunch_start_time).getTime();
-                                const lEnd = log.lunch_end_time ? new Date(log.lunch_end_time).getTime() : (lStart + 30 * 60000);
+                                const visitIn = a.check_in_time;
+                                const visitOut = a.check_out_time;
+                                const lStart = log.lunch_start_time;
+                                const lEnd = log.lunch_end_time || lStart;
 
-                                // Si la visita abarcó el horario de almuerzo, se descuenta la pausa (máximo 30 min)
                                 if (visitIn <= lEnd && visitOut >= lStart) {
                                     realDurationMins = Math.max(0, realDurationMins - pauseMinutes);
                                 }
