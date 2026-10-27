@@ -178,6 +178,7 @@
         .badge { font-size: 0.5rem; background: #2563eb; color: white; padding: 1px 4px; border-radius: 6px; margin-top: 2px; font-weight: 700; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(3px); }
         .modal-body { background: white; width: 100%; max-width: 380px; max-height: 85vh; padding: 16px; border-radius: 16px; display: flex; flex-direction: column; overflow-y: auto; }
+        .select-dropdown { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.85rem; background: #f8fafc; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -192,6 +193,7 @@
         <div id="app-content"></div>
     </div>
 
+    <!-- Modal General para Citas / Mes -->
     <div id="day-modal" class="modal-overlay">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
@@ -202,11 +204,28 @@
         </div>
     </div>
 
+    <!-- Modal Desplegable para Seleccionar Empleado -->
+    <div id="employee-modal" class="modal-overlay">
+        <div class="modal-body" style="max-width: 320px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                <h3 style="margin: 0; font-size: 0.9rem;">👥 Añadir Persona a la Visita</h3>
+                <button type="button" id="close-emp-modal" class="icon-btn">✕</button>
+            </div>
+            <p style="font-size: 0.75rem; color: #64748b; margin-top: 0; margin-bottom: 10px;">Selecciona al empleado o compañero:</p>
+            <select id="employee-select-dropdown" class="select-dropdown"></select>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-emp" style="flex: 1;">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-confirm-emp" style="flex: 1;">Añadir</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
         let allAppointments = [];
+        let allEmployeeNames = [];
         let employeeDailyLog = null;
         let selectedEmployee = '';
         let selectedMonthDate = new Date();
@@ -214,6 +233,7 @@
         let visitLiveInterval = null;
         let syncInterval = null;
         let timetrackViewMode = 'assigned'; // 'assigned' o 'active'
+        let currentAppointmentForEmp = null;
 
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
@@ -271,12 +291,26 @@
         }
 
         async function fetchData() {
-            const [{ data: clients }, { data: appointments }] = await Promise.all([
+            const [{ data: clients }, { data: appointments }, { data: logs }] = await Promise.all([
                 supabase.from('clients').select('*').order('name', { ascending: true }),
-                supabase.from('appointments').select('*').order('time_slot', { ascending: true })
+                supabase.from('appointments').select('*').order('time_slot', { ascending: true }),
+                supabase.from('employee_daily_logs').select('employee_name')
             ]);
             allClients = clients || [];
             allAppointments = appointments || [];
+            
+            // Extraer nombres únicos de empleados de los logs y de las citas asignadas
+            const namesSet = new Set();
+            if (logs) logs.forEach(l => { if (l.employee_name) namesSet.add(l.employee_name.trim()); });
+            if (appointments) {
+                appointments.forEach(a => {
+                    if (a.assigned_employee) {
+                        a.assigned_employee.split(',').forEach(e => { if (e.trim()) namesSet.add(e.trim()); });
+                    }
+                });
+            }
+            if (selectedEmployee) namesSet.add(selectedEmployee);
+            allEmployeeNames = Array.from(namesSet).sort();
         }
 
         async function fetchDailyLog() {
@@ -615,14 +649,13 @@
                     }
                 }
 
-                // Sección de equipo con opción para que tú puedas agregar o retirar empleados directamente si estás en la visita
                 let teamHtml = '';
                 if (assignedList.length > 0 || isCheckedIn) {
                     teamHtml = `
                         <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px dashed #e2e8f0;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Personal en visita:</span>
-                                ${isCheckedIn ? `<button type="button" class="icon-btn btn-add-employee" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">+ Añadir persona</button>` : ''}
+                                ${isCheckedIn ? `<button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">+ Añadir persona</button>` : ''}
                             </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                                 ${assignedList.map((emp) => `
@@ -796,41 +829,67 @@
             });
         }
 
+        // Lógica del modal desplegable de empleados
+        const empModal = document.getElementById('employee-modal');
+        const empDropdown = document.getElementById('employee-select-dropdown');
+
+        document.getElementById('close-emp-modal').addEventListener('click', () => { empModal.style.display = 'none'; });
+        document.getElementById('btn-cancel-emp').addEventListener('click', () => { empModal.style.display = 'none'; });
+
+        document.getElementById('btn-confirm-emp').addEventListener('click', async () => {
+            const chosenEmp = empDropdown.value;
+            if (!chosenEmp || !currentAppointmentForEmp) return;
+
+            empModal.style.display = 'none';
+            const a = currentAppointmentForEmp;
+
+            let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+            if (!currentList.map(el => el.toLowerCase()).includes(chosenEmp.toLowerCase())) {
+                currentList.push(chosenEmp);
+            }
+            const newListStr = currentList.join(', ');
+
+            let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+            sessions.push({
+                employee: chosenEmp,
+                check_in: getLocalDateTimeISO(),
+                check_out: null,
+                minutes: 0
+            });
+
+            const { error } = await supabase.from('appointments').update({ 
+                assigned_employee: newListStr,
+                sessions: sessions
+            }).eq('id', a.id);
+
+            if (!error) {
+                await fetchData();
+                renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+            } else alert('Error al agregar empleado: ' + error.message);
+        });
+
         function attachClientTimerListeners() {
-            // Añadir empleado manualmente por el supervisor/responsable
-            document.querySelectorAll('.btn-add-employee').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
+            // Abrir modal con lista desplegable de empleados
+            document.querySelectorAll('.btn-open-add-emp').forEach(btn => {
+                btn.addEventListener('click', (e) => {
                     const id = e.target.getAttribute('data-id');
-                    const empName = prompt('Nombre del empleado o practicante a incluir en la visita:');
-                    if (!empName || !empName.trim()) return;
+                    currentAppointmentForEmp = allAppointments.find(x => x.id === id);
+                    if (!currentAppointmentForEmp) return;
 
-                    const cleanName = empName.trim();
-                    const a = allAppointments.find(x => x.id === id);
-                    if (!a) return;
-
-                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
-                    if (!currentList.map(el => el.toLowerCase()).includes(cleanName.toLowerCase())) {
-                        currentList.push(cleanName);
+                    // Llenar el select con los empleados disponibles
+                    empDropdown.innerHTML = '';
+                    if (allEmployeeNames.length === 0) {
+                        empDropdown.innerHTML = `<option value="">No hay empleados registrados</option>`;
+                    } else {
+                        allEmployeeNames.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = `👷‍♂️ ${name}`;
+                            empDropdown.appendChild(opt);
+                        });
                     }
-                    const newListStr = currentList.join(', ');
 
-                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-                    sessions.push({
-                        employee: cleanName,
-                        check_in: getLocalDateTimeISO(),
-                        check_out: null,
-                        minutes: 0
-                    });
-
-                    const { error } = await supabase.from('appointments').update({ 
-                        assigned_employee: newListStr,
-                        sessions: sessions
-                    }).eq('id', id);
-
-                    if (!error) {
-                        await fetchData();
-                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
-                    } else alert('Error al agregar empleado: ' + error.message);
+                    empModal.style.display = 'flex';
                 });
             });
 
@@ -856,7 +915,6 @@
                     currentList = currentList.filter(el => el.toLowerCase() !== empToRemove.toLowerCase());
                     const newListStr = currentList.join(', ');
 
-                    // Si ya no queda nadie en la lista, podemos cerrar la visita automáticamente o dejarla pendiente
                     let updateData = {
                         assigned_employee: newListStr,
                         sessions: sessions
