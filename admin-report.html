@@ -32,13 +32,12 @@
 
         .container {
             width: 100%;
-            max-width: 600px; /* Centrado perfecto y compacto para móvil y tablet */
+            max-width: 600px;
             margin: 0 auto;
             box-sizing: border-box;
             padding-bottom: 30px;
         }
 
-        /* Header Minimalista */
         .header {
             display: flex;
             justify-content: space-between;
@@ -75,7 +74,6 @@
         }
         .icon-btn:hover { background: #f1f5f9; color: var(--text-main); }
 
-        /* Tarjeta de Filtros Compacta */
         .filter-card {
             background: var(--card-bg);
             border: 1px solid var(--border-card);
@@ -163,7 +161,6 @@
             border-top: 1px dashed var(--border-card);
         }
 
-        /* Reportes */
         .report-section {
             display: flex;
             flex-direction: column;
@@ -195,7 +192,6 @@
             text-transform: uppercase;
         }
 
-        /* Resumen de Tiempos Estilo Grid Móvil */
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -226,7 +222,6 @@
             letter-spacing: 0.3px;
         }
 
-        /* Lista de Visitas Optimizada para Móvil (Sin tablas rígidas desbordadas) */
         .visit-list {
             display: flex;
             flex-direction: column;
@@ -405,7 +400,8 @@
 
         async function init() {
             try {
-                const { data: employees } = await supabase.from('employees').select('name').order('name');
+                const { data: employees, error: empErr } = await supabase.from('employees').select('name').order('name');
+                if (empErr) console.error('Error al cargar empleados:', empErr);
                 if (employees) {
                     employees.forEach(e => {
                         employeeSelect.innerHTML += `<option value="${e.name}">${e.name}</option>`;
@@ -612,9 +608,9 @@
 
                 reportResults.innerHTML = html;
 
-            } cumbersome => {
+            } catch (err) {
                 console.error('Error al generar reporte:', err);
-                reportResults.innerHTML = `<div style="padding: 15px; color: #dc2626; text-align: center; font-size: 0.75rem;">Error al cargar datos.</div>`;
+                reportResults.innerHTML = `<div style="padding: 15px; color: #dc2626; text-align: center; font-size: 0.75rem;">Error al cargar datos: ${err.message}</div>`;
             }
         }
 
