@@ -348,7 +348,7 @@
                 }
             });
 
-            // BOTÓN DE ALMUERZO ACTUALIZADO CON REGISTRO DE HORA INICIO Y HORA FIN
+            // BOTÓN DE ALMUERZO: Guarda la hora exacta de inicio o fin
             document.getElementById('btn-lunch').addEventListener('click', async () => {
                 if (!employeeDailyLog) {
                     alert('Primero debes iniciar tu jornada.');
@@ -359,13 +359,11 @@
                 let updatePayload = {};
 
                 if (employeeDailyLog.status === 'almuerzo') {
-                    // Si ya estaba en almuerzo, al hacer clic sale del almuerzo y guarda la hora de fin
                     updatePayload = {
                         status: 'activo',
                         lunch_end_time: nowIso
                     };
                 } else {
-                    // Si pasa a almuerzo, guarda la hora de inicio
                     updatePayload = {
                         status: 'almuerzo',
                         lunch_start_time: nowIso
