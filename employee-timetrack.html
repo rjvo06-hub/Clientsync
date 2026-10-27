@@ -51,7 +51,7 @@
             align-items: center;
             gap: 4px;
         }
-        /* Botón central de Clientes Activos */
+        /* Botón central universal para Clientes Activos */
         .btn-active-clients {
             background: #dcfce7;
             color: #166534;
@@ -149,7 +149,7 @@
         let employeeDailyLog = null;
         let selectedEmployee = '';
         let timerInterval = null;
-        let viewMode = 'assigned'; // 'assigned' o 'active'
+        let viewMode = 'assigned'; // 'assigned' o 'active' para todos los usuarios por igual
 
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
@@ -235,7 +235,6 @@
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
-            // Texto dinámico para el botón central
             const centerBtnText = viewMode === 'assigned' ? '🟢 Clientes Activos' : '📌 Mis Asignados';
 
             container.innerHTML = `
@@ -285,7 +284,7 @@
                     return list.includes(selectedEmployee.toLowerCase());
                 });
             } else {
-                // Modo Clientes Activos: Muestra solo los que están en visita activa (check_in_time sin check_out_time)
+                // Muestra todos los clientes que están en visita activa actualmente para cualquier usuario
                 filteredAppts = appts.filter(a => a.check_in_time && !a.check_out_time && map.has(a.client_id));
             }
 
@@ -320,13 +319,12 @@
                         actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
                     }
                 } else {
-                    // En vista de Clientes Activos
+                    // Vista de Clientes Activos (abierta para cualquier usuario)
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
                     
                     if (!amAssigned) {
                         actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">➕ Unirme</button>`;
                     } else {
-                        // Si estoy asignado y activo, permito terminar/desactivar la visita
                         actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
                     }
                 }
@@ -496,7 +494,7 @@
         }
 
         function attachClientTimerListeners() {
-            // Unirse a cliente activo
+            // Unirse a cliente activo (para cualquier usuario)
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
