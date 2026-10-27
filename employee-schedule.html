@@ -550,7 +550,6 @@
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                     
                     if (timetrackViewMode === 'assigned') {
-                        // Si hay más de 1 empleado trabajando, dar la opción de desasignarse (salir sin cerrar la visita) o terminar por completo
                         if (assignedList.length > 1) {
                             actionBtn = `
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -587,7 +586,7 @@
                 if (assignedList.length > 0) {
                     teamHtml = `
                         <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
-                            <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Trabajando y tiempo activo:</span>
+                            <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Trabajadores asignados:</span>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                                 ${assignedList.map((emp) => {
                                     if (isCompleted) {
@@ -597,11 +596,20 @@
                                             </span>
                                         `;
                                     }
-                                    return `
-                                        <span class="team-chip">
-                                            👷‍♂️ ${emp} <strong style="color: #166534; font-weight: 800;" class="user-visit-time" data-checkin="${appt.check_in_time}">(--:--:--)</strong>
-                                        </span>
-                                    `;
+                                    // Si está en curso (Checked-in), mostramos el tiempo activo. Si está pendiente, SOLO mostramos el nombre sin paréntesis ni NaN.
+                                    if (isCheckedIn) {
+                                        return `
+                                            <span class="team-chip">
+                                                👷‍♂️ ${emp} <strong style="color: #166534; font-weight: 800;" class="user-visit-time" data-checkin="${appt.check_in_time}">(0m 0s)</strong>
+                                            </span>
+                                        `;
+                                    } else {
+                                        return `
+                                            <span class="team-chip" style="background: #f1f5f9; color: #475569; border-color: #e2e8f0;">
+                                                👷‍♂️ ${emp}
+                                            </span>
+                                        `;
+                                    }
                                 }).join('')}
                             </div>
                         </div>
@@ -784,7 +792,6 @@
         }
 
         function attachClientTimerListeners() {
-            // Unirse a cliente activo
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -805,7 +812,6 @@
                 });
             });
 
-            // Desasignarse (Salir sin cerrar el tiempo general de la visita)
             document.querySelectorAll('.btn-unassign').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -813,7 +819,6 @@
                     if (!a) return;
 
                     let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
-                    // Filtrar para remover al usuario actual
                     currentList = currentList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
                     const newListStr = currentList.join(', ');
 
@@ -825,7 +830,6 @@
                 });
             });
 
-            // Botón "Llegué" (Check-in)
             document.querySelectorAll('.btn-checkin').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -854,7 +858,6 @@
                 });
             });
 
-            // Botón "Cerrar Visita" / "Terminar" (Check-out total)
             document.querySelectorAll('.btn-checkout').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
