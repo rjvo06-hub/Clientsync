@@ -291,24 +291,36 @@
         }
 
         async function fetchData() {
-            const [{ data: clients }, { data: appointments }, { data: logs }] = await Promise.all([
+            // Consultamos la tabla 'employees' (o ajústate si tu tabla se llama diferente, ej. 'staff' o 'users')
+            const [{ data: clients }, { data: appointments }, { data: employeesData }] = await Promise.all([
                 supabase.from('clients').select('*').order('name', { ascending: true }),
                 supabase.from('appointments').select('*').order('time_slot', { ascending: true }),
-                supabase.from('employee_daily_logs').select('employee_name')
+                supabase.from('employees').select('*') // <--- Tabla oficial de empleados en Supabase
             ]);
+            
             allClients = clients || [];
             allAppointments = appointments || [];
             
-            // Extraer nombres únicos de empleados de los logs y de las citas asignadas
             const namesSet = new Set();
-            if (logs) logs.forEach(l => { if (l.employee_name) namesSet.add(l.employee_name.trim()); });
-            if (appointments) {
-                appointments.forEach(a => {
-                    if (a.assigned_employee) {
-                        a.assigned_employee.split(',').forEach(e => { if (e.trim()) namesSet.add(e.trim()); });
-                    }
+            
+            // Extraer nombres directamente de la tabla 'employees' de Supabase
+            if (employeesData && employeesData.length > 0) {
+                employeesData.forEach(emp => {
+                    // Intenta leer columnas comunes como 'name', 'employee_name', o 'full_name'
+                    const name = emp.name || emp.employee_name || emp.full_name || emp.username;
+                    if (name) namesSet.add(name.trim());
                 });
+            } else {
+                // Respaldo por si la tabla de empleados tiene otro nombre o columna
+                if (appointments) {
+                    appointments.forEach(a => {
+                        if (a.assigned_employee) {
+                            a.assigned_employee.split(',').forEach(e => { if (e.trim()) namesSet.add(e.trim()); });
+                        }
+                    });
+                }
             }
+
             if (selectedEmployee) namesSet.add(selectedEmployee);
             allEmployeeNames = Array.from(namesSet).sort();
         }
@@ -869,17 +881,15 @@
         });
 
         function attachClientTimerListeners() {
-            // Abrir modal con lista desplegable de empleados
             document.querySelectorAll('.btn-open-add-emp').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const id = e.target.getAttribute('data-id');
                     currentAppointmentForEmp = allAppointments.find(x => x.id === id);
                     if (!currentAppointmentForEmp) return;
 
-                    // Llenar el select con los empleados disponibles
                     empDropdown.innerHTML = '';
                     if (allEmployeeNames.length === 0) {
-                        empDropdown.innerHTML = `<option value="">No hay empleados registrados</option>`;
+                        empDropdown.innerHTML = `<option value="">No hay empleados registrados en la tabla</option>`;
                     } else {
                         allEmployeeNames.forEach(name => {
                             const opt = document.createElement('option');
@@ -893,7 +903,6 @@
                 });
             });
 
-            // Retirar empleado manualmente por el supervisor/responsable
             document.querySelectorAll('.btn-remove-employee').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
