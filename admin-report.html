@@ -500,7 +500,7 @@
                             let laborDurationMins = realDurationMins;
                             let lunchNote = '';
 
-                            // Descuento puramente visual para la Labor Total del cliente activo durante la pausa
+                            // Cruce puramente visual para descontar los minutos de pausa en la Labor Total del cliente activo
                             if (realLunchStart && a.check_in_time && a.check_out_time && pauseMinutes > 0) {
                                 const visitIn = a.check_in_time;
                                 const visitOut = a.check_out_time;
