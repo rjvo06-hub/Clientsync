@@ -500,7 +500,7 @@
                             let laborDurationMins = realDurationMins;
                             let lunchNote = '';
 
-                            // Descontar la pausa únicamente en la Labor Total del cliente que estuvo activo durante el almuerzo
+                            // Descuento puramente visual para la Labor Total del cliente activo durante la pausa
                             if (realLunchStart && a.check_in_time && a.check_out_time && pauseMinutes > 0) {
                                 const visitIn = a.check_in_time;
                                 const visitOut = a.check_out_time;
