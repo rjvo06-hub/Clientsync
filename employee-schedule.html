@@ -547,6 +547,7 @@
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     }
                 } else if (isCheckedIn) {
+                    // Badge con clase visit-timer-badge tanto en modo assigned como en active global
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                     
                     if (timetrackViewMode === 'assigned') {
@@ -596,7 +597,6 @@
                                             </span>
                                         `;
                                     }
-                                    // Si está en curso (Checked-in), mostramos el tiempo activo. Si está pendiente, SOLO mostramos el nombre sin paréntesis ni NaN.
                                     if (isCheckedIn) {
                                         return `
                                             <span class="team-chip">
