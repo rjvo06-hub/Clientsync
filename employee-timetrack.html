@@ -37,6 +37,16 @@
             margin: 0;
             color: #0f172a;
         }
+        .version-tag {
+            font-size: 0.6rem;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            margin-left: 6px;
+            display: inline-block;
+        }
         .icon-btn {
             background: #f1f5f9;
             border: none;
@@ -51,7 +61,6 @@
             align-items: center;
             gap: 4px;
         }
-        /* Botón central para ver clientes activos */
         .btn-active-clients {
             background: #dcfce7;
             color: #166534;
@@ -132,9 +141,15 @@
 
     <div class="app-container">
         <div class="header">
-            <h1 id="header-title">⏱️ Tiempos</h1>
-            <a href="#" id="link-citas" class="icon-btn">← Menú</a>
-            <button type="button" class="btn-active-clients" id="btn-toggle-view">🟢 Clientes Activos</button>
+            <div>
+                <h1 id="header-title" style="display: inline-block;">⏱️ Tiempos</h1>
+                <!-- Indicador visual de actualización (v2.1 con timestamp) -->
+                <span class="version-tag">v2.1-live</span>
+            </div>
+            <div>
+                <button type="button" class="btn-active-clients" id="btn-toggle-view" style="margin-right: 6px;">🟢 Clientes Activos</button>
+                <a href="#" id="link-citas" class="icon-btn">← Menú</a>
+            </div>
         </div>
         <div id="timetrack-content">
             <p style="text-align: center; color: #64748b;">Cargando información...</p>
@@ -235,7 +250,6 @@
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
-            // Actualizar texto del botón central según la vista actual
             const btnToggle = document.getElementById('btn-toggle-view');
             if (btnToggle) {
                 btnToggle.textContent = viewMode === 'assigned' ? '🟢 Clientes Activos' : '📌 Mis Asignados';
@@ -269,7 +283,6 @@
                 <div id="clients-timetrack-list"></div>
             `;
 
-            // Re-asignar el evento al botón central tras renderizar el contenedor
             document.getElementById('btn-toggle-view').addEventListener('click', () => {
                 viewMode = viewMode === 'assigned' ? 'active' : 'assigned';
                 renderTimetrackView();
@@ -285,14 +298,12 @@
             
             let filteredAppts = [];
             if (viewMode === 'assigned') {
-                // Muestra los asignados a este usuario
                 filteredAppts = appts.filter(a => {
                     if (!a.assigned_employee) return false;
                     const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
                     return list.includes(selectedEmployee.toLowerCase());
                 });
             } else {
-                // Muestra TODOS los clientes que tengan una visita activa (check_in_time sin check_out_time) sin importar quién los tenga asignados
                 filteredAppts = appts.filter(a => a.check_in_time && !a.check_out_time && map.has(a.client_id));
             }
 
@@ -328,14 +339,11 @@
                         actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
                     }
                 } else {
-                    // Vista de Clientes Activos (para cualquier usuario)
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 Activo Ahora</span>`;
                     
                     if (!amAssigned) {
-                        // Si no estoy en esta visita, puedo unirme
                         actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">➕ Unirme</button>`;
                     } else {
-                        // Si estoy en la visita, puedo terminarla
                         actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
                     }
                 }
@@ -505,7 +513,6 @@
         }
 
         function attachClientTimerListeners() {
-            // Unirse a cliente activo
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -525,7 +532,6 @@
                 });
             });
 
-            // Botón "Llegué" (Check-in)
             document.querySelectorAll('.btn-checkin').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -550,7 +556,6 @@
                 });
             });
 
-            // Botón "Terminar" (Check-out)
             document.querySelectorAll('.btn-checkout').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
