@@ -148,6 +148,15 @@
             gap: 4px;
             border: 1px solid #e2e8f0;
         }
+        .team-chip button {
+            background: none;
+            border: none;
+            color: #dc2626;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 2px;
+            font-size: 0.7rem;
+        }
         .tabs-header { display: flex; gap: 6px; margin-bottom: 14px; }
         .tab-pill {
             flex: 1;
@@ -566,7 +575,7 @@
                 let actionBtn = '';
 
                 if (isCompleted) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total Laboral: ${appt.total_labor_minutes || 0}m)</span>`;
+                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total: ${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     }
@@ -606,15 +615,20 @@
                     }
                 }
 
+                // Sección de equipo con opción para que tú puedas agregar o retirar empleados directamente si estás en la visita
                 let teamHtml = '';
-                if (assignedList.length > 0) {
+                if (assignedList.length > 0 || isCheckedIn) {
                     teamHtml = `
-                        <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
-                            <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Trabajadores asignados:</span>
+                        <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px dashed #e2e8f0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Personal en visita:</span>
+                                ${isCheckedIn ? `<button type="button" class="icon-btn btn-add-employee" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">+ Añadir persona</button>` : ''}
+                            </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                                 ${assignedList.map((emp) => `
                                     <span class="team-chip">
                                         👷‍♂️ ${emp}
+                                        ${isCheckedIn ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${emp}" title="Retirar a ${emp}">×</button>` : ''}
                                     </span>
                                 `).join('')}
                             </div>
@@ -783,6 +797,86 @@
         }
 
         function attachClientTimerListeners() {
+            // Añadir empleado manualmente por el supervisor/responsable
+            document.querySelectorAll('.btn-add-employee').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const empName = prompt('Nombre del empleado o practicante a incluir en la visita:');
+                    if (!empName || !empName.trim()) return;
+
+                    const cleanName = empName.trim();
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    if (!currentList.map(el => el.toLowerCase()).includes(cleanName.toLowerCase())) {
+                        currentList.push(cleanName);
+                    }
+                    const newListStr = currentList.join(', ');
+
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    sessions.push({
+                        employee: cleanName,
+                        check_in: getLocalDateTimeISO(),
+                        check_out: null,
+                        minutes: 0
+                    });
+
+                    const { error } = await supabase.from('appointments').update({ 
+                        assigned_employee: newListStr,
+                        sessions: sessions
+                    }).eq('id', id);
+
+                    if (!error) {
+                        await fetchData();
+                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error al agregar empleado: ' + error.message);
+                });
+            });
+
+            // Retirar empleado manualmente por el supervisor/responsable
+            document.querySelectorAll('.btn-remove-employee').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const empToRemove = e.target.getAttribute('data-emp');
+                    if (!confirm(`¿Deseas retirar a ${empToRemove} de esta visita y cerrar su sesión?`)) return;
+
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
+                    const nowIso = getLocalDateTimeISO();
+                    if (activeSession) {
+                        activeSession.check_out = nowIso;
+                        activeSession.minutes = Math.max(1, Math.round((new Date(nowIso) - new Date(activeSession.check_in)) / 60000));
+                    }
+
+                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    currentList = currentList.filter(el => el.toLowerCase() !== empToRemove.toLowerCase());
+                    const newListStr = currentList.join(', ');
+
+                    // Si ya no queda nadie en la lista, podemos cerrar la visita automáticamente o dejarla pendiente
+                    let updateData = {
+                        assigned_employee: newListStr,
+                        sessions: sessions
+                    };
+
+                    if (currentList.length === 0) {
+                        const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
+                        updateData.check_out_time = nowIso;
+                        updateData.total_labor_minutes = totalLabor;
+                    }
+
+                    const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
+
+                    if (!error) {
+                        await fetchData();
+                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error al retirar empleado: ' + error.message);
+                });
+            });
+
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -807,7 +901,6 @@
                         assigned_employee: newListStr,
                         sessions: sessions
                     }).eq('id', id);
-
                     if (!error) {
                         await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
@@ -837,7 +930,6 @@
                         assigned_employee: newListStr,
                         sessions: sessions
                     }).eq('id', id);
-
                     if (!error) {
                         await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
@@ -898,7 +990,6 @@
 
                     let assignedList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
 
-                    // REGLA: Si hay más de un empleado trabajando, solo sale el actual y la visita sigue activa
                     if (assignedList.length > 1) {
                         assignedList = assignedList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
                         const newListStr = assignedList.join(', ');
@@ -914,7 +1005,6 @@
                         } else alert('Error al salir: ' + error.message);
 
                     } else {
-                        // REGLA: Es el último empleado, cerramos oficialmente el tiempo del cliente y sumamos todo el historial JSONB
                         const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
 
                         const { error } = await supabase.from('appointments').update({
