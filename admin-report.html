@@ -399,7 +399,7 @@
                     let clockIn = '--:--';
                     let clockOut = '--:--';
                     let grossMinutes = 0;
-                    let pauseMinutes = 30; // 30 minutos de pausa estándar o calculada
+                    let pauseMinutes = 0;
 
                     if (log && log.clock_in_time) {
                         const startMs = new Date(log.clock_in_time).getTime();
@@ -407,11 +407,16 @@
                         grossMinutes = Math.max(0, Math.floor((endMs - startMs) / 60000));
                     }
 
-                    // Si existen horas exactas de inicio y fin de almuerzo en el log, usarlas
+                    // CALCULO DE PAUSA: Con tope máximo de 30 minutos
                     if (log && log.lunch_start_time && log.lunch_end_time) {
                         const lStart = new Date(log.lunch_start_time).getTime();
                         const lEnd = new Date(log.lunch_end_time).getTime();
-                        pauseMinutes = Math.max(0, Math.floor((lEnd - lStart) / 60000));
+                        const rawPauseMins = Math.max(0, Math.floor((lEnd - lStart) / 60000));
+                        // Si excede los 30 minutos, se limita automáticamente a 30 minutos
+                        pauseMinutes = Math.min(30, rawPauseMins);
+                    } else if (log && log.lunch_start_time && !log.lunch_end_time && log.status === 'activo') {
+                        // Si está activo pero el almuerzo superó o llegó a 30 minutos sin cerrar, se topa a 30
+                        pauseMinutes = 30;
                     }
 
                     let netMinutes = Math.max(0, grossMinutes - pauseMinutes); 
@@ -474,20 +479,17 @@
                             
                             let realDurationMins = a.visit_duration_minutes || 0;
 
-                            // Cruce inteligente: si la visita abarcó el horario de almuerzo, restamos la pausa a este cliente en específico
-                            if (log && log.lunch_start_time && log.lunch_end_time && a.check_in_time && a.check_out_time) {
+                            // CRUCE INTELIGENTE DE ALMUERZO CON TOPE DE 30 MINUTOS:
+                            if (log && log.lunch_start_time && a.check_in_time && a.check_out_time) {
                                 const visitIn = new Date(a.check_in_time).getTime();
                                 const visitOut = new Date(a.check_out_time).getTime();
                                 const lStart = new Date(log.lunch_start_time).getTime();
-                                const lEnd = new Date(log.lunch_end_time).getTime();
+                                const lEnd = log.lunch_end_time ? new Date(log.lunch_end_time).getTime() : (lStart + 30 * 60000);
 
-                                // Si la visita ocurrió durante o cruzó el almuerzo
+                                // Si la visita abarcó el horario de almuerzo, se descuenta la pausa (máximo 30 min)
                                 if (visitIn <= lEnd && visitOut >= lStart) {
                                     realDurationMins = Math.max(0, realDurationMins - pauseMinutes);
                                 }
-                            } else if (pauseMinutes > 0 && realDurationMins > 240 && dayAppts.length === 1) {
-                                // Si hay una sola visita larga que abarcó toda la jornada, descontamos la pausa por defecto ahí
-                                realDurationMins = Math.max(0, realDurationMins - pauseMinutes);
                             }
 
                             const duration = formatHoursAndMinutes(realDurationMins);
