@@ -292,7 +292,6 @@
             return `${hours}h ${minutes}m`;
         }
 
-        // Extrae la hora plana de la base de datos (YYYY-MM-DDTHH:MM:SS)
         function formatFlatTime(timestampStr) {
             if (!timestampStr) return '--:--';
             if (timestampStr.includes('T')) {
@@ -424,7 +423,6 @@
                         grossMinutes = getFlatMinutesDifference(log.clock_in_time, currentRefTime);
                     }
 
-                    // CALCULO DE PAUSA: Con tope máximo estricto de 30 minutos
                     let realLunchStart = null;
                     let realLunchEnd = null;
 
@@ -496,23 +494,27 @@
                             const checkInTime = formatFlatTime(a.check_in_time);
                             const checkOutTime = formatFlatTime(a.check_out_time);
                             
-                            let realDurationMins = a.visit_duration_minutes || 0;
+                            // Duración real de la visita inalterada (Check-in a Check-out)
+                            const realDurationMins = a.visit_duration_minutes || 0;
+                            
+                            let laborDurationMins = realDurationMins;
+                            let lunchNote = '';
 
-                            // CRUCE INTELIGENTE Y ROBUSTO DE ALMUERZO CON EL CLIENTE ACTIVO EN ESE HORARIO
+                            // Descontar la pausa únicamente en la Labor Total del cliente que estuvo activo durante el almuerzo
                             if (realLunchStart && a.check_in_time && a.check_out_time && pauseMinutes > 0) {
                                 const visitIn = a.check_in_time;
                                 const visitOut = a.check_out_time;
                                 const lStart = realLunchStart;
                                 const lEnd = realLunchEnd || (lStart.substring(0, 11) + String(parseInt(lStart.substring(11, 13)) + Math.floor((parseInt(lStart.substring(14, 16)) + pauseMinutes) / 60)).padStart(2, '0') + ':' + String((parseInt(lStart.substring(14, 16)) + pauseMinutes) % 60).padStart(2, '0') + ':00');
 
-                                // Si la visita del cliente abarcó/coincidió con el horario del almuerzo
                                 if (visitIn <= lEnd && visitOut >= lStart) {
-                                    realDurationMins = Math.max(0, realDurationMins - pauseMinutes);
+                                    laborDurationMins = Math.max(0, realDurationMins - pauseMinutes);
+                                    lunchNote = `<br><span style="font-size: 0.65rem; color: #d97706; font-weight: 700;">(Incluye almuerzo -${pauseMinutes}m)</span>`;
                                 }
                             }
 
                             const duration = formatHoursAndMinutes(realDurationMins);
-                            const totalLabor = formatHoursAndMinutes(realDurationMins * Math.max(1, (a.assigned_employee || '').split(',').length));
+                            const totalLabor = formatHoursAndMinutes(laborDurationMins * Math.max(1, (a.assigned_employee || '').split(',').length)) + lunchNote;
 
                             html += `
                                 <tr>
