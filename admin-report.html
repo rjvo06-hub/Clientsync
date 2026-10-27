@@ -285,23 +285,23 @@
 
         function formatHoursAndMinutes(totalMinutes) {
             if (!totalMinutes || isNaN(totalMinutes) || totalMinutes < 0) return '0m';
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-            if (hours === 0) return `${minutes}m`;
-            if (minutes === 0) return `${hours}h`;
-            return `${hours}h ${minutes}m`;
+            const hours = Math.floor(totalMinutes / 65); // Standard 60 min per hour
+            // Re-evaluating standard hour conversion:
+            const h = Math.floor(totalMinutes / 60);
+            const m = totalMinutes % 60;
+            if (h === 0) return `${m}m`;
+            if (m === 0) return `${h}h`;
+            return `${h}h ${m}m`;
         }
 
         function formatFlatTime(timestampStr) {
             if (!timestampStr) return '--:--';
-            if (timestampStr.includes('T')) {
-                const timePart = timestampStr.split('T')[1];
-                return timePart ? timePart.substring(0, 5) : '--:--';
+            // Extraer la hora sin importar si usa 'T' o espacio
+            const parts = timestampStr.split(/[\sT]/);
+            if (parts.length > 1) {
+                return parts[1].substring(0, 5);
             }
-            if (timestampStr.length >= 16) {
-                return timestampStr.substring(11, 16);
-            }
-            return timestampStr;
+            return timestampStr.substring(11, 16) || '--:--';
         }
 
         function formatDate(str) {
@@ -310,14 +310,19 @@
             return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
         }
 
+        // Convierte una cadena de tiempo (YYYY-MM-DDTHH:MM:SS o YYYY-MM-DD HH:MM:SS) a minutos absolutos desde medianoche
+        function timeToMinutes(timestampStr) {
+            if (!timestampStr) return 0;
+            const parts = timestampStr.split(/[\sT]/);
+            const timePart = parts.length > 1 ? parts[1] : parts[0];
+            const timeComponents = timePart.split(':');
+            const hours = parseInt(timeComponents[0]) || 0;
+            const minutes = parseInt(timeComponents[1]) || 0;
+            return hours * 60 + minutes;
+        }
+
         function getFlatMinutesDifference(startStr, endStr) {
-            if (!startStr || !endStr) return 0;
-            const parseTime = (s) => {
-                const timePart = s.includes('T') ? s.split('T')[1] : s.substring(11);
-                const parts = timePart.split(':');
-                return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
-            };
-            const diff = parseTime(endStr) - parseTime(startStr);
+            const diff = timeToMinutes(endStr) - timeToMinutes(startStr);
             return diff > 0 ? diff : 0;
         }
 
@@ -419,7 +424,7 @@
                     let pauseMinutes = 0;
 
                     if (log && log.clock_in_time) {
-                        const currentRefTime = log.clock_out_time || `${item.date}T23:59:59`;
+                        const currentRefTime = log.clock_out_time || `${item.date} 23:59:59`;
                         grossMinutes = getFlatMinutesDifference(log.clock_in_time, currentRefTime);
                     }
 
@@ -500,14 +505,15 @@
                             let laborDurationMins = realDurationMins;
                             let lunchNote = '';
 
-                            // Cruce puramente visual para descontar los minutos de pausa en la Labor Total del cliente activo
+                            // VALIDACIÓN ROBUSTA POR MINUTOS: Compara si el horario de la visita abarca la pausa de almuerzo
                             if (realLunchStart && a.check_in_time && a.check_out_time && pauseMinutes > 0) {
-                                const visitIn = a.check_in_time;
-                                const visitOut = a.check_out_time;
-                                const lStart = realLunchStart;
-                                const lEnd = realLunchEnd || (lStart.substring(0, 11) + String(parseInt(lStart.substring(11, 13)) + Math.floor((parseInt(lStart.substring(14, 16)) + pauseMinutes) / 60)).padStart(2, '0') + ':' + String((parseInt(lStart.substring(14, 16)) + pauseMinutes) % 60).padStart(2, '0') + ':00');
+                                const visitInMins = timeToMinutes(a.check_in_time);
+                                const visitOutMins = timeToMinutes(a.check_out_time);
+                                const lunchStartMins = timeToMinutes(realLunchStart);
+                                const lunchEndMins = realLunchEnd ? timeToMinutes(realLunchEnd) : (lunchStartMins + pauseMinutes);
 
-                                if (visitIn <= lEnd && visitOut >= lStart) {
+                                // Si la visita comenzó antes o durante el almuerzo y terminó después o durante el almuerzo
+                                if (visitInMins <= lunchEndMins && visitOutMins >= lunchStartMins) {
                                     laborDurationMins = Math.max(0, realDurationMins - pauseMinutes);
                                     lunchNote = `<br><span style="font-size: 0.65rem; color: #d97706; font-weight: 700;">(Incluye almuerzo -${pauseMinutes}m)</span>`;
                                 }
