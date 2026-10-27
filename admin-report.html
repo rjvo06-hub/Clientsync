@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Reporte y Auditoría</title>
+    <title>ClientSync | Auditoría de Jornadas</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -55,7 +55,6 @@
             font-weight: 700;
             margin: 0;
             color: var(--text-main);
-            letter-spacing: -0.2px;
         }
 
         .icon-btn {
@@ -121,10 +120,6 @@
             font-weight: 600;
             width: 100%;
             box-sizing: border-box;
-        }
-        select:focus, input:focus {
-            border-color: var(--primary);
-            background: #fff;
         }
 
         .btn-query {
@@ -209,17 +204,12 @@
             gap: 1px;
         }
 
-        .metrics-grid span {
-            font-weight: 700;
-        }
-
         .section-subtitle {
             font-size: 0.74rem;
             font-weight: 700;
             color: var(--text-secondary);
             margin-bottom: 6px;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
         }
 
         .visit-list {
@@ -264,6 +254,22 @@
             color: #334155;
         }
 
+        .team-chips-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin: 4px 0;
+        }
+
+        .team-chip-audit {
+            background: #e2e8f0;
+            color: #1e293b;
+            font-size: 0.62rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
         .visit-footer-row {
             display: flex;
             justify-content: space-between;
@@ -274,9 +280,6 @@
         }
 
         .time-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
             font-weight: 700;
         }
     </style>
@@ -289,7 +292,7 @@
             <a href="./index.html" class="icon-btn">← Menú</a>
         </div>
 
-        <!-- Filtros de Consulta -->
+        <!-- Filtros -->
         <div class="filter-card">
             <div class="filter-row">
                 <div class="form-group full">
@@ -320,9 +323,8 @@
             <button type="button" class="btn-query" id="btn-search">🔍 Consultar Registros</button>
         </div>
 
-        <!-- Contenedor de Resultados -->
         <div id="report-results" class="report-section">
-            <div style="text-align: center; padding: 30px 20px; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-card); font-size: 0.8rem;">
+            <div style="text-align: center; padding: 30px; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.8rem;">
                 Selecciona la fecha y haz clic en "Consultar Registros".
             </div>
         </div>
@@ -371,9 +373,7 @@
         function formatFlatTime(timestampStr) {
             if (!timestampStr) return '--:--';
             const parts = timestampStr.split(/[\sT]/);
-            if (parts.length > 1) {
-                return parts[1].substring(0, 5);
-            }
+            if (parts.length > 1) return parts[1].substring(0, 5);
             return timestampStr.substring(11, 16) || '--:--';
         }
 
@@ -388,9 +388,7 @@
             const parts = timestampStr.split(/[\sT]/);
             const timePart = parts.length > 1 ? parts[1] : parts[0];
             const timeComponents = timePart.split(':');
-            const hours = parseInt(timeComponents[0]) || 0;
-            const minutes = parseInt(timeComponents[1]) || 0;
-            return hours * 60 + minutes;
+            return (parseInt(timeComponents[0]) || 0) * 60 + (parseInt(timeComponents[1]) || 0);
         }
 
         function getFlatMinutesDifference(startStr, endStr) {
@@ -400,8 +398,7 @@
 
         async function init() {
             try {
-                const { data: employees, error: empErr } = await supabase.from('employees').select('name').order('name');
-                if (empErr) console.error('Error al cargar empleados:', empErr);
+                const { data: employees } = await supabase.from('employees').select('name').order('name');
                 if (employees) {
                     employees.forEach(e => {
                         employeeSelect.innerHTML += `<option value="${e.name}">${e.name}</option>`;
@@ -447,7 +444,7 @@
                 const appts = apptsData || [];
 
                 if (logs.length === 0 && appts.length === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-card); font-size: 0.78rem;">No se encontraron registros en las fechas seleccionadas.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.78rem;">No se encontraron registros en las fechas seleccionadas.</div>`;
                     return;
                 }
 
@@ -478,7 +475,7 @@
                 });
 
                 if (reportMap.size === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-card); font-size: 0.78rem;">No hay actividad registrada para los criterios seleccionados.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.78rem;">No hay actividad registrada para los criterios seleccionados.</div>`;
                     return;
                 }
 
@@ -559,6 +556,14 @@
                             const checkInTime = formatFlatTime(a.check_in_time);
                             const checkOutTime = formatFlatTime(a.check_out_time);
                             
+                            const teamList = a.assigned_employee ? a.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
+                            const teamCount = Math.max(1, teamList.length);
+
+                            let teamChipsHtml = '';
+                            teamList.forEach(emp => {
+                                teamChipsHtml += `<span class="team-chip-audit">👤 ${emp}</span>`;
+                            });
+
                             const realDurationMins = a.visit_duration_minutes || 0;
                             let laborDurationMins = realDurationMins;
                             let lunchNote = '';
@@ -576,7 +581,7 @@
                             }
 
                             const duration = formatHoursAndMinutes(realDurationMins);
-                            const totalLabor = formatHoursAndMinutes(laborDurationMins * Math.max(1, (a.assigned_employee || '').split(',').length));
+                            const totalLabor = formatHoursAndMinutes(laborDurationMins * teamCount);
 
                             html += `
                                 <div class="visit-item">
@@ -587,13 +592,19 @@
                                         </div>
                                         <div class="visit-time-badge">Prog: ${a.time_slot || '--:--'}</div>
                                     </div>
+                                    
+                                    <div>
+                                        <div style="font-size:0.65rem; color:var(--text-secondary); font-weight:700;">Personal presente (${teamCount}):</div>
+                                        <div class="team-chips-row">${teamChipsHtml}</div>
+                                    </div>
+
                                     <div class="visit-footer-row">
                                         <div>
                                             <span style="color:var(--text-secondary);">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
                                         </div>
                                         <div style="text-align: right;">
                                             <div>Visita: <span class="time-pill" style="color:var(--primary);">${duration}</span></div>
-                                            <div>Labor: <span class="time-pill" style="color:#16a34a;">${totalLabor}</span></div>
+                                            <div>Labor Total (${teamCount}x): <span class="time-pill" style="color:#16a34a;">${totalLabor}</span></div>
                                             ${lunchNote}
                                         </div>
                                     </div>
