@@ -124,7 +124,6 @@
             border-radius: 6px;
             font-weight: 700;
             display: inline-block;
-            margin-top: 4px;
             border: 1px solid #bbf7d0;
         }
     </style>
@@ -298,7 +297,9 @@
             }
 
             if (filteredAppts.length === 0) {
-                const msg = viewMode === 'assigned' ? 'No tienes clientes asignados para hoy.' : 'No hay clientes activos en este momento.';
+                const msg = viewMode === 'assigned' 
+                    ? 'No tienes clientes asignados para hoy.' 
+                    : '🟢 No hay clientes activos en este momento en la empresa.';
                 listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.8rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">${msg}</div>`;
                 return;
             }
@@ -328,7 +329,7 @@
                     }
                 } else {
                     // Vista de Clientes Activos (para cualquier usuario)
-                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
+                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 Activo Ahora</span>`;
                     
                     if (!amAssigned) {
                         // Si no estoy en esta visita, puedo unirme
@@ -341,25 +342,33 @@
 
                 let teamHtml = '';
                 if (assignedList.length > 0) {
-                    teamHtml = `<div class="team-chip">👤 ${assignedList.join(', ')}</div>`;
+                    teamHtml = `
+                        <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                            <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">👥 Empleados trabajando:</span>
+                            ${assignedList.map(emp => `<span class="team-chip">👷‍♂️ ${emp}</span>`).join('')}
+                        </div>
+                    `;
+                } else {
+                    teamHtml = `<div style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;">⚠️ Sin empleados registrados en esta visita</div>`;
                 }
 
                 html += `
                     <div class="item-card">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
                             <div>
-                                <strong style="font-size: 0.82rem;">#${idx + 1} ${c.name}</strong>
+                                <strong style="font-size: 0.85rem; color: #0f172a;">🏢 ${c.name}</strong>
                                 <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">📍 ${c.address || 'Sin dirección'}</div>
                             </div>
-                            <div style="text-align: right;">
+                            <div>
                                 ${badge}
-                                ${teamHtml}
                             </div>
                         </div>
 
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
-                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h</span>
-                            <div style="width: 120px;">${actionBtn}</div>
+                        ${teamHtml}
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9;">
+                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ Inicio: ${appt.check_in_time ? appt.check_in_time.split('T')[1].substring(0,5) : 'N/D'}</span>
+                            <div style="width: 130px;">${actionBtn}</div>
                         </div>
                     </div>
                 `;
