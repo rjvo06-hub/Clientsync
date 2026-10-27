@@ -87,13 +87,62 @@
         .btn-danger { background: #dc2626; color: white; }
         .btn-secondary { background: #e2e8f0; color: #334155; }
         .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        
         .item-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 14px;
             padding: 14px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Estilos para gestión de equipo en la visita */
+        .team-badge-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin: 4px 0;
+        }
+        .team-chip {
+            background: #f1f5f9;
+            color: #334155;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid #cbd5e1;
+        }
+        .team-chip.me {
+            background: #dbeafe;
+            color: #1e40af;
+            border-color: #93c5fd;
+        }
+        .btn-remove-colleague {
+            background: none;
+            border: none;
+            color: #dc2626;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0;
+            font-size: 0.8rem;
+            margin-left: 2px;
+        }
+        .add-colleague-select {
+            font-size: 0.72rem;
+            padding: 5px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #1e293b;
+            font-weight: 600;
+            width: 100%;
         }
     </style>
 </head>
@@ -114,11 +163,11 @@
 
         let allClients = [];
         let allAppointments = [];
+        let allEmployees = [];
         let employeeDailyLog = null;
         let selectedEmployee = '';
         let timerInterval = null;
 
-        // Fecha neutra estática local (YYYY-MM-DD sin UTC)
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
         
@@ -137,7 +186,6 @@
             document.getElementById('header-title').textContent = `⏱️ Tiempos: ${selectedEmployee}`;
         }
 
-        // FUNCIÓN CLAVE: Devuelve la hora local plana (YYYY-MM-DDTHH:MM:SS) sin zona horaria ni UTC
         function getLocalDateTimeISO() {
             const d = new Date();
             const year = d.getFullYear();
@@ -157,13 +205,15 @@
 
         async function init() {
             try {
-                const [{ data: clients }, { data: appointments }] = await Promise.all([
+                const [{ data: clients }, { data: appointments }, { data: employees }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
-                    supabase.from('appointments').select('*').order('time_slot', { ascending: true })
+                    supabase.from('appointments').select('*').order('time_slot', { ascending: true }),
+                    supabase.from('employees').select('name').order('name', { ascending: true })
                 ]);
 
                 allClients = clients || [];
                 allAppointments = appointments || [];
+                allEmployees = employees || [];
                 await fetchDailyLog();
                 renderTimetrackView();
             } catch (err) {
@@ -188,9 +238,9 @@
             const map = new Map(allClients.map(c => [c.id, c]));
             return allAppointments.filter(a => {
                 if (!a.scheduled_date || a.scheduled_date.split('T')[0] !== todayStr) return false;
-                if (!a.assigned_employee) return false;
-                const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
-                return list.includes(selectedEmployee.toLowerCase()) && map.has(a.client_id);
+                // Muestra la cita si está asignada al empleado O si el empleado ya se incluyó en ella
+                const assignedList = a.assigned_employee ? a.assigned_employee.split(',').map(e => e.trim().toLowerCase()) : [];
+                return (assignedList.includes(selectedEmployee.toLowerCase()) || map.has(a.client_id));
             });
         }
 
@@ -234,7 +284,7 @@
                     </div>
                 </div>
 
-                <strong style="font-size: 0.82rem; color: #0f172a; display: block; margin-bottom: 8px;">📍 Clientes Pendientes / En Curso:</strong>
+                <strong style="font-size: 0.82rem; color: #0f172a; display: block; margin-bottom: 8px;">📍 Clientes de Hoy y Colaboración:</strong>
                 <div id="clients-timetrack-list"></div>
             `;
 
@@ -246,42 +296,130 @@
         function renderClientsList(appts, map) {
             const listContainer = document.getElementById('clients-timetrack-list');
             
-            const activeAppts = appts.filter(a => !a.check_out_time);
-
-            if (activeAppts.length === 0) {
-                listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #16a34a; font-size: 0.8rem; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0; font-weight: 700;">🎉 ¡Has completado todos los clientes de hoy!</div>`;
+            if (appts.length === 0) {
+                listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.8rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">No hay citas registradas para hoy.</div>`;
                 return;
             }
 
             let html = '';
-            activeAppts.forEach((appt, idx) => {
+            appts.forEach((appt, idx) => {
                 const c = map.get(appt.client_id);
+                if (!c) return;
+
+                const assignedList = appt.assigned_employee ? appt.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
                 const isCheckedIn = appt.check_in_time && !appt.check_out_time;
+                const isCheckedOut = !!appt.check_out_time;
+                const amInThisVisit = assignedList.map(e => e.toLowerCase()).includes(selectedEmployee.toLowerCase());
 
                 let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
-                let actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
-
-                if (isCheckedIn) {
+                if (isCheckedOut) {
+                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizada</span>`;
+                } else if (isCheckedIn) {
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
-                    actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
+                }
+
+                // Generar chips del equipo actual en la visita
+                let teamChipsHtml = '';
+                assignedList.forEach(emp => {
+                    const isMe = emp.toLowerCase() === selectedEmployee.toLowerCase();
+                    teamChipsHtml += `
+                        <span class="team-chip ${isMe ? 'me' : ''}">
+                            👤 ${emp}
+                            <button type="button" class="btn-remove-colleague" onclick="window.removeTeamMember('${appt.id}', '${emp}')" title="Quitar">×</button>
+                        </span>
+                    `;
+                });
+
+                // Opciones para agregar un compañero que no esté ya en la lista
+                let optionsHtml = `<option value="">+ Añadir compañero a la visita...</option>`;
+                allEmployees.forEach(e => {
+                    if (!assignedList.map(x => x.toLowerCase()).includes(e.name.toLowerCase())) {
+                        optionsHtml += `<option value="${e.name}">${e.name}</option>`;
+                    }
+                });
+
+                // Botón principal de acción (Llegué / Terminar / Unirme)
+                let actionBtn = '';
+                if (!isCheckedOut) {
+                    if (!isCheckedIn) {
+                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Iniciar Visita</button>`;
+                    } else {
+                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar Visita</button>`;
+                    }
+                } else {
+                    actionBtn = `<span style="font-size: 0.7rem; color: #64748b; font-weight: 600; text-align: center; display:block;">Visita Cerrada</span>`;
                 }
 
                 html += `
                     <div class="item-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                             <strong style="font-size: 0.82rem;">#${idx + 1} ${c.name}</strong>
                             ${badge}
                         </div>
-                        <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">📍 ${c.address || 'Sin dirección'}</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 6px;">📍 ${c.address || 'Sin dirección'}</div>
+                        
+                        <div>
+                            <div style="font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 3px;">Equipo en esta visita (${assignedList.length}):</div>
+                            <div class="team-badge-container">
+                                ${teamChipsHtml || '<span style="font-size:0.68rem; color:#94a3b8; font-style:italic;">Nadie registrado aún</span>'}
+                            </div>
+                        </div>
+
+                        ${!isCheckedOut ? `
+                            <div style="margin-top: 4px;">
+                                <select class="add-colleague-select" onchange="window.addTeamMember('${appt.id}', this.value)">
+                                    ${optionsHtml}
+                                </select>
+                            </div>
+                        ` : ''}
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
                             <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h</span>
-                            <div style="width: 120px;">${actionBtn}</div>
+                            <div style="width: 140px;">${actionBtn}</div>
                         </div>
                     </div>
                 `;
             });
             listContainer.innerHTML = html;
             attachClientTimerListeners();
+        }
+
+        // Funciones globales para añadir/quitar compañeros de equipo en tiempo real
+        window.addTeamMember = async function(apptId, colleagueName) {
+            if (!colleagueName) return;
+            const appt = allAppointments.find(x => x.id === apptId);
+            if (!appt) return;
+
+            let currentList = appt.assigned_employee ? appt.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
+            if (!currentList.map(e => e.toLowerCase()).includes(colleagueName.toLowerCase())) {
+                currentList.push(colleagueName);
+                const newListStr = currentList.join(', ');
+
+                const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', apptId);
+                if (!error) {
+                    appt.assigned_employee = newListStr;
+                    renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
+                } else {
+                    alert('Error al añadir compañero: ' + error.message);
+                }
+            }
+        }
+
+        window.removeTeamMember = async function(apptId, empName) {
+            const appt = allAppointments.find(x => x.id === apptId);
+            if (!appt) return;
+
+            let currentList = appt.assigned_employee ? appt.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
+            currentList = currentList.filter(e => e.toLowerCase() !== empName.toLowerCase());
+            const newListStr = currentList.join(', ');
+
+            const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', apptId);
+            if (!error) {
+                appt.assigned_employee = newListStr;
+                renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
+            } else {
+                alert('Error al quitar compañero: ' + error.message);
+            }
         }
 
         function startLiveTimer() {
@@ -360,7 +498,6 @@
                 }
             });
 
-            // BOTÓN DE ALMUERZO: Guarda la hora local exacta de inicio o fin
             document.getElementById('btn-lunch').addEventListener('click', async () => {
                 if (!employeeDailyLog) {
                     alert('Primero debes iniciar tu jornada.');
@@ -417,10 +554,26 @@
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
                     const nowIso = getLocalDateTimeISO();
-                    const { error } = await supabase.from('appointments').update({ check_in_time: nowIso }).eq('id', id);
+                    
+                    const a = allAppointments.find(x => x.id === id);
+                    let currentList = a && a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    
+                    // Si el empleado que da check-in no está en la lista, se incluye automáticamente
+                    if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
+                        currentList.push(selectedEmployee);
+                    }
+                    const newListStr = currentList.join(', ');
+
+                    const { error } = await supabase.from('appointments').update({ 
+                        check_in_time: nowIso,
+                        assigned_employee: newListStr
+                    }).eq('id', id);
+
                     if (!error) {
-                        const a = allAppointments.find(x => x.id === id);
-                        if (a) a.check_in_time = nowIso;
+                        if (a) {
+                            a.check_in_time = nowIso;
+                            a.assigned_employee = newListStr;
+                        }
                         renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
                     } else alert('Error: ' + error.message);
                 });
@@ -434,7 +587,6 @@
                     const a = allAppointments.find(x => x.id === id);
                     let mins = 1;
                     if (a && a.check_in_time) {
-                        // Cálculo de duración basado en milisegundos locales de diferencia
                         mins = Math.max(1, Math.round((now - new Date(a.check_in_time)) / 60000));
                     }
                     const count = Math.max(1, (a.assigned_employee || '').split(',').length);
