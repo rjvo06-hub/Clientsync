@@ -100,7 +100,6 @@
             gap: 8px;
         }
 
-        /* Estilos para gestión de equipo en la visita */
         .team-badge-container {
             display: flex;
             flex-wrap: wrap;
@@ -234,13 +233,12 @@
             }
         }
 
+        // Muestra TODAS las citas programadas para hoy para que cualquier empleado pueda verlas y unirse
         function getTodayAppts() {
             const map = new Map(allClients.map(c => [c.id, c]));
             return allAppointments.filter(a => {
                 if (!a.scheduled_date || a.scheduled_date.split('T')[0] !== todayStr) return false;
-                // Muestra la cita si está asignada al empleado O si el empleado ya se incluyó en ella
-                const assignedList = a.assigned_employee ? a.assigned_employee.split(',').map(e => e.trim().toLowerCase()) : [];
-                return (assignedList.includes(selectedEmployee.toLowerCase()) || map.has(a.client_id));
+                return map.has(a.client_id);
             });
         }
 
@@ -318,7 +316,6 @@
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
                 }
 
-                // Generar chips del equipo actual en la visita
                 let teamChipsHtml = '';
                 assignedList.forEach(emp => {
                     const isMe = emp.toLowerCase() === selectedEmployee.toLowerCase();
@@ -330,7 +327,6 @@
                     `;
                 });
 
-                // Opciones para agregar un compañero que no esté ya en la lista
                 let optionsHtml = `<option value="">+ Añadir compañero a la visita...</option>`;
                 allEmployees.forEach(e => {
                     if (!assignedList.map(x => x.toLowerCase()).includes(e.name.toLowerCase())) {
@@ -338,10 +334,11 @@
                     }
                 });
 
-                // Botón principal de acción (Llegué / Terminar / Unirme)
                 let actionBtn = '';
                 if (!isCheckedOut) {
-                    if (!isCheckedIn) {
+                    if (!amInThisVisit) {
+                        actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">➕ Unirme a Visita</button>`;
+                    } else if (!isCheckedIn) {
                         actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Iniciar Visita</button>`;
                     } else {
                         actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar Visita</button>`;
@@ -384,7 +381,6 @@
             attachClientTimerListeners();
         }
 
-        // Funciones globales para añadir/quitar compañeros de equipo en tiempo real
         window.addTeamMember = async function(apptId, colleagueName) {
             if (!colleagueName) return;
             const appt = allAppointments.find(x => x.id === apptId);
@@ -550,6 +546,27 @@
         }
 
         function attachClientTimerListeners() {
+            // Botón para unirse rápidamente a una visita existente
+            document.querySelectorAll('.btn-join').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
+                        currentList.push(selectedEmployee);
+                    }
+                    const newListStr = currentList.join(', ');
+
+                    const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
+                    if (!error) {
+                        a.assigned_employee = newListStr;
+                        renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error: ' + error.message);
+                });
+            });
+
             document.querySelectorAll('.btn-checkin').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -558,7 +575,6 @@
                     const a = allAppointments.find(x => x.id === id);
                     let currentList = a && a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
                     
-                    // Si el empleado que da check-in no está en la lista, se incluye automáticamente
                     if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
                         currentList.push(selectedEmployee);
                     }
