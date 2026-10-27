@@ -140,10 +140,12 @@
             background: #dcfce7;
             color: #166534;
             font-size: 0.68rem;
-            padding: 2px 6px;
+            padding: 3px 8px;
             border-radius: 6px;
             font-weight: 700;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             border: 1px solid #bbf7d0;
         }
         .tabs-header { display: flex; gap: 6px; margin-bottom: 14px; }
@@ -200,6 +202,7 @@
         let selectedEmployee = '';
         let selectedMonthDate = new Date();
         let timerInterval = null;
+        let visitLiveInterval = null;
         let timetrackViewMode = 'assigned'; // 'assigned' o 'active'
 
         const nowLocalDate = new Date();
@@ -276,6 +279,7 @@
 
         function renderMainMenu() {
             if (timerInterval) clearInterval(timerInterval);
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
             document.getElementById('header-title').textContent = `👷‍♂️ ${selectedEmployee}`;
             document.getElementById('app-header').querySelector('a').style.display = 'inline-flex';
 
@@ -311,6 +315,7 @@
 
         function renderCitasView(sub) {
             if (timerInterval) clearInterval(timerInterval);
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
             document.getElementById('header-title').textContent = `📅 Agenda`;
             document.getElementById('app-header').querySelector('a').style.display = 'none';
 
@@ -431,6 +436,8 @@
 
         function renderTimetrackView() {
             if (timerInterval) clearInterval(timerInterval);
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+
             document.getElementById('header-title').textContent = `⏱️ Tiempos`;
             document.getElementById('app-header').querySelector('a').style.display = 'none';
 
@@ -495,6 +502,7 @@
 
             renderClientsList(todayAppts, map);
             startLiveTimer();
+            startVisitLiveTimer();
             attachTimetrackListeners();
         }
 
@@ -538,13 +546,13 @@
                         badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ ${appt.visit_duration_minutes || 0}m (Total: ${appt.total_labor_minutes || 0}m)</span>`;
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     } else if (isCheckedIn) {
-                        badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
+                        badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                         actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
                     } else {
                         actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">▶️ Llegué</button>`;
                     }
                 } else {
-                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 Activo</span>`;
+                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                     
                     if (!amAssigned) {
                         actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Unirme</button>`;
@@ -553,12 +561,31 @@
                     }
                 }
 
+                // Cálculo individual del tiempo que lleva activo cada usuario en esta visita
                 let teamHtml = '';
                 if (assignedList.length > 0) {
+                    let userTimeStr = '';
+                    if (isCheckedIn && appt.check_in_time) {
+                        const startMs = new Date(appt.check_in_time).getTime();
+                        const diffSec = Math.max(0, Math.floor((new Date().getTime() - startMs) / 1000));
+                        const hrs = Math.floor(diffSec / 3600);
+                        const mins = Math.floor((diffSec % 3600) / 60);
+                        const secs = diffSec % 60;
+                        userTimeStr = `${hrs > 0 ? hrs + 'h ' : ''}${mins}m ${secs}s`;
+                    } else {
+                        userTimeStr = '0m 0s';
+                    }
+
                     teamHtml = `
-                        <div style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
-                            <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Trabajando:</span>
-                            ${assignedList.map(emp => `<span class="team-chip">👷‍♂️ ${emp}</span>`).join('')}
+                        <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
+                            <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Trabajando y tiempo activo:</span>
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                ${assignedList.map(emp => `
+                                    <span class="team-chip" data-checkin="${isCheckedIn ? appt.check_in_time : ''}">
+                                        👷‍♂️ ${emp} <strong style="color: #166534; font-weight: 800;" class="user-visit-time" data-checkin="${appt.check_in_time}">(${isCheckedIn ? userTimeStr : 'Inactivo'})</strong>
+                                    </span>
+                                `).join('')}
+                            </div>
                         </div>
                     `;
                 }
@@ -613,6 +640,49 @@
                 const s = String(diff % 60).padStart(2, '0');
 
                 timerEl.textContent = `${h}:${m}:${s}`;
+            }, 1000);
+        }
+
+        // Cronómetro en vivo para las visitas y el tiempo de cada usuario activo
+        function startVisitLiveTimer() {
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+
+            visitLiveInterval = setInterval(() => {
+                const now = new Date().getTime();
+
+                // Actualizar los badges de "En Visita"
+                document.querySelectorAll('.visit-timer-badge').forEach(badge => {
+                    const checkinStr = badge.getAttribute('data-checkin');
+                    if (!checkinStr) return;
+                    const start = new Date(checkinStr).getTime();
+                    let diff = Math.floor((now - start) / 1000);
+                    if (diff < 0) diff = 0;
+
+                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+
+                    badge.textContent = `🟢 ${h}:${m}:${s}`;
+                });
+
+                // Actualizar el tiempo individual de cada usuario trabajando en la visita
+                document.querySelectorAll('.user-visit-time').forEach(el => {
+                    const checkinStr = el.getAttribute('data-checkin');
+                    if (!checkinStr) return;
+                    const start = new Date(checkinStr).getTime();
+                    let diff = Math.floor((now - start) / 1000);
+                    if (diff < 0) diff = 0;
+
+                    const hrs = Math.floor(diff / 3600);
+                    const mins = Math.floor((diff % 3600) / 60);
+                    const secs = diff % 60;
+
+                    const timeFormatted = hrs > 0 
+                        ? `(${hrs}h ${mins}m ${secs}s)` 
+                        : `(${mins}m ${secs}s)`;
+
+                    el.textContent = timeFormatted;
+                });
             }, 1000);
         }
 
