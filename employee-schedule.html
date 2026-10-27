@@ -566,7 +566,7 @@
                 let actionBtn = '';
 
                 if (isCompleted) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total: ${appt.total_labor_minutes || 0}m)</span>`;
+                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total Laboral: ${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     }
@@ -795,7 +795,19 @@
                     }
                     const newListStr = currentList.join(', ');
 
-                    const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    sessions.push({
+                        employee: selectedEmployee,
+                        check_in: getLocalDateTimeISO(),
+                        check_out: null,
+                        minutes: 0
+                    });
+
+                    const { error } = await supabase.from('appointments').update({ 
+                        assigned_employee: newListStr,
+                        sessions: sessions
+                    }).eq('id', id);
+
                     if (!error) {
                         await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
@@ -809,11 +821,23 @@
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
+                    const nowIso = getLocalDateTimeISO();
+                    if (activeSession) {
+                        activeSession.check_out = nowIso;
+                        activeSession.minutes = Math.max(1, Math.round((new Date(nowIso) - new Date(activeSession.check_in)) / 60000));
+                    }
+
                     let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
                     currentList = currentList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
                     const newListStr = currentList.join(', ');
 
-                    const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
+                    const { error } = await supabase.from('appointments').update({ 
+                        assigned_employee: newListStr,
+                        sessions: sessions
+                    }).eq('id', id);
+
                     if (!error) {
                         await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
@@ -834,9 +858,18 @@
                     }
                     const newListStr = currentList.join(', ');
 
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    sessions.push({
+                        employee: selectedEmployee,
+                        check_in: nowIso,
+                        check_out: null,
+                        minutes: 0
+                    });
+
                     const { error } = await supabase.from('appointments').update({ 
-                        check_in_time: nowIso,
-                        assigned_employee: newListStr
+                        check_in_time: a.check_in_time || nowIso,
+                        assigned_employee: newListStr,
+                        sessions: sessions
                     }).eq('id', id);
 
                     if (!error) {
@@ -854,16 +887,25 @@
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
+                    let sessionMins = 1;
+                    if (activeSession && activeSession.check_in) {
+                        sessionMins = Math.max(1, Math.round((now - new Date(activeSession.check_in)) / 60000));
+                        activeSession.check_out = nowIso;
+                        activeSession.minutes = sessionMins;
+                    }
+
                     let assignedList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
 
-                    // Comprobar cuántos empleados quedan activos en esta visita
+                    // REGLA: Si hay más de un empleado trabajando, solo sale el actual y la visita sigue activa
                     if (assignedList.length > 1) {
-                        // REGLA: Si hay más de un empleado, al terminar SOLO SALE EL EMPLEADO ACTUAL, el cliente sigue activo para los demás
                         assignedList = assignedList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
                         const newListStr = assignedList.join(', ');
 
                         const { error } = await supabase.from('appointments').update({
-                            assigned_employee: newListStr
+                            assigned_employee: newListStr,
+                            sessions: sessions
                         }).eq('id', id);
 
                         if (!error) {
@@ -872,17 +914,14 @@
                         } else alert('Error al salir: ' + error.message);
 
                     } else {
-                        // REGLA: Es el ÚLTIMO empleado en salir, por lo tanto SE CIERRA OFICIALMENTE EL TIEMPO DEL CLIENTE
-                        let mins = 1;
-                        if (a.check_in_time) {
-                            mins = Math.max(1, Math.round((now - new Date(a.check_in_time)) / 60000));
-                        }
-                        const totalLabor = mins; // O el acumulado histórico que prefieras sumar
+                        // REGLA: Es el último empleado, cerramos oficialmente el tiempo del cliente y sumamos todo el historial JSONB
+                        const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
 
                         const { error } = await supabase.from('appointments').update({
                             check_out_time: nowIso,
-                            visit_duration_minutes: mins,
-                            total_labor_minutes: totalLabor
+                            visit_duration_minutes: sessionMins,
+                            total_labor_minutes: totalLabor > 0 ? totalLabor : sessionMins,
+                            sessions: sessions
                         }).eq('id', id);
 
                         if (!error) {
