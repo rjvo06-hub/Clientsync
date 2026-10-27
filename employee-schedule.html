@@ -137,16 +137,16 @@
             gap: 6px;
         }
         .team-chip {
-            background: #dcfce7;
-            color: #166534;
+            background: #f1f5f9;
+            color: #334155;
             font-size: 0.68rem;
             padding: 3px 8px;
             border-radius: 6px;
-            font-weight: 700;
+            font-weight: 600;
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            border: 1px solid #bbf7d0;
+            border: 1px solid #e2e8f0;
         }
         .tabs-header { display: flex; gap: 6px; margin-bottom: 14px; }
         .tab-pill {
@@ -255,7 +255,6 @@
                     renderMainMenu();
                 }
 
-                // Iniciar sincronización automática (polling cada 5 segundos) para mantener todas las pantallas al día
                 startBackgroundSync();
             } catch (err) {
                 console.error('Error al iniciar:', err);
@@ -290,7 +289,6 @@
                 try {
                     await fetchData();
                     await fetchDailyLog();
-                    // Si estamos en la vista de tiempos o citas, refrescar suavemente la lista actual sin perder el foco
                     if (currentView === 'timetrack' || urlParams.get('view') === 'timetrack') {
                         const map = new Map(allClients.map(c => [c.id, c]));
                         const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
@@ -299,7 +297,7 @@
                 } catch (e) {
                     console.error('Error en sincronización de fondo:', e);
                 }
-            }, 5000); // Cada 5 segundos sincroniza con Supabase
+            }, 5000);
         }
 
         function renderMainMenu() {
@@ -568,7 +566,7 @@
                 let actionBtn = '';
 
                 if (isCompleted) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ ${appt.visit_duration_minutes || 0}m (Total: ${appt.total_labor_minutes || 0}m)</span>`;
+                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total: ${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     }
@@ -580,7 +578,7 @@
                             actionBtn = `
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
                                     <button type="button" class="btn btn-warning btn-unassign" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem; background: #f59e0b; color: white;">🚪 Salirme</button>
-                                    <button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem;">⏹️ Cerrar Visita</button>
+                                    <button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem;">⏹️ Terminar</button>
                                 </div>
                             `;
                         } else {
@@ -594,7 +592,7 @@
                                 actionBtn = `
                                     <div style="display: flex; flex-direction: column; gap: 4px;">
                                         <button type="button" class="btn btn-warning btn-unassign" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem; background: #f59e0b; color: white;">🚪 Salirme</button>
-                                        <button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem;">⏹️ Cerrar Visita</button>
+                                        <button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem;">⏹️ Terminar</button>
                                     </div>
                                 `;
                             } else {
@@ -614,28 +612,11 @@
                         <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
                             <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Trabajadores asignados:</span>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                ${assignedList.map((emp) => {
-                                    if (isCompleted) {
-                                        return `
-                                            <span class="team-chip">
-                                                👷‍♂️ ${emp} <strong style="color: #166534; font-weight: 800;">(${appt.visit_duration_minutes || 0}m)</strong>
-                                            </span>
-                                        `;
-                                    }
-                                    if (isCheckedIn) {
-                                        return `
-                                            <span class="team-chip">
-                                                👷‍♂️ ${emp} <strong style="color: #166534; font-weight: 800;" class="user-visit-time" data-checkin="${appt.check_in_time}">(0m 0s)</strong>
-                                            </span>
-                                        `;
-                                    } else {
-                                        return `
-                                            <span class="team-chip" style="background: #f1f5f9; color: #475569; border-color: #e2e8f0;">
-                                                👷‍♂️ ${emp}
-                                            </span>
-                                        `;
-                                    }
-                                }).join('')}
+                                ${assignedList.map((emp) => `
+                                    <span class="team-chip">
+                                        👷‍♂️ ${emp}
+                                    </span>
+                                `).join('')}
                             </div>
                         </div>
                     `;
@@ -712,24 +693,6 @@
                     const s = String(diff % 60).padStart(2, '0');
 
                     badge.textContent = `🟢 ${h}:${m}:${s}`;
-                });
-
-                document.querySelectorAll('.user-visit-time').forEach(el => {
-                    const checkinStr = el.getAttribute('data-checkin');
-                    if (!checkinStr) return;
-                    const start = new Date(checkinStr).getTime();
-                    let diff = Math.floor((now - start) / 1000);
-                    if (diff < 0) diff = 0;
-
-                    const hrs = Math.floor(diff / 3600);
-                    const mins = Math.floor((diff % 3600) / 60);
-                    const secs = diff % 60;
-
-                    const timeFormatted = hrs > 0 
-                        ? `(${hrs}h ${mins}m ${secs}s)` 
-                        : `(${mins}m ${secs}s)`;
-
-                    el.textContent = timeFormatted;
                 });
             };
 
@@ -889,23 +852,44 @@
                     const now = new Date();
                     const nowIso = getLocalDateTimeISO();
                     const a = allAppointments.find(x => x.id === id);
-                    let mins = 1;
-                    if (a && a.check_in_time) {
-                        mins = Math.max(1, Math.round((now - new Date(a.check_in_time)) / 60000));
+                    if (!a) return;
+
+                    let assignedList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+
+                    // Comprobar cuántos empleados quedan activos en esta visita
+                    if (assignedList.length > 1) {
+                        // REGLA: Si hay más de un empleado, al terminar SOLO SALE EL EMPLEADO ACTUAL, el cliente sigue activo para los demás
+                        assignedList = assignedList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
+                        const newListStr = assignedList.join(', ');
+
+                        const { error } = await supabase.from('appointments').update({
+                            assigned_employee: newListStr
+                        }).eq('id', id);
+
+                        if (!error) {
+                            await fetchData();
+                            renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                        } else alert('Error al salir: ' + error.message);
+
+                    } else {
+                        // REGLA: Es el ÚLTIMO empleado en salir, por lo tanto SE CIERRA OFICIALMENTE EL TIEMPO DEL CLIENTE
+                        let mins = 1;
+                        if (a.check_in_time) {
+                            mins = Math.max(1, Math.round((now - new Date(a.check_in_time)) / 60000));
+                        }
+                        const totalLabor = mins; // O el acumulado histórico que prefieras sumar
+
+                        const { error } = await supabase.from('appointments').update({
+                            check_out_time: nowIso,
+                            visit_duration_minutes: mins,
+                            total_labor_minutes: totalLabor
+                        }).eq('id', id);
+
+                        if (!error) {
+                            await fetchData();
+                            renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                        } else alert('Error al cerrar visita: ' + error.message);
                     }
-                    const count = Math.max(1, (a.assigned_employee || '').split(',').length);
-                    const totalLabor = mins * count;
-
-                    const { error } = await supabase.from('appointments').update({
-                        check_out_time: nowIso,
-                        visit_duration_minutes: mins,
-                        total_labor_minutes: totalLabor
-                    }).eq('id', id);
-
-                    if (!error) {
-                        await fetchData();
-                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
-                    } else alert('Error: ' + error.message);
                 });
             });
         }
