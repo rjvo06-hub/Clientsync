@@ -51,6 +51,23 @@
             align-items: center;
             gap: 4px;
         }
+        /* Botón central de Clientes Activos */
+        .btn-active-clients {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-active-clients:hover {
+            background: #bbf7d0;
+        }
         .timer-display {
             font-variant-numeric: tabular-nums;
             font-size: 1.8rem;
@@ -99,27 +116,16 @@
             flex-direction: column;
             gap: 8px;
         }
-
-        .active-team-section {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 16px;
-            padding: 14px;
-            margin-bottom: 16px;
-        }
-
         .team-chip {
-            background: #dcfce7;
-            color: #166534;
-            font-size: 0.7rem;
-            padding: 3px 8px;
-            border-radius: 6px;
+            background: #f1f5f9;
+            color: #334155;
+            font-size: 0.68rem;
+            padding: 2px 6px;
+            border-radius: 4px;
             font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            border: 1px solid #bbf7d0;
+            display: inline-block;
             margin-top: 4px;
+            border: 1px solid #cbd5e1;
         }
     </style>
 </head>
@@ -143,6 +149,7 @@
         let employeeDailyLog = null;
         let selectedEmployee = '';
         let timerInterval = null;
+        let viewMode = 'assigned'; // 'assigned' o 'active'
 
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
@@ -228,45 +235,13 @@
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
-            // Clientes activos en este momento por cualquier empleado
-            const activeVisits = todayAppts.filter(a => a.check_in_time && !a.check_out_time);
-            let activeTeamHtml = '';
-
-            if (activeVisits.length > 0) {
-                let itemsHtml = '';
-                activeVisits.forEach(av => {
-                    const cl = map.get(av.client_id);
-                    const team = av.assigned_employee ? av.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
-                    const amIn = team.map(t => t.toLowerCase()).includes(selectedEmployee.toLowerCase());
-
-                    itemsHtml += `
-                        <div style="background: white; border: 1px solid #bbf7d0; border-radius: 12px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong style="font-size: 0.8rem; color: #166534;">🏢 ${cl ? cl.name : 'Cliente'}</strong>
-                                <div style="font-size: 0.7rem; color: #475569; margin-top: 2px;">👤 Trabajando: <strong>${team.join(', ')}</strong></div>
-                            </div>
-                            <div>
-                                ${!amIn ? `
-                                    <button type="button" class="btn btn-success btn-join" data-id="${av.id}" style="padding: 6px 10px; font-size: 0.7rem;">➕ Unirme</button>
-                                ` : `
-                                    <span style="font-size: 0.68rem; color: #16a34a; font-weight: 700;">Estás aquí</span>
-                                `}
-                            </div>
-                        </div>
-                    `;
-                });
-
-                activeTeamHtml = `
-                    <div class="active-team-section">
-                        <div style="font-size: 0.75rem; font-weight: 800; color: #166534; text-transform: uppercase; margin-bottom: 8px;">🟢 Clientes Activos del Equipo:</div>
-                        ${itemsHtml}
-                    </div>
-                `;
-            }
+            // Texto dinámico para el botón central
+            const centerBtnText = viewMode === 'assigned' ? '🟢 Clientes Activos' : '📌 Mis Asignados';
 
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <a href="./employee-schedule.html?employee=${encodeURIComponent(selectedEmployee)}" class="icon-btn">← Mis Citas</a>
+                    <a href="./employee-schedule.html?employee=${encodeURIComponent(selectedEmployee)}" class="icon-btn">← Menú</a>
+                    <button type="button" class="btn-active-clients" id="btn-toggle-view">${centerBtnText}</button>
                     <span style="font-size: 0.78rem; font-weight: 700; color: #64748b;">${formatDate(todayStr)}</span>
                 </div>
 
@@ -288,9 +263,9 @@
                     </div>
                 </div>
 
-                ${activeTeamHtml}
-
-                <strong style="font-size: 0.82rem; color: #0f172a; display: block; margin-bottom: 8px;">📍 Clientes Asignados Hoy:</strong>
+                <strong id="section-title" style="font-size: 0.82rem; color: #0f172a; display: block; margin-bottom: 8px;">
+                    ${viewMode === 'assigned' ? '📍 Clientes Asignados Hoy:' : '🟢 Clientes Activos en este Momento:'}
+                </strong>
                 <div id="clients-timetrack-list"></div>
             `;
 
@@ -302,35 +277,58 @@
         function renderClientsList(appts, map) {
             const listContainer = document.getElementById('clients-timetrack-list');
             
-            const assignedAppts = appts.filter(a => {
-                if (!a.assigned_employee) return false;
-                const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
-                return list.includes(selectedEmployee.toLowerCase());
-            });
+            let filteredAppts = [];
+            if (viewMode === 'assigned') {
+                filteredAppts = appts.filter(a => {
+                    if (!a.assigned_employee) return false;
+                    const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                    return list.includes(selectedEmployee.toLowerCase());
+                });
+            } else {
+                // Modo Clientes Activos: Muestra solo los que están en visita activa (check_in_time sin check_out_time)
+                filteredAppts = appts.filter(a => a.check_in_time && !a.check_out_time && map.has(a.client_id));
+            }
 
-            if (assignedAppts.length === 0) {
-                listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.8rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">No tienes clientes asignados para hoy.</div>`;
+            if (filteredAppts.length === 0) {
+                const msg = viewMode === 'assigned' ? 'No tienes clientes asignados para hoy.' : 'No hay clientes activos en este momento.';
+                listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.8rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">${msg}</div>`;
+                attachHeaderToggle();
                 return;
             }
 
             let html = '';
-            assignedAppts.forEach((appt, idx) => {
+            filteredAppts.forEach((appt, idx) => {
                 const c = map.get(appt.client_id);
                 if (!c) return;
 
                 const assignedList = appt.assigned_employee ? appt.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
                 const isCheckedIn = appt.check_in_time && !appt.check_out_time;
                 const isCheckedOut = !!appt.check_out_time;
+                const amAssigned = assignedList.map(e => e.toLowerCase()).includes(selectedEmployee.toLowerCase());
 
                 let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
-                let actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
+                let actionBtn = '';
 
-                if (isCheckedOut) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizada</span>`;
-                    actionBtn = `<span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Cerrada</span>`;
-                } else if (isCheckedIn) {
+                if (viewMode === 'assigned') {
+                    if (isCheckedOut) {
+                        badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizada</span>`;
+                        actionBtn = `<span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Cerrada</span>`;
+                    } else if (isCheckedIn) {
+                        badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
+                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
+                    } else {
+                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
+                    }
+                } else {
+                    // En vista de Clientes Activos
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
-                    actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
+                    
+                    if (!amAssigned) {
+                        actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">➕ Unirme</button>`;
+                    } else {
+                        // Si estoy asignado y activo, permito terminar/desactivar la visita
+                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
+                    }
                 }
 
                 let teamHtml = '';
@@ -359,7 +357,15 @@
                 `;
             });
             listContainer.innerHTML = html;
+            attachHeaderToggle();
             attachClientTimerListeners();
+        }
+
+        function attachHeaderToggle() {
+            document.getElementById('btn-toggle-view').addEventListener('click', () => {
+                viewMode = viewMode === 'assigned' ? 'active' : 'assigned';
+                renderTimetrackView();
+            });
         }
 
         function startLiveTimer() {
@@ -490,7 +496,7 @@
         }
 
         function attachClientTimerListeners() {
-            // Unirse a cliente activo desde la sección superior verde
+            // Unirse a cliente activo
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
