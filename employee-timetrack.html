@@ -100,6 +100,25 @@
             gap: 8px;
         }
 
+        /* Banner especial para clientes activos en tiempo real */
+        .live-active-banner {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        .live-active-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #166534;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         .team-badge-container {
             display: flex;
             flex-wrap: wrap;
@@ -233,7 +252,6 @@
             }
         }
 
-        // Muestra TODAS las citas programadas para hoy para que cualquier empleado pueda verlas y unirse
         function getTodayAppts() {
             const map = new Map(allClients.map(c => [c.id, c]));
             return allAppointments.filter(a => {
@@ -256,6 +274,31 @@
                 else if (employeeDailyLog.status === 'pausa') { statusStr = '⏸️ En pausa momentánea'; badgeBg = '#fef9c3'; badgeColor = '#854d0e'; }
                 else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+            }
+
+            // Filtrar clientes activos en tiempo real (que tienen check_in_time pero no check_out_time)
+            const activeVisits = todayAppts.filter(a => a.check_in_time && !a.check_out_time);
+
+            let activeBannerHtml = '';
+            if (activeVisits.length > 0) {
+                let activeListItems = '';
+                activeVisits.forEach(av => {
+                    const cl = map.get(av.client_id);
+                    const team = av.assigned_employee ? av.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : ['Sin registrar'];
+                    activeListItems += `
+                        <div style="font-size: 0.75rem; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #dcfce7;">
+                            <strong>🏢 ${cl ? cl.name : 'Cliente'}</strong><br>
+                            <span style="color: #15803d; font-weight: 700;">👤 Empleado(s) activo(s): ${team.join(', ')}</span>
+                        </div>
+                    `;
+                });
+
+                activeBannerHtml = `
+                    <div class="live-active-banner">
+                        <div class="live-active-title">🟢 Clientes Activos en este Momento (Todo el Equipo)</div>
+                        ${activeListItems}
+                    </div>
+                `;
             }
 
             container.innerHTML = `
@@ -282,7 +325,9 @@
                     </div>
                 </div>
 
-                <strong style="font-size: 0.82rem; color: #0f172a; display: block; margin-bottom: 8px;">📍 Clientes de Hoy y Colaboración:</strong>
+                ${activeBannerHtml}
+
+                <strong style="font-size: 0.82rem; color: #0f172a; display: block; margin-bottom: 8px;">📍 Todos los Clientes y Colaboración:</strong>
                 <div id="clients-timetrack-list"></div>
             `;
 
@@ -356,7 +401,7 @@
                         <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 6px;">📍 ${c.address || 'Sin dirección'}</div>
                         
                         <div>
-                            <div style="font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 3px;">Equipo en esta visita (${assignedList.length}):</div>
+                            <div style="font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 3px;">Empleado(s) en esta visita (${assignedList.length}):</div>
                             <div class="team-badge-container">
                                 ${teamChipsHtml || '<span style="font-size:0.68rem; color:#94a3b8; font-style:italic;">Nadie registrado aún</span>'}
                             </div>
@@ -394,7 +439,7 @@
                 const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', apptId);
                 if (!error) {
                     appt.assigned_employee = newListStr;
-                    renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
+                    renderTimetrackView();
                 } else {
                     alert('Error al añadir compañero: ' + error.message);
                 }
@@ -412,7 +457,7 @@
             const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', apptId);
             if (!error) {
                 appt.assigned_employee = newListStr;
-                renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
+                renderTimetrackView();
             } else {
                 alert('Error al quitar compañero: ' + error.message);
             }
@@ -546,7 +591,6 @@
         }
 
         function attachClientTimerListeners() {
-            // Botón para unirse rápidamente a una visita existente
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -562,7 +606,7 @@
                     const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
                     if (!error) {
                         a.assigned_employee = newListStr;
-                        renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
+                        renderTimetrackView();
                     } else alert('Error: ' + error.message);
                 });
             });
@@ -590,7 +634,7 @@
                             a.check_in_time = nowIso;
                             a.assigned_employee = newListStr;
                         }
-                        renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
+                        renderTimetrackView();
                     } else alert('Error: ' + error.message);
                 });
             });
@@ -620,7 +664,7 @@
                             a.visit_duration_minutes = mins;
                             a.total_labor_minutes = totalLabor;
                         }
-                        renderClientsList(getTodayAppts(), new Map(allClients.map(c => [c.id, c])));
+                        renderTimetrackView();
                     } else alert('Error: ' + error.message);
                 });
             });
