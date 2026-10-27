@@ -292,7 +292,7 @@
             return `${hours}h ${minutes}m`;
         }
 
-        // FUNCIÓN CLAVE: Extrae la hora plana directamente de la cadena de texto de la base de datos sin alterar husos horarios
+        // Extrae la hora plana de la base de datos (YYYY-MM-DDTHH:MM:SS)
         function formatFlatTime(timestampStr) {
             if (!timestampStr) return '--:--';
             if (timestampStr.includes('T')) {
@@ -311,7 +311,6 @@
             return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
         }
 
-        // Función auxiliar para calcular minutos directos entre dos horas planas (YYYY-MM-DDTHH:MM:SS)
         function getFlatMinutesDifference(startStr, endStr) {
             if (!startStr || !endStr) return 0;
             const parseTime = (s) => {
@@ -426,10 +425,16 @@
                     }
 
                     // CALCULO DE PAUSA: Con tope máximo estricto de 30 minutos
+                    let realLunchStart = null;
+                    let realLunchEnd = null;
+
                     if (log && log.lunch_start_time && log.lunch_end_time) {
-                        const rawPauseMins = getFlatMinutesDifference(log.lunch_start_time, log.lunch_end_time);
+                        realLunchStart = log.lunch_start_time;
+                        realLunchEnd = log.lunch_end_time;
+                        const rawPauseMins = getFlatMinutesDifference(realLunchStart, realLunchEnd);
                         pauseMinutes = Math.min(30, rawPauseMins);
                     } else if (log && log.lunch_start_time && !log.lunch_end_time && log.status === 'activo') {
+                        realLunchStart = log.lunch_start_time;
                         pauseMinutes = 30;
                     }
 
@@ -493,13 +498,14 @@
                             
                             let realDurationMins = a.visit_duration_minutes || 0;
 
-                            // CRUCE INTELIGENTE DE ALMUERZO CON TOPE DE 30 MINUTOS (COMPARACIÓN PLANA)
-                            if (log && log.lunch_start_time && a.check_in_time && a.check_out_time) {
+                            // CRUCE INTELIGENTE Y ROBUSTO DE ALMUERZO CON EL CLIENTE ACTIVO EN ESE HORARIO
+                            if (realLunchStart && a.check_in_time && a.check_out_time && pauseMinutes > 0) {
                                 const visitIn = a.check_in_time;
                                 const visitOut = a.check_out_time;
-                                const lStart = log.lunch_start_time;
-                                const lEnd = log.lunch_end_time || lStart;
+                                const lStart = realLunchStart;
+                                const lEnd = realLunchEnd || (lStart.substring(0, 11) + String(parseInt(lStart.substring(11, 13)) + Math.floor((parseInt(lStart.substring(14, 16)) + pauseMinutes) / 60)).padStart(2, '0') + ':' + String((parseInt(lStart.substring(14, 16)) + pauseMinutes) % 60).padStart(2, '0') + ':00');
 
+                                // Si la visita del cliente abarcó/coincidió con el horario del almuerzo
                                 if (visitIn <= lEnd && visitOut >= lStart) {
                                     realDurationMins = Math.max(0, realDurationMins - pauseMinutes);
                                 }
