@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Portal del Empleado</title>
+    <title>ClientSync | Portal Móvil</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -11,41 +11,31 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             background-color: #f8fafc; 
             margin: 0; 
-            padding: 12px; 
+            padding: 10px; 
             color: #1e293b;
         }
         .app-container { 
-            max-width: 440px; 
-            margin: 8px auto 60px auto; 
+            max-width: 420px; 
+            margin: 4px auto 50px auto; 
             background: #ffffff; 
-            padding: 20px 16px; 
-            border-radius: 24px; 
-            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.03); 
+            padding: 16px 14px; 
+            border-radius: 20px; 
+            box-shadow: 0 8px 24px -4px rgba(0,0,0,0.04); 
             border: 1px solid #f1f5f9;
         }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
             border-bottom: 1px solid #f1f5f9;
         }
         .header h1 {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 800;
             margin: 0;
             color: #0f172a;
-        }
-        .version-tag {
-            font-size: 0.6rem;
-            background: #e0f2fe;
-            color: #0369a1;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 700;
-            margin-left: 6px;
-            display: inline-block;
         }
         .icon-btn {
             background: #f1f5f9;
@@ -74,115 +64,109 @@
             align-items: center;
             gap: 4px;
         }
-        .btn-active-clients:hover {
-            background: #bbf7d0;
-        }
         .menu-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 18px 16px;
+            border-radius: 14px;
+            padding: 16px;
             margin-bottom: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
         }
         .menu-card:active {
-            transform: scale(0.98);
             background: #f8fafc;
             border-color: #3b82f6;
         }
         .menu-card h3 {
-            margin: 0 0 4px 0;
-            font-size: 0.95rem;
+            margin: 0 0 2px 0;
+            font-size: 0.9rem;
             font-weight: 700;
             color: #0f172a;
         }
         .menu-card p {
             margin: 0;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             color: #64748b;
         }
         .timer-display {
             font-variant-numeric: tabular-nums;
-            font-size: 1.8rem;
+            font-size: 1.7rem;
             font-weight: 800;
             color: #2563eb;
             text-align: center;
-            margin: 10px 0 16px 0;
+            margin: 8px 0 14px 0;
             letter-spacing: 1px;
         }
         .card-box {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 14px;
         }
         .btn {
             width: 100%;
-            padding: 12px;
-            border-radius: 12px;
+            padding: 11px;
+            border-radius: 10px;
             border: none;
             font-weight: 700;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
         }
-        .btn:active { opacity: 0.8; }
+        .btn:active { opacity: 0.85; }
         .btn-primary { background: #2563eb; color: white; }
         .btn-success { background: #16a34a; color: white; }
         .btn-warning { background: #d97706; color: white; }
         .btn-danger { background: #dc2626; color: white; }
         .btn-secondary { background: #e2e8f0; color: #334155; }
-        .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-group { display: flex; gap: 8px; margin-top: 8px; }
         .item-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 14px;
+            border-radius: 12px;
+            padding: 12px;
             margin-bottom: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
         .team-chip {
             background: #dcfce7;
             color: #166534;
-            font-size: 0.7rem;
-            padding: 3px 8px;
+            font-size: 0.68rem;
+            padding: 2px 6px;
             border-radius: 6px;
             font-weight: 700;
             display: inline-block;
             border: 1px solid #bbf7d0;
         }
-        .tabs-header { display: flex; gap: 6px; margin-bottom: 16px; }
+        .tabs-header { display: flex; gap: 6px; margin-bottom: 14px; }
         .tab-pill {
             flex: 1;
-            padding: 9px;
-            border-radius: 10px;
+            padding: 8px;
+            border-radius: 8px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
             color: #64748b;
             font-weight: 700;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             cursor: pointer;
             text-align: center;
         }
         .tab-pill.active { background: #2563eb; color: white; border-color: #2563eb; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
-        .cal-header { text-align: center; font-weight: 700; font-size: 0.7rem; color: #94a3b8; padding: 4px 0; }
-        .cal-day { min-height: 42px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #334155; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 8px; }
+        .cal-header { text-align: center; font-weight: 700; font-size: 0.68rem; color: #94a3b8; padding: 4px 0; }
+        .cal-day { min-height: 38px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #334155; }
         .cal-day.has-appointments { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
-        .badge { font-size: 0.55rem; background: #2563eb; color: white; padding: 1px 5px; border-radius: 8px; margin-top: 2px; font-weight: 700; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(4px); }
-        .modal-body { background: white; width: 100%; max-width: 400px; max-height: 85vh; padding: 20px; border-radius: 20px; display: flex; flex-direction: column; overflow-y: auto; }
+        .badge { font-size: 0.5rem; background: #2563eb; color: white; padding: 1px 4px; border-radius: 6px; margin-top: 2px; font-weight: 700; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(3px); }
+        .modal-body { background: white; width: 100%; max-width: 380px; max-height: 85vh; padding: 16px; border-radius: 16px; display: flex; flex-direction: column; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -191,7 +175,6 @@
         <div class="header" id="app-header">
             <div>
                 <h1 id="header-title" style="display: inline-block;">👷‍♂️ Portal</h1>
-                <span class="version-tag">v2.2-live</span>
             </div>
             <a href="./index.html" class="icon-btn">🏠 Salir</a>
         </div>
@@ -200,9 +183,9 @@
 
     <div id="day-modal" class="modal-overlay">
         <div class="modal-body">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
-                <h3 id="modal-title" style="margin: 0; font-size: 0.95rem;">📅 Citas del Día</h3>
-                <button type="button" id="close-modal" class="icon-btn">✕ Cerrar</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                <h3 id="modal-title" style="margin: 0; font-size: 0.9rem;">📅 Citas del Día</h3>
+                <button type="button" id="close-modal" class="icon-btn">✕</button>
             </div>
             <div id="modal-content"></div>
         </div>
@@ -291,15 +274,14 @@
             }
         }
 
-        // 1. MENÚ PRINCIPAL
         function renderMainMenu() {
             if (timerInterval) clearInterval(timerInterval);
             document.getElementById('header-title').textContent = `👷‍♂️ ${selectedEmployee}`;
             document.getElementById('app-header').querySelector('a').style.display = 'inline-flex';
 
             document.getElementById('app-content').innerHTML = `
-                <div style="text-align: center; margin-bottom: 16px;">
-                    <p style="font-size: 0.8rem; color: #64748b; margin: 0;">Selecciona una sección:</p>
+                <div style="text-align: center; margin-bottom: 14px;">
+                    <p style="font-size: 0.78rem; color: #64748b; margin: 0;">Selecciona una sección:</p>
                 </div>
                 <div class="menu-card" id="card-citas">
                     <div>
@@ -311,7 +293,7 @@
                 <div class="menu-card" id="card-timetrack">
                     <div>
                         <h3>⏱️ Control de Tiempos</h3>
-                        <p>Fichaje de jornada, pausa y visitas a clientes</p>
+                        <p>Jornada, pausas y clientes activos</p>
                     </div>
                     <span style="color: #3b82f6; font-weight: bold;">➔</span>
                 </div>
@@ -327,7 +309,6 @@
             });
         }
 
-        // 2. VISTA DE CITAS
         function renderCitasView(sub) {
             if (timerInterval) clearInterval(timerInterval);
             document.getElementById('header-title').textContent = `📅 Agenda`;
@@ -335,9 +316,9 @@
 
             const container = document.getElementById('app-content');
             container.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <button type="button" class="icon-btn" id="btn-back">← Menú</button>
-                    <span style="font-size: 0.78rem; font-weight: 700; color: #64748b;">${formatDate(todayStr)}</span>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #64748b;">${formatDate(todayStr)}</span>
                 </div>
                 <div class="tabs-header">
                     <button type="button" class="tab-pill ${sub === 'today' ? 'active' : ''}" id="tab-today">📅 Hoy</button>
@@ -374,25 +355,25 @@
             const routeUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}&view=calendar`;
 
             let html = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <strong style="font-size: 0.85rem; color: #1e293b;">${title} (${formatDate(dateStr)})</strong>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="font-size: 0.82rem; color: #1e293b;">${title} (${formatDate(dateStr)})</strong>
                     ${appts.length > 0 ? `<a href="${routeUrl}" class="icon-btn" style="background:#eff6ff; color:#1d4ed8;">🗺️ Mapa</a>` : ''}
                 </div>
             `;
 
             if (appts.length === 0) {
-                html += `<div style="padding: 20px; text-align: center; color: #64748b; font-size: 0.8rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">No hay citas para esta fecha.</div>`;
+                html += `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">No hay citas para esta fecha.</div>`;
             } else {
                 appts.forEach((a, idx) => {
                     const c = map.get(a.client_id);
                     const colleagues = (a.assigned_employee || '').split(',').map(e => e.trim()).filter(e => e.toLowerCase() !== selectedEmployee.toLowerCase());
                     html += `
                         <div class="item-card">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <strong style="font-size: 0.82rem;">#${idx + 1} ${c.name}</strong>
-                                <span style="font-size: 0.78rem; color: #2563eb; font-weight: 700;">⏰ ${a.time_slot || '09:00'}h</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <strong style="font-size: 0.8rem;">#${idx + 1} ${c.name}</strong>
+                                <span style="font-size: 0.75rem; color: #2563eb; font-weight: 700;">⏰ ${a.time_slot || '09:00'}h</span>
                             </div>
-                            <div style="font-size: 0.75rem; color: #64748b;">
+                            <div style="font-size: 0.72rem; color: #64748b;">
                                 📍 ${c.address || 'Sin dirección'}
                                 ${colleagues.length ? `<div style="color: #d97706; font-weight: 700; margin-top: 2px;">👥 Con: ${colleagues.join(', ')}</div>` : ''}
                             </div>
@@ -412,9 +393,9 @@
             const offset = first === 0 ? 6 : first - 1;
 
             let html = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <button type="button" class="icon-btn" id="prev-m">◀</button>
-                    <strong style="font-size: 0.88rem;">${names[m]} ${y}</strong>
+                    <strong style="font-size: 0.85rem;">${names[m]} ${y}</strong>
                     <button type="button" class="icon-btn" id="next-m">▶</button>
                 </div>
                 <div class="calendar-grid">
@@ -448,8 +429,6 @@
         }
         document.getElementById('close-modal').addEventListener('click', () => document.getElementById('day-modal').style.display = 'none');
 
-
-        // 3. CONTROL DE TIEMPOS CON CLIENTES ACTIVOS Y EQUIPO
         function renderTimetrackView() {
             if (timerInterval) clearInterval(timerInterval);
             document.getElementById('header-title').textContent = `⏱️ Tiempos`;
@@ -464,21 +443,21 @@
             let badgeColor = '#475569';
             if (employeeDailyLog) {
                 if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Jornada en curso'; badgeBg = '#dcfce7'; badgeColor = '#166534'; }
-                else if (employeeDailyLog.status === 'pausa') { statusStr = '⏸️ En pausa momentánea'; badgeBg = '#fef9c3'; badgeColor = '#854d0e'; }
+                else if (employeeDailyLog.status === 'pausa') { statusStr = '⏸️ En pausa'; badgeBg = '#fef9c3'; badgeColor = '#854d0e'; }
                 else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
-                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
             container.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <button type="button" class="icon-btn" id="btn-back-t">← Menú</button>
                     <button type="button" class="btn-active-clients" id="btn-toggle-view">🟢 Clientes Activos</button>
                 </div>
 
                 <div class="card-box">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <strong style="font-size: 0.82rem; color: #0f172a;">🏢 Jornada Laboral</strong>
-                        <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700;">${statusStr}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong style="font-size: 0.8rem; color: #0f172a;">🏢 Jornada Laboral</strong>
+                        <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 2px 6px; border-radius: 6px; font-size: 0.68rem; font-weight: 700;">${statusStr}</span>
                     </div>
 
                     <div class="timer-display" id="global-timer">00:00:00</div>
@@ -493,11 +472,11 @@
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <strong id="section-title" style="font-size: 0.82rem; color: #0f172a;">
-                        ${timetrackViewMode === 'assigned' ? '📍 Clientes Asignados Hoy:' : '🟢 Clientes Activos en la Empresa:'}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <strong id="section-title" style="font-size: 0.8rem; color: #0f172a;">
+                        ${timetrackViewMode === 'assigned' ? '📍 Clientes Asignados Hoy:' : '🟢 Clientes Activos Globales:'}
                     </strong>
-                    <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">${formatDate(todayStr)}</span>
+                    <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">${formatDate(todayStr)}</span>
                 </div>
                 <div id="clients-timetrack-list"></div>
             `;
@@ -507,7 +486,6 @@
                 renderMainMenu();
             });
 
-            // Botón para alternar entre mis asignados y los clientes activos globales
             const btnToggle = document.getElementById('btn-toggle-view');
             btnToggle.textContent = timetrackViewMode === 'assigned' ? '🟢 Clientes Activos' : '📌 Mis Asignados';
             btnToggle.addEventListener('click', () => {
@@ -531,7 +509,6 @@
                     return list.includes(selectedEmployee.toLowerCase());
                 });
             } else {
-                // Muestra TODOS los clientes de la empresa que tengan una visita activa (check_in_time sin check_out_time)
                 filteredAppts = appts.filter(a => a.check_in_time && !a.check_out_time && map.has(a.client_id));
             }
 
@@ -539,7 +516,7 @@
                 const msg = timetrackViewMode === 'assigned' 
                     ? 'No tienes clientes asignados para hoy.' 
                     : '🟢 No hay clientes activos en este momento en la empresa.';
-                listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.8rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">${msg}</div>`;
+                listContainer.innerHTML = `<div style="padding: 14px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">${msg}</div>`;
                 return;
             }
 
@@ -562,49 +539,45 @@
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     } else if (isCheckedIn) {
                         badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
-                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
+                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
                     } else {
-                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
+                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">▶️ Llegué</button>`;
                     }
                 } else {
-                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 Activo Ahora</span>`;
+                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 Activo</span>`;
                     
                     if (!amAssigned) {
-                        actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">➕ Unirme</button>`;
+                        actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Unirme</button>`;
                     } else {
-                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
+                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
                     }
                 }
 
                 let teamHtml = '';
                 if (assignedList.length > 0) {
                     teamHtml = `
-                        <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
-                            <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">👥 Empleados trabajando:</span>
+                        <div style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                            <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Trabajando:</span>
                             ${assignedList.map(emp => `<span class="team-chip">👷‍♂️ ${emp}</span>`).join('')}
                         </div>
                     `;
-                } else {
-                    teamHtml = `<div style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;">⚠️ Sin empleados registrados</div>`;
                 }
 
                 html += `
                     <div class="item-card">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
                             <div>
-                                <strong style="font-size: 0.85rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
-                                <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">📍 ${c.address || 'Sin dirección'}</div>
+                                <strong style="font-size: 0.8rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
+                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 1px;">📍 ${c.address || 'Sin dirección'}</div>
                             </div>
-                            <div>
-                                ${badge}
-                            </div>
+                            <div>${badge}</div>
                         </div>
 
                         ${teamHtml}
 
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
                             <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h</span>
-                            <div style="width: 130px;">${actionBtn}</div>
+                            <div style="width: 120px;">${actionBtn}</div>
                         </div>
                     </div>
                 `;
@@ -613,7 +586,6 @@
             attachClientTimerListeners();
         }
 
-        // Cronómetro en vivo
         function startLiveTimer() {
             if (timerInterval) clearInterval(timerInterval);
             
@@ -727,7 +699,6 @@
         }
 
         function attachClientTimerListeners() {
-            // Unirse a cliente activo
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
