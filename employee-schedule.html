@@ -203,6 +203,7 @@
         let selectedMonthDate = new Date();
         let timerInterval = null;
         let visitLiveInterval = null;
+        let syncInterval = null;
         let timetrackViewMode = 'assigned'; // 'assigned' o 'active'
 
         const nowLocalDate = new Date();
@@ -240,13 +241,7 @@
 
         async function init() {
             try {
-                const [{ data: clients }, { data: appointments }] = await Promise.all([
-                    supabase.from('clients').select('*').order('name', { ascending: true }),
-                    supabase.from('appointments').select('*').order('time_slot', { ascending: true })
-                ]);
-
-                allClients = clients || [];
-                allAppointments = appointments || [];
+                await fetchData();
                 await fetchDailyLog();
 
                 if (currentView === 'citas') {
@@ -259,9 +254,21 @@
                 } else {
                     renderMainMenu();
                 }
+
+                // Iniciar sincronización automática (polling cada 5 segundos) para mantener todas las pantallas al día
+                startBackgroundSync();
             } catch (err) {
                 console.error('Error al iniciar:', err);
             }
+        }
+
+        async function fetchData() {
+            const [{ data: clients }, { data: appointments }] = await Promise.all([
+                supabase.from('clients').select('*').order('name', { ascending: true }),
+                supabase.from('appointments').select('*').order('time_slot', { ascending: true })
+            ]);
+            allClients = clients || [];
+            allAppointments = appointments || [];
         }
 
         async function fetchDailyLog() {
@@ -275,6 +282,24 @@
             } catch (err) {
                 console.error(err);
             }
+        }
+
+        function startBackgroundSync() {
+            if (syncInterval) clearInterval(syncInterval);
+            syncInterval = setInterval(async () => {
+                try {
+                    await fetchData();
+                    await fetchDailyLog();
+                    // Si estamos en la vista de tiempos o citas, refrescar suavemente la lista actual sin perder el foco
+                    if (currentView === 'timetrack' || urlParams.get('view') === 'timetrack') {
+                        const map = new Map(allClients.map(c => [c.id, c]));
+                        const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
+                        renderClientsList(todayAppts, map);
+                    }
+                } catch (e) {
+                    console.error('Error en sincronización de fondo:', e);
+                }
+            }, 5000); // Cada 5 segundos sincroniza con Supabase
         }
 
         function renderMainMenu() {
@@ -508,6 +533,7 @@
 
         function renderClientsList(appts, map) {
             const listContainer = document.getElementById('clients-timetrack-list');
+            if (!listContainer) return;
             
             let filteredAppts = [];
             if (timetrackViewMode === 'assigned') {
@@ -547,7 +573,6 @@
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     }
                 } else if (isCheckedIn) {
-                    // Badge con clase visit-timer-badge aplicado para AMBAS vistas (asignados y activos globales)
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                     
                     if (timetrackViewMode === 'assigned') {
@@ -708,7 +733,6 @@
                 });
             };
 
-            // Ejecutar de inmediato sin esperar 1 segundo
             updateTimers();
             visitLiveInterval = setInterval(updateTimers, 1000);
         }
@@ -810,7 +834,7 @@
 
                     const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
                     if (!error) {
-                        a.assigned_employee = newListStr;
+                        await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
                     } else alert('Error al unirse: ' + error.message);
                 });
@@ -828,7 +852,7 @@
 
                     const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
                     if (!error) {
-                        a.assigned_employee = newListStr;
+                        await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
                     } else alert('Error al desasignarse: ' + error.message);
                 });
@@ -853,10 +877,7 @@
                     }).eq('id', id);
 
                     if (!error) {
-                        if (a) {
-                            a.check_in_time = nowIso;
-                            a.assigned_employee = newListStr;
-                        }
+                        await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
                     } else alert('Error: ' + error.message);
                 });
@@ -882,11 +903,7 @@
                     }).eq('id', id);
 
                     if (!error) {
-                        if (a) {
-                            a.check_out_time = nowIso;
-                            a.visit_duration_minutes = mins;
-                            a.total_labor_minutes = totalLabor;
-                        }
+                        await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
                     } else alert('Error: ' + error.message);
                 });
