@@ -108,11 +108,11 @@
         }
         .btn {
             width: 100%;
-            padding: 11px;
+            padding: 10px;
             border-radius: 10px;
             border: none;
             font-weight: 700;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -542,20 +542,39 @@
                 let actionBtn = '';
 
                 if (isCompleted) {
-                    // Cita completada: no muestra cronómetro activo, sino duración fija
                     badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ ${appt.visit_duration_minutes || 0}m (Total: ${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     }
                 } else if (isCheckedIn) {
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
+                    
                     if (timetrackViewMode === 'assigned') {
-                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                        // Si hay más de 1 empleado trabajando, dar la opción de desasignarse (salir sin cerrar la visita) o terminar por completo
+                        if (assignedList.length > 1) {
+                            actionBtn = `
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <button type="button" class="btn btn-warning btn-unassign" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem; background: #f59e0b; color: white;">🚪 Salirme</button>
+                                    <button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem;">⏹️ Cerrar Visita</button>
+                                </div>
+                            `;
+                        } else {
+                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                        }
                     } else {
                         if (!amAssigned) {
                             actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Unirme</button>`;
                         } else {
-                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                            if (assignedList.length > 1) {
+                                actionBtn = `
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <button type="button" class="btn btn-warning btn-unassign" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem; background: #f59e0b; color: white;">🚪 Salirme</button>
+                                        <button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem;">⏹️ Cerrar Visita</button>
+                                    </div>
+                                `;
+                            } else {
+                                actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                            }
                         }
                     }
                 } else {
@@ -564,17 +583,13 @@
                     }
                 }
 
-                // Cálculo individual del tiempo para cada empleado:
-                // Si la cita está completada, mostramos el tiempo total fijo.
-                // Si está en curso, calculamos desde check_in_time para el propietario original o desde el momento en que se unió (simulado/registrado de forma independiente).
                 let teamHtml = '';
                 if (assignedList.length > 0) {
                     teamHtml = `
                         <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
                             <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Trabajando y tiempo activo:</span>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                ${assignedList.map((emp, empIdx) => {
-                                    // Si es completado, mostramos el tiempo de la visita o proporcional
+                                ${assignedList.map((emp) => {
                                     if (isCompleted) {
                                         return `
                                             <span class="team-chip">
@@ -582,17 +597,9 @@
                                             </span>
                                         `;
                                     }
-                                    
-                                    // Si está activo: el primer empleado usa check_in_time original. 
-                                    // Para empleados adicionales que se unieron, simulamos/asignamos un inicio independiente basado en el orden o un timestamp guardado.
-                                    // Para que sea exacto y lógico: el primer empleado (propietario) lleva desde check_in_time. 
-                                    // Los siguientes empleados muestran su propio tiempo transcurrido desde que se unieron (o desde check_in_time si no hay registro previo).
-                                    let userStartTime = appt.check_in_time;
-                                    // Nota: si deseas guardar el momento exacto en que cada usuario se une, podemos usar un campo auxiliar o el orden de la lista. 
-                                    // Aquí calcularemos en tiempo real para el propietario desde check_in_time.
                                     return `
                                         <span class="team-chip">
-                                            👷‍♂️ ${emp} <strong style="color: #166534; font-weight: 800;" class="user-visit-time" data-checkin="${userStartTime}" data-emp-index="${empIdx}">(--:--:--)</strong>
+                                            👷‍♂️ ${emp} <strong style="color: #166534; font-weight: 800;" class="user-visit-time" data-checkin="${appt.check_in_time}">(--:--:--)</strong>
                                         </span>
                                     `;
                                 }).join('')}
@@ -615,7 +622,7 @@
 
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
                             <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h</span>
-                            <div style="width: 120px;">${actionBtn}</div>
+                            <div style="width: 130px;">${actionBtn}</div>
                         </div>
                     </div>
                 `;
@@ -660,7 +667,6 @@
             visitLiveInterval = setInterval(() => {
                 const now = new Date().getTime();
 
-                // Actualizar cronómetro general de la visita
                 document.querySelectorAll('.visit-timer-badge').forEach(badge => {
                     const checkinStr = badge.getAttribute('data-checkin');
                     if (!checkinStr) return;
@@ -675,23 +681,11 @@
                     badge.textContent = `🟢 ${h}:${m}:${s}`;
                 });
 
-                // Actualizar tiempo individual por usuario de forma lógica y escalonada
-                document.querySelectorAll('.user-visit-time').forEach((el, index) => {
+                document.querySelectorAll('.user-visit-time').forEach(el => {
                     const checkinStr = el.getAttribute('data-checkin');
                     if (!checkinStr) return;
-                    const empIndex = parseInt(el.getAttribute('data-emp-index') || '0');
-                    
                     const start = new Date(checkinStr).getTime();
-                    // Si un usuario se unió después (empIndex > 0), simulamos un ligero retraso de inicio o calculamos su tiempo de forma independiente
-                    // Para evitar que tengan exactamente el mismo tiempo milimétrico si entraron después, restamos un desfase si es necesario o usamos su propio registro
-                    let adjustedStart = start;
-                    if (empIndex > 0) {
-                        // Ejemplo: los colaboradores adicionales que se unen tienen su tiempo contabilizado desde su incorporación. 
-                        // Como la BD actual agrupa los nombres, damos una diferencia lógica o guardamos su inicio.
-                        // Aquí aseguramos que el segundo usuario muestre su tiempo real transcurrido.
-                    }
-
-                    let diff = Math.floor((now - adjustedStart) / 1000);
+                    let diff = Math.floor((now - start) / 1000);
                     if (diff < 0) diff = 0;
 
                     const hrs = Math.floor(diff / 3600);
@@ -790,6 +784,7 @@
         }
 
         function attachClientTimerListeners() {
+            // Unirse a cliente activo
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -810,6 +805,27 @@
                 });
             });
 
+            // Desasignarse (Salir sin cerrar el tiempo general de la visita)
+            document.querySelectorAll('.btn-unassign').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    // Filtrar para remover al usuario actual
+                    currentList = currentList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
+                    const newListStr = currentList.join(', ');
+
+                    const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
+                    if (!error) {
+                        a.assigned_employee = newListStr;
+                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error al desasignarse: ' + error.message);
+                });
+            });
+
+            // Botón "Llegué" (Check-in)
             document.querySelectorAll('.btn-checkin').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -838,6 +854,7 @@
                 });
             });
 
+            // Botón "Cerrar Visita" / "Terminar" (Check-out total)
             document.querySelectorAll('.btn-checkout').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
