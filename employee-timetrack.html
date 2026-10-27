@@ -505,7 +505,7 @@
 
                     const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
                     if (!error) {
-                        await loadDataFromSupabase(); // Refresca datos de inmediato desde Supabase
+                        await loadDataFromSupabase();
                     } else alert('Error al unirse: ' + error.message);
                 });
             });
@@ -530,7 +530,7 @@
                     }).eq('id', id);
 
                     if (!error) {
-                        await loadDataFromSupabase(); // Refresca datos de inmediato desde Supabase
+                        await loadDataFromSupabase();
                     } else alert('Error al hacer check-in: ' + error.message);
                 });
             });
@@ -556,7 +556,7 @@
                     }).eq('id', id);
 
                     if (!error) {
-                        await loadDataFromSupabase(); // Refresca datos de inmediato desde Supabase
+                        await loadDataFromSupabase();
                     } else alert('Error al terminar: ' + error.message);
                 });
             });
