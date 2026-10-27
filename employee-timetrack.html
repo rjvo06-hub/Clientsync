@@ -137,6 +137,18 @@
             document.getElementById('header-title').textContent = `⏱️ Tiempos: ${selectedEmployee}`;
         }
 
+        // FUNCIÓN CLAVE: Devuelve la hora local plana (YYYY-MM-DDTHH:MM:SS) sin zona horaria ni UTC
+        function getLocalDateTimeISO() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const seconds = String(d.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+        }
+
         function formatDate(str) {
             if (!str) return '';
             const p = str.split('-');
@@ -304,7 +316,7 @@
 
         function attachTimetrackListeners() {
             document.getElementById('btn-start').addEventListener('click', async () => {
-                const nowIso = new Date().toISOString();
+                const nowIso = getLocalDateTimeISO();
                 try {
                     if (!employeeDailyLog) {
                         const { data, error } = await supabase.from('employee_daily_logs').insert([{
@@ -348,14 +360,14 @@
                 }
             });
 
-            // BOTÓN DE ALMUERZO: Guarda la hora exacta de inicio o fin
+            // BOTÓN DE ALMUERZO: Guarda la hora local exacta de inicio o fin
             document.getElementById('btn-lunch').addEventListener('click', async () => {
                 if (!employeeDailyLog) {
                     alert('Primero debes iniciar tu jornada.');
                     return;
                 }
 
-                const nowIso = new Date().toISOString();
+                const nowIso = getLocalDateTimeISO();
                 let updatePayload = {};
 
                 if (employeeDailyLog.status === 'almuerzo') {
@@ -385,7 +397,7 @@
 
             document.getElementById('btn-end').addEventListener('click', async () => {
                 if (!employeeDailyLog) return;
-                const nowIso = new Date().toISOString();
+                const nowIso = getLocalDateTimeISO();
                 try {
                     const { data, error } = await supabase.from('employee_daily_logs')
                         .update({ clock_out_time: nowIso, status: 'finalizado' })
@@ -404,7 +416,7 @@
             document.querySelectorAll('.btn-checkin').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
-                    const nowIso = new Date().toISOString();
+                    const nowIso = getLocalDateTimeISO();
                     const { error } = await supabase.from('appointments').update({ check_in_time: nowIso }).eq('id', id);
                     if (!error) {
                         const a = allAppointments.find(x => x.id === id);
@@ -418,10 +430,11 @@
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
                     const now = new Date();
-                    const nowIso = new Date().toISOString();
+                    const nowIso = getLocalDateTimeISO();
                     const a = allAppointments.find(x => x.id === id);
                     let mins = 1;
                     if (a && a.check_in_time) {
+                        // Cálculo de duración basado en milisegundos locales de diferencia
                         mins = Math.max(1, Math.round((now - new Date(a.check_in_time)) / 60000));
                     }
                     const count = Math.max(1, (a.assigned_employee || '').split(',').length);
