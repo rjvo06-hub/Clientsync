@@ -591,12 +591,9 @@
 
                 const primaryEmployee = appt.assigned_employee ? appt.assigned_employee.split(',')[0].trim() : '';
                 const sessions = appt.sessions ? (typeof appt.sessions === 'string' ? JSON.parse(appt.sessions) : appt.sessions) : [];
-                // Empleados activos actualmente en la visita (basado en sesiones sin checkout)
-                const activeInVisit = sessions.filter(s => !s.check_out).map(s => s.employee);
                 
                 const isCheckedIn = appt.check_in_time && !appt.check_out_time;
                 const isCompleted = !!appt.check_out_time;
-                const amPrimary = primaryEmployee.toLowerCase() === selectedEmployee.toLowerCase();
                 const amActiveInVisit = sessions.some(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
 
                 let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
@@ -861,12 +858,10 @@
             empModal.style.display = 'none';
             const a = currentAppointmentForEmp;
 
-            // Mantener al empleado principal intacto en `assigned_employee` (primer elemento o único)
             const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
-            const newListStr = primaryEmp; // assigned_employee siempre se mantiene con el principal
+            const newListStr = primaryEmp;
 
             let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-            // Verificar si ya existe sesión para este empleado
             if (!sessions.some(s => s.employee.toLowerCase() === chosenEmp.toLowerCase())) {
                 sessions.push({
                     employee: chosenEmp,
@@ -920,6 +915,9 @@
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
+                    const clientObj = allClients.find(cl => cl.id === a.client_id);
+                    const clientName = clientObj ? clientObj.name : '';
+
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
                     const nowPure = getPureLocalTimestamp();
@@ -935,13 +933,14 @@
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
 
                     let updateData = {
-                        assigned_employee: primaryEmp, // Garantiza que solo quede el principal en la tabla
+                        assigned_employee: primaryEmp,
                         sessions: sessions
                     };
 
                     if (allSessionsClosed) {
                         updateData.check_out_time = nowPure;
                         updateData.total_labor_minutes = totalLabor;
+                        if (clientName) updateData.client_name = clientName; // Guarda el nombre legible del cliente
                     }
 
                     const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
@@ -1022,6 +1021,9 @@
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
+                    const clientObj = allClients.find(cl => cl.id === a.client_id);
+                    const clientName = clientObj ? clientObj.name : '';
+
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
                     let sessionMins = 1;
@@ -1037,7 +1039,7 @@
                     const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
 
                     let updatePayload = {
-                        assigned_employee: primaryEmp, // Garantiza que en la tabla solo figure el empleado principal
+                        assigned_employee: primaryEmp,
                         sessions: sessions
                     };
 
@@ -1045,6 +1047,7 @@
                         updatePayload.check_out_time = nowPure;
                         updatePayload.visit_duration_minutes = sessionMins;
                         updatePayload.total_labor_minutes = totalLabor;
+                        if (clientName) updatePayload.client_name = clientName; // Guarda el nombre legible del cliente
                     }
 
                     const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id);
