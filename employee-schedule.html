@@ -215,7 +215,6 @@
         let selectedMonthDate = new Date();
         let timerInterval = null;
         let visitLiveInterval = null;
-        let syncInterval = null;
         let timetrackViewMode = 'assigned'; 
         let currentAppointmentForEmp = null;
 
@@ -279,8 +278,6 @@
                 } else {
                     renderMainMenu();
                 }
-
-                startBackgroundSync();
             } catch (err) {
                 console.error('Error al iniciar:', err);
             }
@@ -327,18 +324,6 @@
             } catch (err) {
                 console.error(err);
             }
-        }
-
-        function startBackgroundSync() {
-            if (syncInterval) clearInterval(syncInterval);
-            syncInterval = setInterval(async () => {
-                try {
-                    await fetchData();
-                    await fetchDailyLog();
-                } catch (e) {
-                    console.error('Error en sincronización de fondo:', e);
-                }
-            }, 8000);
         }
 
         function renderMainMenu() {
@@ -599,7 +584,6 @@
                 const primaryEmployee = appt.assigned_employee ? appt.assigned_employee.split(',')[0].trim() : '';
                 const sessions = appt.sessions ? (typeof appt.sessions === 'string' ? JSON.parse(appt.sessions) : appt.sessions) : [];
                 
-                // Filtramos SOLO las sesiones activas (sin check_out) para mostrarlas en los chips y evitar que aparezcan en gris
                 const activeSessions = sessions.filter(s => !s.check_out);
                 
                 const isCheckedIn = appt.check_in_time && !appt.check_out_time;
@@ -889,7 +873,7 @@
 
             if (!error) {
                 await fetchData();
-                renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                renderTimetrackView(); // Refresca la pantalla inmediatamente al añadir
             } else alert('Error al agregar empleado: ' + error.message);
         });
 
@@ -916,7 +900,7 @@
                 });
             });
 
-            // Botón de la X para finalizar la sesión del empleado
+            // Botón de la X para finalizar la sesión del empleado y refrescar al instante
             document.querySelectorAll('.btn-remove-employee').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -959,12 +943,12 @@
 
                     if (!error) {
                         await fetchData();
-                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                        renderTimetrackView(); // Refresca la pantalla inmediatamente
                     } else alert('Error al retirar empleado: ' + error.message);
                 });
             });
 
-            // Botón para incluirse otra vez (crea una nueva sesión activa)
+            // Botón para incluirse otra vez y refrescar al instante
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -990,7 +974,7 @@
 
                     if (!error) {
                         await fetchData();
-                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                        renderTimetrackView(); // Refresca la pantalla inmediatamente
                     } else alert('Error al unirse: ' + error.message);
                 });
             });
@@ -1021,7 +1005,7 @@
 
                     if (!error) {
                         await fetchData();
-                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                        renderTimetrackView(); // Refresca la pantalla inmediatamente
                     } else alert('Error: ' + error.message);
                 });
             });
@@ -1067,7 +1051,7 @@
 
                     if (!error) {
                         await fetchData();
-                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                        renderTimetrackView(); // Refresca la pantalla inmediatamente
                     } else alert('Error al cerrar visita: ' + error.message);
                 });
             });
