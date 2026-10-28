@@ -691,7 +691,6 @@
                         }
                     }
                 } else if (isCheckedIn) {
-                    // Tomar siempre el check_in más antiguo (el inicio real de la visita del cliente) para que todos vean el mismo tiempo exacto
                     let earliestMs = Date.now();
                     apptVisits.forEach(v => {
                         const ms = parseTimestampToMs(v.check_in);
@@ -947,6 +946,7 @@
             const a = currentAppointmentForEmp;
             const nowPure = getPureLocalTimestamp();
 
+            // 1. Insertar en active_visits
             const { error } = await supabase.from('active_visits').insert([{
                 appointment_id: a.id,
                 client_id: a.client_id,
@@ -954,7 +954,12 @@
                 check_in: nowPure
             }]);
 
+            // 2. Si la cita no tenía check_in_time principal, asignarle este
             if (!error) {
+                const existingVisits = activeVisitsList.filter(v => String(v.appointment_id) === String(a.id));
+                if (!a.check_in_time && existingVisits.length === 0) {
+                    await supabase.from('appointments').update({ check_in_time: nowPure }).eq('id', a.id);
+                }
                 await fetchData();
                 renderTimetrackView();
             } else alert('Error al agregar empleado: ' + error.message);
@@ -1018,9 +1023,14 @@
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
                     const remainingActive = activeVisitsList.filter(v => String(v.appointment_id) === String(id) && v.employee_name.toLowerCase() !== empToRemove.toLowerCase());
                     
+                    // Buscar el check_in más antiguo entre las visitas activas restantes o la sesión para asegurar check_in_time en appointments
+                    let earliestCheckIn = a.check_in_time;
+                    if (!earliestCheckIn && visitRecord) earliestCheckIn = visitRecord.check_in;
+
                     let updateData = {
                         sessions: sessions,
-                        total_labor_minutes: totalLabor
+                        total_labor_minutes: totalLabor,
+                        check_in_time: earliestCheckIn
                     };
 
                     if (remainingActive.length === 0) {
@@ -1053,6 +1063,14 @@
                     }]);
 
                     if (!error) {
+                        const existingVisits = activeVisitsList.filter(v => String(v.appointment_id) === String(a.id));
+                        let updatePayload = {};
+                        if (!a.check_in_time && existingVisits.length === 0) {
+                            updatePayload.check_in_time = nowPure;
+                        }
+                        if (Object.keys(updatePayload).length > 0) {
+                            await supabase.from('appointments').update(updatePayload).eq('id', a.id);
+                        }
                         await fetchData();
                         renderTimetrackView();
                     } else alert('Error al unirse: ' + error.message);
@@ -1074,6 +1092,11 @@
                     }]);
 
                     if (!error) {
+                        // Asegurar que check_in_time quede guardado en appointments
+                        await supabase.from('appointments').update({ 
+                            check_in_time: a.check_in_time || nowPure 
+                        }).eq('id', a.id);
+
                         await fetchData();
                         renderTimetrackView();
                     } else alert('Error: ' + error.message);
@@ -1112,9 +1135,13 @@
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
                     const remainingActive = activeVisitsList.filter(v => String(v.appointment_id) === String(id) && v.employee_name.toLowerCase() !== selectedEmployee.toLowerCase());
 
+                    let earliestCheckIn = a.check_in_time;
+                    if (!earliestCheckIn && visitRecord) earliestCheckIn = visitRecord.check_in;
+
                     let updatePayload = {
                         sessions: sessions,
-                        total_labor_minutes: totalLabor
+                        total_labor_minutes: totalLabor,
+                        check_in_time: earliestCheckIn
                     };
 
                     if (remainingActive.length === 0) {
