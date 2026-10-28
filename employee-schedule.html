@@ -252,13 +252,10 @@
             return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         }
 
-        // Convierte de forma robusta cualquier timestamp (local o ISO) a milisegundos exactos sin saltos de zona horaria
         function parseTimestampToMs(ts) {
             if (!ts) return Date.now();
-            // Si viene en formato "YYYY-MM-DD HH:MM:SS" lo convertimos seguro a ISO local sustituyendo el espacio por T
             let clean = ts.replace(' ', 'T');
             if (!clean.includes('Z') && !clean.includes('+') && !clean.includes('-', 10)) {
-                // Tratar estrictamente como hora local del dispositivo
                 const parts = clean.split(/[-T:]/);
                 if (parts.length >= 6) {
                     return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]).getTime();
@@ -338,7 +335,6 @@
                 try {
                     await fetchData();
                     await fetchDailyLog();
-                    // Solo actualizamos silenciosamente los datos en memoria sin recrear el DOM si el usuario está en timetrack
                 } catch (e) {
                     console.error('Error en sincronización de fondo:', e);
                 }
@@ -605,7 +601,10 @@
                 
                 const isCheckedIn = appt.check_in_time && !appt.check_out_time;
                 const isCompleted = !!appt.check_out_time;
-                const amActiveInVisit = sessions.some(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
+                
+                // Ver si el usuario actual tiene una sesión ACTIVA (sin check_out)
+                const activeSessionForMe = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
+                const amActiveInVisit = !!activeSessionForMe;
 
                 let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
                 let actionBtn = '';
@@ -613,24 +612,29 @@
                 if (isCompleted) {
                     badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total: ${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
-                        actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
+                        // Si está completada la visita general pero el usuario quiere volver a incluirse (si la visita sigue abierta globalmente), permitimos unirse
+                        if (isCheckedIn && !amActiveInVisit) {
+                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
+                        } else {
+                            actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
+                        }
                     }
                 } else if (isCheckedIn) {
-                    // Usamos data-start-ms calculado con parseTimestampToMs para evitar cualquier salto o reinicio
-                    const startMs = parseTimestampToMs(appt.check_in_time);
-                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-start-ms="${startMs}">🟢 00:00:00</span>`;
+                    // Si el usuario tiene una sesión activa, mostramos su cronómetro individual o el de la visita
+                    const timerStartMs = activeSessionForMe ? parseTimestampToMs(activeSessionForMe.check_in) : parseTimestampToMs(appt.check_in_time);
+                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-start-ms="${timerStartMs}">🟢 00:00:00</span>`;
                     
                     if (timetrackViewMode === 'assigned') {
                         if (amActiveInVisit) {
-                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Finalizar</button>`;
                         } else {
-                            actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Tu sesión finalizó</span>`;
+                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
                         }
                     } else {
                         if (!amActiveInVisit) {
-                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Unirme</button>`;
+                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
                         } else {
-                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Finalizar</button>`;
                         }
                     }
                 } else {
@@ -650,8 +654,8 @@
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                                 ${sessions.map((s) => `
                                     <span class="team-chip" style="${s.check_out ? 'background: #f1f5f9; color: #64748b; border-color: #cbd5e1;' : ''}">
-                                        👷‍♂️ ${s.employee} ${s.check_out ? '(Finalizado)' : ''}
-                                        ${isCheckedIn && !s.check_out ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${s.employee}" title="Dar de baja / Salir a ${s.employee}">×</button>` : ''}
+                                        👷‍♂️ ${s.employee} ${s.check_out ? `(${s.minutes || 0}m)` : '(Activo)'}
+                                        ${isCheckedIn && !s.check_out ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${s.employee}" title="Finalizar a ${s.employee}">×</button>` : ''}
                                     </span>
                                 `).join('')}
                             </div>
@@ -682,7 +686,7 @@
             attachClientTimerListeners();
         }
 
-        // Cronómetro global en vivo (Tiempo real normal)
+        // Cronómetro global en vivo
         function startLiveTimer() {
             if (timerInterval) clearInterval(timerInterval);
             
@@ -731,7 +735,7 @@
             }, 1000);
         }
 
-        // Cronómetro de visitas en vivo continuo y basado en milisegundos absolutos
+        // Cronómetro de visitas en vivo continuo
         function startVisitLiveTimer() {
             if (visitLiveInterval) clearInterval(visitLiveInterval);
 
@@ -869,21 +873,20 @@
             const a = currentAppointmentForEmp;
 
             const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
-            const newListStr = primaryEmp;
-
             let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-            if (!sessions.some(s => s.employee.toLowerCase() === chosenEmp.toLowerCase())) {
-                sessions.push({
-                    employee: chosenEmp,
-                    check_in: getPureLocalTimestamp(),
-                    check_out: null,
-                    minutes: 0
-                });
-            }
+            
+            // Añadir nueva sesión para este empleado (incluso si ya tuvo anteriores)
+            sessions.push({
+                employee: chosenEmp,
+                check_in: getPureLocalTimestamp(),
+                check_out: null,
+                minutes: 0
+            });
 
             const { error } = await supabase.from('appointments').update({ 
-                assigned_employee: newListStr,
-                sessions: sessions
+                assigned_employee: primaryEmp,
+                sessions: sessions,
+                check_out_time: null // Si se añade alguien, la visita se reabre globalmente si estaba cerrada
             }).eq('id', a.id);
 
             if (!error) {
@@ -920,7 +923,7 @@
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
                     const empToRemove = e.target.getAttribute('data-emp');
-                    if (!confirm(`¿Deseas dar de baja / salir a ${empToRemove} de esta visita y cerrar su sesión?`)) return;
+                    if (!confirm(`¿Deseas finalizar la sesión de ${empToRemove} en esta visita?`)) return;
 
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
@@ -929,6 +932,7 @@
                     const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    // Buscar la sesión activa (sin check_out) específica de este empleado
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
                     const nowPure = getPureLocalTimestamp();
 
@@ -941,16 +945,17 @@
 
                     const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
                     const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
+                    // SUMA TOTAL de minutos de todas las sesiones de todos los empleados
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
 
                     let updateData = {
                         assigned_employee: primaryEmp,
-                        sessions: sessions
+                        sessions: sessions,
+                        total_labor_minutes: totalLabor
                     };
 
                     if (allSessionsClosed) {
                         updateData.check_out_time = nowPure;
-                        updateData.total_labor_minutes = totalLabor;
                         updateData.client_name = clientName;
                     }
 
@@ -963,6 +968,7 @@
                 });
             });
 
+            // Botón para unirse / incluirse otra vez (crea una nueva sesión en el array)
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -972,19 +978,21 @@
                     const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     
-                    if (!sessions.some(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase())) {
-                        sessions.push({
-                            employee: selectedEmployee,
-                            check_in: getPureLocalTimestamp(),
-                            check_out: null,
-                            minutes: 0
-                        });
-                    }
+                    // Añadir una NUEVA sesión activa para este usuario (permite múltiples NIK / registros)
+                    sessions.push({
+                        employee: selectedEmployee,
+                        check_in: getPureLocalTimestamp(),
+                        check_out: null,
+                        minutes: 0
+                    });
 
                     const { error } = await supabase.from('appointments').update({ 
                         assigned_employee: primaryEmp,
-                        sessions: sessions
+                        sessions: sessions,
+                        check_in_time: a.check_in_time || getPureLocalTimestamp(),
+                        check_out_time: null // Reactiva la visita globalmente si estaba cerrada
                     }).eq('id', id);
+
                     if (!error) {
                         await fetchData();
                         renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
@@ -1001,18 +1009,17 @@
                     const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-                    let existingSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
-                    if (!existingSession) {
-                        sessions.push({
-                            employee: selectedEmployee,
-                            check_in: nowPure,
-                            check_out: null,
-                            minutes: 0
-                        });
-                    }
+                    
+                    sessions.push({
+                        employee: selectedEmployee,
+                        check_in: nowPure,
+                        check_out: null,
+                        minutes: 0
+                    });
 
                     const { error } = await supabase.from('appointments').update({ 
                         check_in_time: a.check_in_time || nowPure,
+                        check_out_time: null,
                         assigned_employee: primaryEmp,
                         sessions: sessions
                     }).eq('id', id);
@@ -1037,28 +1044,28 @@
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
-                    let sessionMins = 1;
+                    
                     if (activeSession && activeSession.check_in) {
                         const startMs = parseTimestampToMs(activeSession.check_in);
                         const diffSecs = Math.max(1, Math.round((now - startMs) / 1000));
-                        sessionMins = Math.max(1, Math.round(diffSecs / 60));
                         activeSession.check_out = nowPure;
-                        activeSession.minutes = sessionMins;
+                        activeSession.minutes = Math.max(1, Math.round(diffSecs / 60));
                     }
 
                     const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
+                    // SUMA TOTAL de minutos de todas las sesiones de todos los empleados
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
                     const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
 
                     let updatePayload = {
                         assigned_employee: primaryEmp,
-                        sessions: sessions
+                        sessions: sessions,
+                        total_labor_minutes: totalLabor
                     };
 
                     if (allSessionsClosed) {
                         updatePayload.check_out_time = nowPure;
-                        updatePayload.visit_duration_minutes = sessionMins;
-                        updatePayload.total_labor_minutes = totalLabor;
+                        updatePayload.visit_duration_minutes = activeSession ? activeSession.minutes : 1;
                         updatePayload.client_name = clientName;
                     }
 
