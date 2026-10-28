@@ -105,6 +105,19 @@
             padding: 16px;
             margin-bottom: 16px;
         }
+        .active-client-banner {
+            background: #dcfce7;
+            border: 1px solid #86efac;
+            color: #166534;
+            padding: 12px 14px;
+            border-radius: 14px;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 2px 6px rgba(22, 101, 52, 0.08);
+        }
         .btn {
             width: 100%;
             padding: 12px;
@@ -492,6 +505,16 @@
             const map = new Map(allClients.map(c => [c.id, c]));
             const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
 
+            // Buscar si el usuario actual tiene una visita activa en ALGUNA cita de hoy (independiente de si está en su vista asignada)
+            let myActiveAppointment = null;
+            todayAppts.forEach(a => {
+                const sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                const activeForMe = sessions.some(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
+                if (activeForMe && map.has(a.client_id)) {
+                    myActiveAppointment = { appt: a, client: map.get(a.client_id) };
+                }
+            });
+
             let statusStr = 'Jornada no iniciada';
             let badgeBg = '#f1f5f9';
             let badgeColor = '#475569';
@@ -500,6 +523,20 @@
                 else if (employeeDailyLog.status === 'pausa') { statusStr = '⏸️ En pausa momentánea'; badgeBg = '#fef9c3'; badgeColor = '#854d0e'; }
                 else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+            }
+
+            let activeBannerHtml = '';
+            if (myActiveAppointment) {
+                activeBannerHtml = `
+                    <div class="active-client-banner">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong>🟢 ¡Estás activo en este cliente!</strong>
+                            <button type="button" class="btn btn-danger btn-checkout" data-id="${myActiveAppointment.appt.id}" style="width: auto; padding: 4px 10px; font-size: 0.68rem;">⏹️ Terminar</button>
+                        </div>
+                        <span style="font-weight: 700; color: #166534; font-size: 0.85rem;">🏢 ${myActiveAppointment.client.name}</span>
+                        <span style="font-size: 0.72rem; color: #166534;">📍 ${myActiveAppointment.client.address || 'Sin dirección'}</span>
+                    </div>
+                `;
             }
 
             container.innerHTML = `
@@ -525,6 +562,8 @@
                         <button type="button" class="btn btn-danger" id="btn-end">⏹️ Finalizar</button>
                     </div>
                 </div>
+
+                ${activeBannerHtml}
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <strong id="section-title" style="font-size: 0.8rem; color: #0f172a;">
@@ -873,7 +912,7 @@
 
             if (!error) {
                 await fetchData();
-                renderTimetrackView(); // Refresca la pantalla inmediatamente al añadir
+                renderTimetrackView();
             } else alert('Error al agregar empleado: ' + error.message);
         });
 
@@ -900,7 +939,6 @@
                 });
             });
 
-            // Botón de la X para finalizar la sesión del empleado y refrescar al instante
             document.querySelectorAll('.btn-remove-employee').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -943,12 +981,11 @@
 
                     if (!error) {
                         await fetchData();
-                        renderTimetrackView(); // Refresca la pantalla inmediatamente
+                        renderTimetrackView();
                     } else alert('Error al retirar empleado: ' + error.message);
                 });
             });
 
-            // Botón para incluirse otra vez y refrescar al instante
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -974,7 +1011,7 @@
 
                     if (!error) {
                         await fetchData();
-                        renderTimetrackView(); // Refresca la pantalla inmediatamente
+                        renderTimetrackView();
                     } else alert('Error al unirse: ' + error.message);
                 });
             });
@@ -1005,7 +1042,7 @@
 
                     if (!error) {
                         await fetchData();
-                        renderTimetrackView(); // Refresca la pantalla inmediatamente
+                        renderTimetrackView();
                     } else alert('Error: ' + error.message);
                 });
             });
@@ -1051,7 +1088,7 @@
 
                     if (!error) {
                         await fetchData();
-                        renderTimetrackView(); // Refresca la pantalla inmediatamente
+                        renderTimetrackView();
                     } else alert('Error al cerrar visita: ' + error.message);
                 });
             });
