@@ -915,8 +915,9 @@
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
-                    const clientObj = allClients.find(cl => cl.id === a.client_id);
-                    const clientName = clientObj ? clientObj.name : '';
+                    // Búsqueda robusta convirtiendo ambos a String para evitar problemas de tipo (número vs texto)
+                    const clientObj = allClients.find(cl => String(cl.id) === String(a.client_id));
+                    const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
@@ -940,7 +941,7 @@
                     if (allSessionsClosed) {
                         updateData.check_out_time = nowPure;
                         updateData.total_labor_minutes = totalLabor;
-                        if (clientName) updateData.client_name = clientName; // Guarda el nombre legible del cliente
+                        updateData.client_name = clientName; // Guarda siempre el nombre real del cliente
                     }
 
                     const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
@@ -1021,8 +1022,9 @@
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
-                    const clientObj = allClients.find(cl => cl.id === a.client_id);
-                    const clientName = clientObj ? clientObj.name : '';
+                    // Búsqueda robusta convirtiendo ambos a String para evitar problemas de tipo (número vs texto)
+                    const clientObj = allClients.find(cl => String(cl.id) === String(a.client_id));
+                    const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
@@ -1047,7 +1049,7 @@
                         updatePayload.check_out_time = nowPure;
                         updatePayload.visit_duration_minutes = sessionMins;
                         updatePayload.total_labor_minutes = totalLabor;
-                        if (clientName) updatePayload.client_name = clientName; // Guarda el nombre legible del cliente
+                        updatePayload.client_name = clientName; // Guarda siempre el nombre real del cliente
                     }
 
                     const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id);
