@@ -143,8 +143,7 @@
         <div class="header">
             <div>
                 <h1 id="header-title" style="display: inline-block;">⏱️ Tiempos</h1>
-                <!-- Indicador visual de actualización (v2.1 con timestamp) -->
-                <span class="version-tag">v2.1-live</span>
+                <span class="version-tag">v2.2-pure</span>
             </div>
             <div>
                 <button type="button" class="btn-active-clients" id="btn-toggle-view" style="margin-right: 6px;">🟢 Clientes Activos</button>
@@ -164,6 +163,7 @@
         let employeeDailyLog = null;
         let selectedEmployee = '';
         let timerInterval = null;
+        let visitLiveInterval = null;
         let viewMode = 'assigned'; // 'assigned' o 'active'
 
         const nowLocalDate = new Date();
@@ -184,7 +184,8 @@
             document.getElementById('header-title').textContent = `⏱️ Tiempos: ${selectedEmployee}`;
         }
 
-        function getLocalDateTimeISO() {
+        // Genera hora local pura y fija sin huso horario ni Z
+        function getPureLocalTimestamp() {
             const d = new Date();
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -192,7 +193,7 @@
             const hours = String(d.getHours()).padStart(2, '0');
             const minutes = String(d.getMinutes()).padStart(2, '0');
             const seconds = String(d.getSeconds()).padStart(2, '0');
-            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         }
 
         function formatDate(str) {
@@ -236,6 +237,8 @@
 
         function renderTimetrackView() {
             if (timerInterval) clearInterval(timerInterval);
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+
             const container = document.getElementById('timetrack-content');
             const map = new Map(allClients.map(c => [c.id, c]));
             const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
@@ -290,11 +293,13 @@
 
             renderClientsList(todayAppts, map);
             startLiveTimer();
+            startVisitLiveTimer();
             attachTimetrackListeners();
         }
 
         function renderClientsList(appts, map) {
             const listContainer = document.getElementById('clients-timetrack-list');
+            if (!listContainer) return;
             
             let filteredAppts = [];
             if (viewMode === 'assigned') {
@@ -333,13 +338,13 @@
                         badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizada</span>`;
                         actionBtn = `<span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Cerrada</span>`;
                     } else if (isCheckedIn) {
-                        badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 En Visita</span>`;
+                        badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                         actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
                     } else {
                         actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
                     }
                 } else {
-                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">🟢 Activo Ahora</span>`;
+                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                     
                     if (!amAssigned) {
                         actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">➕ Unirme</button>`;
@@ -375,7 +380,7 @@
                         ${teamHtml}
 
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9;">
-                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ Inicio: ${appt.check_in_time ? appt.check_in_time.split('T')[1].substring(0,5) : 'N/D'}</span>
+                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ Inicio: ${appt.check_in_time ? appt.check_in_time.replace('T', ' ').substring(11,16) : 'N/D'}</span>
                             <div style="width: 130px;">${actionBtn}</div>
                         </div>
                     </div>
@@ -385,6 +390,7 @@
             attachClientTimerListeners();
         }
 
+        // Cronómetro global en vivo fluido y seguro con hora pura local
         function startLiveTimer() {
             if (timerInterval) clearInterval(timerInterval);
             
@@ -402,7 +408,8 @@
                     return;
                 }
 
-                const start = new Date(employeeDailyLog.clock_in_time).getTime();
+                const cleanClockIn = employeeDailyLog.clock_in_time.replace(' ', 'T');
+                const start = new Date(cleanClockIn).getTime();
                 const now = new Date().getTime();
                 let diff = Math.floor((now - start) / 1000); 
                 if (diff < 0) diff = 0;
@@ -415,22 +422,50 @@
             }, 1000);
         }
 
+        // Cronómetro en vivo por cada visita de cliente
+        function startVisitLiveTimer() {
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+
+            const updateTimers = () => {
+                const now = new Date().getTime();
+
+                document.querySelectorAll('.visit-timer-badge').forEach(badge => {
+                    const checkinStr = badge.getAttribute('data-checkin');
+                    if (!checkinStr) return;
+
+                    const cleanCheckIn = checkinStr.replace(' ', 'T');
+                    const start = new Date(cleanCheckIn).getTime();
+                    let diff = Math.floor((now - start) / 1000);
+                    if (diff < 0) diff = 0;
+
+                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+
+                    badge.textContent = `🟢 ${h}:${m}:${s}`;
+                });
+            };
+
+            updateTimers();
+            visitLiveInterval = setInterval(updateTimers, 1000);
+        }
+
         function attachTimetrackListeners() {
             document.getElementById('btn-start').addEventListener('click', async () => {
-                const nowIso = getLocalDateTimeISO();
+                const nowPure = getPureLocalTimestamp();
                 try {
                     if (!employeeDailyLog) {
                         const { data, error } = await supabase.from('employee_daily_logs').insert([{
                             employee_name: selectedEmployee,
                             work_date: todayStr,
-                            clock_in_time: nowIso,
+                            clock_in_time: nowPure,
                             status: 'activo'
                         }]).select().single();
                         if (error) throw error;
                         employeeDailyLog = data;
                     } else {
                         const { data, error } = await supabase.from('employee_daily_logs')
-                            .update({ clock_in_time: nowIso, status: 'activo' })
+                            .update({ clock_in_time: nowPure, status: 'activo' })
                             .eq('id', employeeDailyLog.id)
                             .select().single();
                         if (error) throw error;
@@ -467,18 +502,18 @@
                     return;
                 }
 
-                const nowIso = getLocalDateTimeISO();
+                const nowPure = getPureLocalTimestamp();
                 let updatePayload = {};
 
                 if (employeeDailyLog.status === 'almuerzo') {
                     updatePayload = {
                         status: 'activo',
-                        lunch_end_time: nowIso
+                        lunch_end_time: nowPure
                     };
                 } else {
                     updatePayload = {
                         status: 'almuerzo',
-                        lunch_start_time: nowIso
+                        lunch_start_time: nowPure
                     };
                 }
 
@@ -497,10 +532,10 @@
 
             document.getElementById('btn-end').addEventListener('click', async () => {
                 if (!employeeDailyLog) return;
-                const nowIso = getLocalDateTimeISO();
+                const nowPure = getPureLocalTimestamp();
                 try {
                     const { data, error } = await supabase.from('employee_daily_logs')
-                        .update({ clock_out_time: nowIso, status: 'finalizado' })
+                        .update({ clock_out_time: nowPure, status: 'finalizado' })
                         .eq('id', employeeDailyLog.id)
                         .select().single();
                     if (error) throw error;
@@ -535,7 +570,7 @@
             document.querySelectorAll('.btn-checkin').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
-                    const nowIso = getLocalDateTimeISO();
+                    const nowPure = getPureLocalTimestamp();
                     
                     const a = allAppointments.find(x => x.id === id);
                     let currentList = a && a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
@@ -546,7 +581,7 @@
                     const newListStr = currentList.join(', ');
 
                     const { error } = await supabase.from('appointments').update({ 
-                        check_in_time: nowIso,
+                        check_in_time: nowPure,
                         assigned_employee: newListStr
                     }).eq('id', id);
 
@@ -560,17 +595,18 @@
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
                     const now = new Date();
-                    const nowIso = getLocalDateTimeISO();
+                    const nowPure = getPureLocalTimestamp();
                     const a = allAppointments.find(x => x.id === id);
                     let mins = 1;
                     if (a && a.check_in_time) {
-                        mins = Math.max(1, Math.round((now - new Date(a.check_in_time)) / 60000));
+                        const cleanCheckIn = a.check_in_time.replace(' ', 'T');
+                        mins = Math.max(1, Math.round((now - new Date(cleanCheckIn)) / 60000));
                     }
                     const count = Math.max(1, (a.assigned_employee || '').split(',').length);
                     const totalLabor = mins * count;
 
                     const { error } = await supabase.from('appointments').update({
-                        check_out_time: nowIso,
+                        check_out_time: nowPure,
                         visit_duration_minutes: mins,
                         total_labor_minutes: totalLabor
                     }).eq('id', id);
