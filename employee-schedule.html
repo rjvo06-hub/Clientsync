@@ -48,16 +48,6 @@
             margin-top: 3px;
             display: inline-block;
         }
-        .version-tag {
-            font-size: 0.6rem;
-            background: #dcfce7;
-            color: #166534;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 700;
-            margin-left: 4px;
-            display: inline-block;
-        }
         .icon-btn {
             background: #f1f5f9;
             border: none;
@@ -453,7 +443,7 @@
                     html += `
                         <div class="item-card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                                <strong style="font-size: 0.8rem;">#${idx + 1} ${c.name}</strong>
+                                <strong style="font-size: 0.8rem; background: #fef08a; padding: 2px 6px; border-radius: 4px;">🏢 ${c.name}</strong>
                                 <span style="font-size: 0.75rem; color: #2563eb; font-weight: 700;">⏰ ${a.time_slot || '09:00'}h</span>
                             </div>
                             <div style="font-size: 0.72rem; color: #64748b;">
@@ -686,8 +676,8 @@
                     <div class="item-card">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
                             <div>
-                                <strong style="font-size: 0.8rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
-                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 1px;">📍 ${c.address || 'Sin dirección'}</div>
+                                <strong style="font-size: 0.9rem; color: #0f172a; background: #fef08a; padding: 2px 6px; border-radius: 4px;">🏢 ${c.name}</strong>
+                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 3px;">📍 ${c.address || 'Sin dirección'}</div>
                             </div>
                             <div>${badge}</div>
                         </div>
@@ -705,7 +695,6 @@
             attachClientTimerListeners();
         }
 
-        // Cronómetro global en vivo (TIEMPO REAL NORMAL: actualiza cada segundo y muestra formato H:M:S exacto)
         function startLiveTimer() {
             if (timerInterval) clearInterval(timerInterval);
             
@@ -726,7 +715,7 @@
                 const cleanClockIn = employeeDailyLog.clock_in_time.replace(' ', 'T');
                 const start = new Date(cleanClockIn).getTime();
                 const now = new Date().getTime();
-                let diff = Math.floor((now - start) / 1000); // Segundos reales
+                let diff = Math.floor((now - start) / 1000); 
                 if (diff < 0) diff = 0;
 
                 const h = String(Math.floor(diff / 3600)).padStart(2, '0');
@@ -737,7 +726,6 @@
             }, 1000);
         }
 
-        // Cronómetro de visitas en vivo (TIEMPO REAL NORMAL, mostrando segundos para que visiones visitas de menos de 1 minuto)
         function startVisitLiveTimer() {
             if (visitLiveInterval) clearInterval(visitLiveInterval);
 
@@ -750,7 +738,7 @@
 
                     const cleanCheckIn = checkinStr.replace(' ', 'T');
                     const start = new Date(cleanCheckIn).getTime();
-                    let diff = Math.floor((now - start) / 1000); // Segundos reales
+                    let diff = Math.floor((now - start) / 1000); 
                     if (diff < 0) diff = 0;
 
                     const h = String(Math.floor(diff / 3600)).padStart(2, '0');
@@ -879,9 +867,13 @@
                 minutes: 0
             });
 
+            const c = allClients.find(client => client.id === a.client_id);
+            const clientName = c ? c.name : null;
+
             const { error } = await supabase.from('appointments').update({ 
                 assigned_employee: newListStr,
-                sessions: sessions
+                sessions: sessions,
+                client_name: clientName
             }).eq('id', a.id);
 
             if (!error) {
@@ -927,7 +919,6 @@
                     const nowPure = getPureLocalTimestamp();
                     if (activeSession) {
                         activeSession.check_out = nowPure;
-                        // Cálculo preciso en minutos reales (redondeado o mínimo 1 si pasaron segundos)
                         const diffSecs = Math.max(1, Math.round((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 1000));
                         activeSession.minutes = Math.max(1, Math.round(diffSecs / 60));
                     }
@@ -936,9 +927,13 @@
                     currentList = currentList.filter(el => el.toLowerCase() !== empToRemove.toLowerCase());
                     const newListStr = currentList.join(', ');
 
+                    const c = allClients.find(client => client.id === a.client_id);
+                    const clientName = c ? c.name : null;
+
                     let updateData = {
                         assigned_employee: newListStr,
-                        sessions: sessions
+                        sessions: sessions,
+                        client_name: clientName
                     };
 
                     if (currentList.length === 0) {
@@ -976,9 +971,13 @@
                         minutes: 0
                     });
 
+                    const c = allClients.find(client => client.id === a.client_id);
+                    const clientName = c ? c.name : null;
+
                     const { error } = await supabase.from('appointments').update({ 
                         assigned_employee: newListStr,
-                        sessions: sessions
+                        sessions: sessions,
+                        client_name: clientName
                     }).eq('id', id);
                     if (!error) {
                         await fetchData();
@@ -1006,9 +1005,13 @@
                     currentList = currentList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
                     const newListStr = currentList.join(', ');
 
+                    const c = allClients.find(client => client.id === a.client_id);
+                    const clientName = c ? c.name : null;
+
                     const { error } = await supabase.from('appointments').update({ 
                         assigned_employee: newListStr,
-                        sessions: sessions
+                        sessions: sessions,
+                        client_name: clientName
                     }).eq('id', id);
                     if (!error) {
                         await fetchData();
@@ -1023,6 +1026,9 @@
                     const nowPure = getPureLocalTimestamp();
                     
                     const a = allAppointments.find(x => x.id === id);
+                    const c = allClients.find(client => client.id === a.client_id);
+                    const clientName = c ? c.name : 'Cliente Desconocido';
+
                     let currentList = a && a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
                     
                     if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
@@ -1041,7 +1047,8 @@
                     const { error } = await supabase.from('appointments').update({ 
                         check_in_time: a.check_in_time || nowPure,
                         assigned_employee: newListStr,
-                        sessions: sessions
+                        sessions: sessions,
+                        client_name: clientName
                     }).eq('id', id);
 
                     if (!error) {
@@ -1058,6 +1065,9 @@
                     const nowPure = getPureLocalTimestamp();
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
+
+                    const c = allClients.find(client => client.id === a.client_id);
+                    const clientName = c ? c.name : null;
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
@@ -1080,7 +1090,8 @@
 
                         const { error } = await supabase.from('appointments').update({
                             assigned_employee: newListStr,
-                            sessions: sessions
+                            sessions: sessions,
+                            client_name: clientName
                         }).eq('id', id);
 
                         if (!error) {
@@ -1095,7 +1106,8 @@
                             check_out_time: nowPure,
                             visit_duration_minutes: sessionMins,
                             total_labor_minutes: totalLabor > 0 ? totalLabor : sessionMins,
-                            sessions: sessions
+                            sessions: sessions,
+                            client_name: clientName
                         }).eq('id', id);
 
                         if (!error) {
