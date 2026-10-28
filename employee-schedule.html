@@ -505,13 +505,21 @@
             const map = new Map(allClients.map(c => [c.id, c]));
             const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
 
-            // Buscar si el usuario actual tiene una visita activa en ALGUNA cita de hoy (independiente de si está en su vista asignada)
-            let myActiveAppointment = null;
+            // Obtener la lista de citas asignadas al usuario actual hoy
+            const assignedTodayAppts = todayAppts.filter(a => {
+                if (!a.assigned_employee) return false;
+                const primary = a.assigned_employee.split(',')[0].trim().toLowerCase();
+                return primary === selectedEmployee.toLowerCase() && map.has(a.client_id);
+            });
+            const assignedApptIds = new Set(assignedTodayAppts.map(a => a.id));
+
+            // Buscar si el usuario actual está activo en ALGUNA cita de hoy que NO esté en sus asignadas
+            let externalActiveAppointment = null;
             todayAppts.forEach(a => {
                 const sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                 const activeForMe = sessions.some(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
-                if (activeForMe && map.has(a.client_id)) {
-                    myActiveAppointment = { appt: a, client: map.get(a.client_id) };
+                if (activeForMe && map.has(a.client_id) && !assignedApptIds.has(a.id)) {
+                    externalActiveAppointment = { appt: a, client: map.get(a.client_id) };
                 }
             });
 
@@ -525,16 +533,17 @@
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
+            // El banner solo aparece si estás activo en un cliente externo (fuera de tus asignados)
             let activeBannerHtml = '';
-            if (myActiveAppointment) {
+            if (externalActiveAppointment) {
                 activeBannerHtml = `
                     <div class="active-client-banner">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong>🟢 ¡Estás activo en este cliente!</strong>
-                            <button type="button" class="btn btn-danger btn-checkout" data-id="${myActiveAppointment.appt.id}" style="width: auto; padding: 4px 10px; font-size: 0.68rem;">⏹️ Terminar</button>
+                            <strong>🟢 ¡Estás activo en este cliente externo!</strong>
+                            <button type="button" class="btn btn-danger btn-checkout" data-id="${externalActiveAppointment.appt.id}" style="width: auto; padding: 4px 10px; font-size: 0.68rem;">⏹️ Terminar</button>
                         </div>
-                        <span style="font-weight: 700; color: #166534; font-size: 0.85rem;">🏢 ${myActiveAppointment.client.name}</span>
-                        <span style="font-size: 0.72rem; color: #166534;">📍 ${myActiveAppointment.client.address || 'Sin dirección'}</span>
+                        <span style="font-weight: 700; color: #166534; font-size: 0.85rem;">🏢 ${externalActiveAppointment.client.name}</span>
+                        <span style="font-size: 0.72rem; color: #166534;">📍 ${externalActiveAppointment.client.address || 'Sin dirección'}</span>
                     </div>
                 `;
             }
