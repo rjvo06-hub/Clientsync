@@ -254,20 +254,23 @@
             color: #334155;
         }
 
-        .team-chips-row {
+        .team-details-list {
             display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
+            flex-direction: column;
+            gap: 2px;
             margin: 4px 0;
+            background: #ffffff;
+            border: 1px solid var(--border-card);
+            padding: 6px 8px;
+            border-radius: 6px;
         }
 
-        .team-chip-audit {
-            background: #e2e8f0;
-            color: #1e293b;
-            font-size: 0.62rem;
-            padding: 2px 6px;
-            border-radius: 4px;
+        .team-detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
             font-weight: 600;
+            color: #1e293b;
         }
 
         .visit-footer-row {
@@ -556,32 +559,52 @@
                             const checkInTime = formatFlatTime(a.check_in_time);
                             const checkOutTime = formatFlatTime(a.check_out_time);
                             
+                            // Parsear las sesiones individuales de los empleados almacenadas en JSONB
+                            let sessionsList = [];
+                            try {
+                                if (typeof a.sessions === 'string') {
+                                    sessionsList = JSON.parse(a.sessions);
+                                } else if (Array.isArray(a.sessions)) {
+                                    sessionsList = a.sessions;
+                                }
+                            } catch (e) {
+                                sessionsList = [];
+                            }
+
                             const teamList = a.assigned_employee ? a.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
                             const teamCount = Math.max(1, teamList.length);
 
-                            let teamChipsHtml = '';
-                            teamList.forEach(emp => {
-                                teamChipsHtml += `<span class="team-chip-audit">👤 ${emp}</span>`;
-                            });
+                            let teamDetailsHtml = '';
+                            let totalLaborMins = 0;
 
-                            const realDurationMins = a.visit_duration_minutes || 0;
-                            let laborDurationMins = realDurationMins;
-                            let lunchNote = '';
-
-                            if (realLunchStart && a.check_in_time && a.check_out_time && pauseMinutes > 0) {
-                                const visitInMins = timeToMinutes(a.check_in_time);
-                                const visitOutMins = timeToMinutes(a.check_out_time);
-                                const lunchStartMins = timeToMinutes(realLunchStart);
-                                const lunchEndMins = realLunchEnd ? timeToMinutes(realLunchEnd) : (lunchStartMins + pauseMinutes);
-
-                                if (visitInMins <= lunchEndMins && visitOutMins >= lunchStartMins) {
-                                    laborDurationMins = Math.max(0, realDurationMins - pauseMinutes);
-                                    lunchNote = `<div style="font-size: 0.62rem; color: #d97706; font-weight: 700;">(Incluye almuerzo -${pauseMinutes}m)</div>`;
-                                }
+                            if (sessionsList.length > 0) {
+                                sessionsList.forEach(s => {
+                                    const sMins = s.minutes || 0;
+                                    totalLaborMins += sMins;
+                                    teamDetailsHtml += `
+                                        <div class="team-detail-row">
+                                            <span>👤 ${s.employee}</span>
+                                            <span style="color: var(--primary);">${formatHoursAndMinutes(sMins)}</span>
+                                        </div>
+                                    `;
+                                });
+                            } else {
+                                // Fallback si no hay sesiones JSON detalladas
+                                const fallbackMins = a.visit_duration_minutes || 0;
+                                teamList.forEach(emp => {
+                                    totalLaborMins += fallbackMins;
+                                    teamDetailsHtml += `
+                                        <div class="team-detail-row">
+                                            <span>👤 ${emp}</span>
+                                            <span style="color: var(--primary);">${formatHoursAndMinutes(fallbackMins)}</span>
+                                        </div>
+                                    `;
+                                });
                             }
 
+                            const realDurationMins = a.visit_duration_minutes || 0;
                             const duration = formatHoursAndMinutes(realDurationMins);
-                            const totalLabor = formatHoursAndMinutes(laborDurationMins * teamCount);
+                            const totalLabor = formatHoursAndMinutes(totalLaborMins);
 
                             html += `
                                 <div class="visit-item">
@@ -594,8 +617,8 @@
                                     </div>
                                     
                                     <div>
-                                        <div style="font-size:0.65rem; color:var(--text-secondary); font-weight:700;">Personal presente (${teamCount}):</div>
-                                        <div class="team-chips-row">${teamChipsHtml}</div>
+                                        <div style="font-size:0.65rem; color:var(--text-secondary); font-weight:700; margin-top: 4px;">Personal presente y tiempo individual:</div>
+                                        <div class="team-details-list">${teamDetailsHtml}</div>
                                     </div>
 
                                     <div class="visit-footer-row">
@@ -603,9 +626,8 @@
                                             <span style="color:var(--text-secondary);">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
                                         </div>
                                         <div style="text-align: right;">
-                                            <div>Visita: <span class="time-pill" style="color:var(--primary);">${duration}</span></div>
-                                            <div>Labor Total (${teamCount}x): <span class="time-pill" style="color:#16a34a;">${totalLabor}</span></div>
-                                            ${lunchNote}
+                                            <div>Duración de visita: <span class="time-pill" style="color:var(--primary);">${duration}</span></div>
+                                            <div>Labor total (${teamCount} emp): <span class="time-pill" style="color:#16a34a;">${totalLabor}</span></div>
                                         </div>
                                     </div>
                                 </div>
