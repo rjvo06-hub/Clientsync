@@ -284,7 +284,7 @@
             try {
                 await fetchData();
                 await fetchDailyLog();
-                setupRealtimeSubscription();
+                setupRealtimeSubscriptions();
 
                 if (currentView === 'citas') {
                     renderCitasView('today');
@@ -346,12 +346,16 @@
             }
         }
 
-        function setupRealtimeSubscription() {
-            supabase.channel('public:all_changes')
+        // Canales independientes para garantizar tiempo real perfecto y bidireccional
+        function setupRealtimeSubscriptions() {
+            supabase.channel('appointments-realtime-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, async () => {
                     await fetchData();
                     refreshCurrentView();
                 })
+                .subscribe();
+
+            supabase.channel('active-visits-realtime-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'active_visits' }, async () => {
                     await fetchData();
                     refreshCurrentView();
@@ -543,7 +547,6 @@
             });
             const assignedApptIds = new Set(assignedTodayAppts.map(a => a.id));
 
-            // Verificar si el usuario actual tiene una visita activa en la tabla puente active_visits
             let externalActiveVisit = null;
             const myActiveVisit = activeVisitsList.find(v => v.employee_name.toLowerCase() === selectedEmployee.toLowerCase());
             if (myActiveVisit) {
@@ -689,7 +692,6 @@
                         }
                     }
                 } else if (isCheckedIn) {
-                    // Usar el tiempo del usuario actual si está activo, de lo contrario el primero de la lista
                     const timerStartMs = myActiveVisit ? parseTimestampToMs(myActiveVisit.check_in) : parseTimestampToMs(apptVisits[0].check_in);
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-start-ms="${timerStartMs}">🟢 00:00:00</span>`;
                     
@@ -940,7 +942,6 @@
             const a = currentAppointmentForEmp;
             const nowPure = getPureLocalTimestamp();
 
-            // Insertar en la tabla puente active_visits
             const { error } = await supabase.from('active_visits').insert([{
                 appointment_id: a.id,
                 client_id: a.client_id,
@@ -977,7 +978,6 @@
                 });
             });
 
-            // Remover/Finalizar a un empleado específico de la visita
             document.querySelectorAll('.btn-remove-employee').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -990,7 +990,6 @@
                     const clientObj = allClients.find(cl => String(cl.id) === String(a.client_id));
                     const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
 
-                    // Buscar el registro en active_visits para este empleado y cita
                     const visitRecord = activeVisitsList.find(v => String(v.appointment_id) === String(id) && v.employee_name.toLowerCase() === empToRemove.toLowerCase());
                     const nowPure = getPureLocalTimestamp();
                     let sessionMinutes = 1;
@@ -1000,11 +999,9 @@
                         const diffSecs = Math.max(1, Math.round((Date.now() - startMs) / 1000));
                         sessionMinutes = Math.max(1, Math.round(diffSecs / 60));
 
-                        // Borrar de active_visits
                         await supabase.from('active_visits').delete().eq('id', visitRecord.id);
                     }
 
-                    // Consolidar en sessions / total_labor_minutes de la tabla appointments
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     sessions.push({
                         employee: empToRemove,
@@ -1014,8 +1011,6 @@
                     });
 
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
-                    
-                    // Verificar si quedan más personas activas en esta cita en active_visits
                     const remainingActive = activeVisitsList.filter(v => String(v.appointment_id) === String(id) && v.employee_name.toLowerCase() !== empToRemove.toLowerCase());
                     
                     let updateData = {
@@ -1038,7 +1033,6 @@
                 });
             });
 
-            // Unirse a una visita existente
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -1060,7 +1054,6 @@
                 });
             });
 
-            // Llegué / Check-in inicial
             document.querySelectorAll('.btn-checkin').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -1082,7 +1075,6 @@
                 });
             });
 
-            // Finalizar / Check-out propio
             document.querySelectorAll('.btn-checkout').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
