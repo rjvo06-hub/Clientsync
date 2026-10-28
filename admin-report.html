@@ -697,12 +697,19 @@
                         let totalLaborMins = 0;
 
                         if (sessionsList.length > 0) {
+                            // Agrupar por empleado para unificar los tiempos si entró varias veces
+                            const aggregatedSessions = new Map();
                             sessionsList.forEach(s => {
+                                const empName = s.employee || 'Desconocido';
                                 const sMins = s.minutes || 0;
+                                aggregatedSessions.set(empName, (aggregatedSessions.get(empName) || 0) + sMins);
+                            });
+
+                            aggregatedSessions.forEach((sMins, empName) => {
                                 totalLaborMins += sMins;
                                 teamDetailsHtml += `
                                     <div class="team-detail-row">
-                                        <span>👤 ${s.employee}</span>
+                                        <span>👤 ${empName}</span>
                                         <span style="color: var(--primary);">${formatHoursAndMinutes(sMins)}</span>
                                     </div>
                                 `;
