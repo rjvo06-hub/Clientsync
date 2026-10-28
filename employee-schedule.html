@@ -278,4 +278,821 @@
                     renderCitasView('today');
                 } else if (currentView === 'calendar') {
                     renderCitasView('calendar');
-                    if (returnDate) openModal(return
+                    if (returnDate) openModal(returnDate);
+                } else if (currentView === 'timetrack') {
+                    renderTimetrackView();
+                } else {
+                    renderMainMenu();
+                }
+
+                startBackgroundSync();
+            } catch (err) {
+                console.error('Error al iniciar:', err);
+            }
+        }
+
+        async function fetchData() {
+            const [{ data: clients }, { data: appointments }, { data: employeesData }] = await Promise.all([
+                supabase.from('clients').select('*').order('name', { ascending: true }),
+                supabase.from('appointments').select('*').order('time_slot', { ascending: true }),
+                supabase.from('employees').select('*')
+            ]);
+            
+            allClients = clients || [];
+            allAppointments = appointments || [];
+            
+            const namesSet = new Set();
+            
+            if (employeesData && employeesData.length > 0) {
+                employeesData.forEach(emp => {
+                    const name = emp.name || emp.employee_name || emp.full_name || emp.username;
+                    if (name) namesSet.add(name.trim());
+                });
+            } else {
+                if (appointments) {
+                    appointments.forEach(a => {
+                        if (a.assigned_employee) {
+                            a.assigned_employee.split(',').forEach(e => { if (e.trim()) namesSet.add(e.trim()); });
+                        }
+                    });
+                }
+            }
+
+            if (selectedEmployee) namesSet.add(selectedEmployee);
+            allEmployeeNames = Array.from(namesSet).sort();
+        }
+
+        async function fetchDailyLog() {
+            try {
+                const { data } = await supabase.from('employee_daily_logs')
+                    .select('*')
+                    .eq('employee_name', selectedEmployee)
+                    .eq('work_date', todayStr)
+                    .maybeSingle();
+                employeeDailyLog = data;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function startBackgroundSync() {
+            if (syncInterval) clearInterval(syncInterval);
+            syncInterval = setInterval(async () => {
+                try {
+                    await fetchData();
+                    await fetchDailyLog();
+                    if (currentView === 'timetrack' || urlParams.get('view') === 'timetrack') {
+                        const map = new Map(allClients.map(c => [c.id, c]));
+                        const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
+                        renderClientsList(todayAppts, map);
+                    }
+                } catch (e) {
+                    console.error('Error en sincronización de fondo:', e);
+                }
+            }, 5000);
+        }
+
+        function renderMainMenu() {
+            if (timerInterval) clearInterval(timerInterval);
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+            document.getElementById('header-title').textContent = `👷‍♂️ ${selectedEmployee}`;
+            document.getElementById('app-header').querySelector('a').style.display = 'inline-flex';
+
+            document.getElementById('app-content').innerHTML = `
+                <div style="text-align: center; margin-bottom: 14px;">
+                    <p style="font-size: 0.78rem; color: #64748b; margin: 0;">Selecciona una sección:</p>
+                </div>
+                <div class="menu-card" id="card-citas">
+                    <div>
+                        <h3>📅 Mis Citas y Agenda</h3>
+                        <p>Ver visitas programadas de hoy y mes</p>
+                    </div>
+                    <span style="color: #3b82f6; font-weight: bold;">➔</span>
+                </div>
+                <div class="menu-card" id="card-timetrack">
+                    <div>
+                        <h3>⏱️ Control de Tiempos</h3>
+                        <p>Jornada, pausas y clientes activos</p>
+                    </div>
+                    <span style="color: #3b82f6; font-weight: bold;">➔</span>
+                </div>
+            `;
+
+            document.getElementById('card-citas').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}&view=citas`);
+                renderCitasView('today');
+            });
+            document.getElementById('card-timetrack').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}&view=timetrack`);
+                renderTimetrackView();
+            });
+        }
+
+        function renderCitasView(sub) {
+            if (timerInterval) clearInterval(timerInterval);
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+            document.getElementById('header-title').textContent = `📅 Agenda`;
+            document.getElementById('app-header').querySelector('a').style.display = 'none';
+
+            const container = document.getElementById('app-content');
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <button type="button" class="icon-btn" id="btn-back">← Menú</button>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #64748b;">${formatDate(todayStr)}</span>
+                </div>
+                <div class="tabs-header">
+                    <button type="button" class="tab-pill ${sub === 'today' ? 'active' : ''}" id="tab-today">📅 Hoy</button>
+                    <button type="button" class="tab-pill ${sub === 'calendar' ? 'active' : ''}" id="tab-cal">🗓️ Mes</button>
+                </div>
+                <div id="sub-view-content"></div>
+            `;
+
+            document.getElementById('btn-back').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}`);
+                renderMainMenu();
+            });
+            document.getElementById('tab-today').addEventListener('click', () => renderCitasView('today'));
+            document.getElementById('tab-cal').addEventListener('click', () => renderCitasView('calendar'));
+
+            const subContainer = document.getElementById('sub-view-content');
+            if (sub === 'today') renderDayAppts(subContainer, todayStr, "Citas de Hoy");
+            else renderCalendar(subContainer);
+        }
+
+        function getApptsForDate(dateStr) {
+            const map = new Map(allClients.map(c => [c.id, c]));
+            return allAppointments.filter(a => {
+                if (!a.scheduled_date || a.scheduled_date.split('T')[0] !== dateStr) return false;
+                if (!a.assigned_employee) return false;
+                const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                return list.includes(selectedEmployee.toLowerCase()) && map.has(a.client_id);
+            });
+        }
+
+        function renderDayAppts(container, dateStr, title) {
+            const appts = getApptsForDate(dateStr);
+            const map = new Map(allClients.map(c => [c.id, c]));
+            const routeUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}&view=calendar`;
+
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="font-size: 0.82rem; color: #1e293b;">${title} (${formatDate(dateStr)})</strong>
+                    ${appts.length > 0 ? `<a href="${routeUrl}" class="icon-btn" style="background:#eff6ff; color:#1d4ed8;">🗺️ Mapa</a>` : ''}
+                </div>
+            `;
+
+            if (appts.length === 0) {
+                html += `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">No hay citas para esta fecha.</div>`;
+            } else {
+                appts.forEach((a, idx) => {
+                    const c = map.get(a.client_id);
+                    const colleagues = (a.assigned_employee || '').split(',').map(e => e.trim()).filter(e => e.toLowerCase() !== selectedEmployee.toLowerCase());
+                    html += `
+                        <div class="item-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <strong style="font-size: 0.8rem;">#${idx + 1} ${c.name}</strong>
+                                <span style="font-size: 0.75rem; color: #2563eb; font-weight: 700;">⏰ ${a.time_slot || '09:00'}h</span>
+                            </div>
+                            <div style="font-size: 0.72rem; color: #64748b;">
+                                📍 ${c.address || 'Sin dirección'}
+                                ${colleagues.length ? `<div style="color: #d97706; font-weight: 700; margin-top: 2px;">👥 Con: ${colleagues.join(', ')}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            container.innerHTML = html;
+        }
+
+        function renderCalendar(container) {
+            const y = selectedMonthDate.getFullYear();
+            const m = selectedMonthDate.getMonth();
+            const names = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const first = new Date(y, m, 1).getDay();
+            const total = new Date(y, m + 1, 0).getDate();
+            const offset = first === 0 ? 6 : first - 1;
+
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <button type="button" class="icon-btn" id="prev-m">◀</button>
+                    <strong style="font-size: 0.85rem;">${names[m]} ${y}</strong>
+                    <button type="button" class="icon-btn" id="next-m">▶</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="cal-header">Lun</div><div class="cal-header">Mar</div><div class="cal-header">Mié</div><div class="cal-header">Jue</div><div class="cal-header">Vie</div><div class="cal-header">Sáb</div><div class="cal-header">Dom</div>
+            `;
+            for (let i = 0; i < offset; i++) html += `<div></div>`;
+            for (let d = 1; d <= total; d++) {
+                const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const count = getApptsForDate(dateStr).length;
+                html += `
+                    <div class="cal-day ${count > 0 ? 'has-appointments' : ''}" data-date="${dateStr}">
+                        <span>${d}</span>
+                        ${count > 0 ? `<span class="badge">${count}</span>` : ''}
+                    </div>
+                `;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+
+            document.getElementById('prev-m').addEventListener('click', () => { selectedMonthDate.setMonth(m - 1); renderCalendar(container); });
+            document.getElementById('next-m').addEventListener('click', () => { selectedMonthDate.setMonth(m + 1); renderCalendar(container); });
+            container.querySelectorAll('.cal-day[data-date]').forEach(el => {
+                el.addEventListener('click', () => openModal(el.getAttribute('data-date')));
+            });
+        }
+
+        function openModal(dateStr) {
+            document.getElementById('modal-title').textContent = `📅 Citas del ${formatDate(dateStr)}`;
+            renderDayAppts(document.getElementById('modal-content'), dateStr, "Tareas");
+            document.getElementById('day-modal').style.display = 'flex';
+        }
+        document.getElementById('close-modal').addEventListener('click', () => document.getElementById('day-modal').style.display = 'none');
+
+        function renderTimetrackView() {
+            if (timerInterval) clearInterval(timerInterval);
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+
+            document.getElementById('header-title').textContent = `⏱️ Tiempos`;
+            document.getElementById('app-header').querySelector('a').style.display = 'none';
+
+            const container = document.getElementById('app-content');
+            const map = new Map(allClients.map(c => [c.id, c]));
+            const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
+
+            let statusStr = 'Jornada no iniciada';
+            let badgeBg = '#f1f5f9';
+            let badgeColor = '#475569';
+            if (employeeDailyLog) {
+                if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Jornada en curso'; badgeBg = '#dcfce7'; badgeColor = '#166534'; }
+                else if (employeeDailyLog.status === 'pausa') { statusStr = '⏸️ En pausa'; badgeBg = '#fef9c3'; badgeColor = '#854d0e'; }
+                else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
+                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+            }
+
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <button type="button" class="icon-btn" id="btn-back-t">← Menú</button>
+                    <button type="button" class="btn-active-clients" id="btn-toggle-view">🟢 Clientes Activos</button>
+                </div>
+
+                <div class="card-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong style="font-size: 0.8rem; color: #0f172a;">🏢 Jornada Laboral</strong>
+                        <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 2px 6px; border-radius: 6px; font-size: 0.68rem; font-weight: 700;">${statusStr}</span>
+                    </div>
+
+                    <div class="timer-display" id="global-timer">00:00:00</div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success" id="btn-start">▶️ Iniciar</button>
+                        <button type="button" class="btn btn-warning" id="btn-pause">⏸️ Pausa</button>
+                    </div>
+                    <div class="btn-group" style="margin-top: 6px;">
+                        <button type="button" class="btn btn-secondary" style="background:#fed7aa; color:#9a3412;" id="btn-lunch">☕ Almuerzo</button>
+                        <button type="button" class="btn btn-danger" id="btn-end">⏹️ Finalizar</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <strong id="section-title" style="font-size: 0.8rem; color: #0f172a;">
+                        ${timetrackViewMode === 'assigned' ? '📍 Clientes Asignados Hoy:' : '🟢 Clientes Activos Globales:'}
+                    </strong>
+                    <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">${formatDate(todayStr)}</span>
+                </div>
+                <div id="clients-timetrack-list"></div>
+            `;
+
+            document.getElementById('btn-back-t').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}`);
+                renderMainMenu();
+            });
+
+            const btnToggle = document.getElementById('btn-toggle-view');
+            btnToggle.textContent = timetrackViewMode === 'assigned' ? '🟢 Clientes Activos' : '📌 Mis Asignados';
+            btnToggle.addEventListener('click', () => {
+                timetrackViewMode = timetrackViewMode === 'assigned' ? 'active' : 'assigned';
+                renderTimetrackView();
+            });
+
+            renderClientsList(todayAppts, map);
+            startLiveTimer();
+            startVisitLiveTimer();
+            attachTimetrackListeners();
+        }
+
+        function renderClientsList(appts, map) {
+            const listContainer = document.getElementById('clients-timetrack-list');
+            if (!listContainer) return;
+            
+            let filteredAppts = [];
+            if (timetrackViewMode === 'assigned') {
+                filteredAppts = appts.filter(a => {
+                    if (!a.assigned_employee) return false;
+                    const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                    return list.includes(selectedEmployee.toLowerCase());
+                });
+            } else {
+                filteredAppts = appts.filter(a => a.check_in_time && !a.check_out_time && map.has(a.client_id));
+            }
+
+            if (filteredAppts.length === 0) {
+                const msg = timetrackViewMode === 'assigned' 
+                    ? 'No tienes clientes asignados para hoy.' 
+                    : '🟢 No hay clientes activos en este momento en la empresa.';
+                listContainer.innerHTML = `<div style="padding: 14px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">${msg}</div>`;
+                return;
+            }
+
+            let html = '';
+            filteredAppts.forEach((appt, idx) => {
+                const c = map.get(appt.client_id);
+                if (!c) return;
+
+                const assignedList = appt.assigned_employee ? appt.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
+                const isCheckedIn = appt.check_in_time && !appt.check_out_time;
+                const isCompleted = !!appt.check_out_time;
+                const amAssigned = assignedList.map(e => e.toLowerCase()).includes(selectedEmployee.toLowerCase());
+
+                let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
+                let actionBtn = '';
+
+                if (isCompleted) {
+                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total: ${appt.total_labor_minutes || 0}m)</span>`;
+                    if (timetrackViewMode === 'assigned') {
+                        actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
+                    }
+                } else if (isCheckedIn) {
+                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
+                    
+                    if (timetrackViewMode === 'assigned') {
+                        if (assignedList.length > 1) {
+                            actionBtn = `
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <button type="button" class="btn btn-warning btn-unassign" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem; background: #f59e0b; color: white;">🚪 Salirme</button>
+                                    <button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem;">⏹️ Terminar</button>
+                                </div>
+                            `;
+                        } else {
+                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                        }
+                    } else {
+                        if (!amAssigned) {
+                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Unirme</button>`;
+                        } else {
+                            if (assignedList.length > 1) {
+                                actionBtn = `
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <button type="button" class="btn btn-warning btn-unassign" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem; background: #f59e0b; color: white;">🚪 Salirme</button>
+                                        <button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 6px; font-size: 0.68rem;">⏹️ Terminar</button>
+                                    </div>
+                                `;
+                            } else {
+                                actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                            }
+                        }
+                    }
+                } else {
+                    if (timetrackViewMode === 'assigned') {
+                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">▶️ Llegué</button>`;
+                    }
+                }
+
+                let teamHtml = '';
+                if (assignedList.length > 0 || isCheckedIn) {
+                    teamHtml = `
+                        <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px dashed #e2e8f0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Personal en visita:</span>
+                                ${isCheckedIn ? `<button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">+ Añadir persona</button>` : ''}
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                ${assignedList.map((emp) => `
+                                    <span class="team-chip">
+                                        👷‍♂️ ${emp}
+                                        ${isCheckedIn ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${emp}" title="Retirar a ${emp}">×</button>` : ''}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="item-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
+                            <div>
+                                <strong style="font-size: 0.8rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
+                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 1px;">📍 ${c.address || 'Sin dirección'}</div>
+                            </div>
+                            <div>${badge}</div>
+                        </div>
+
+                        ${teamHtml}
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
+                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h</span>
+                            <div style="width: 130px;">${actionBtn}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+            attachClientTimerListeners();
+        }
+
+        // Cronómetro global en vivo fluido y seguro con horas puras locales
+        function startLiveTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                const timerEl = document.getElementById('global-timer');
+                if (!timerEl) return;
+
+                if (!employeeDailyLog || !employeeDailyLog.clock_in_time || employeeDailyLog.status === 'finalizado') {
+                    timerEl.textContent = "00:00:00";
+                    return;
+                }
+
+                if (employeeDailyLog.status === 'pausa' || employeeDailyLog.status === 'almuerzo') {
+                    timerEl.textContent = "PAUSADO";
+                    return;
+                }
+
+                // Reemplazamos espacio por 'T' para evitar problemas de parsing local en JS sin desfasaje UTC
+                const cleanClockIn = employeeDailyLog.clock_in_time.replace(' ', 'T');
+                const start = new Date(cleanClockIn).getTime();
+                const now = new Date().getTime();
+                let diff = Math.floor((now - start) / 1000); 
+                if (diff < 0) diff = 0;
+
+                const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                const s = String(diff % 60).padStart(2, '0');
+
+                timerEl.textContent = `${h}:${m}:${s}`;
+            }, 1000);
+        }
+
+        // Cronómetro en vivo por cada cliente activo fluido y seguro con horas puras locales
+        function startVisitLiveTimer() {
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+
+            const updateTimers = () => {
+                const now = new Date().getTime();
+
+                document.querySelectorAll('.visit-timer-badge').forEach(badge => {
+                    const checkinStr = badge.getAttribute('data-checkin');
+                    if (!checkinStr) return;
+
+                    const cleanCheckIn = checkinStr.replace(' ', 'T');
+                    const start = new Date(cleanCheckIn).getTime();
+                    let diff = Math.floor((now - start) / 1000);
+                    if (diff < 0) diff = 0;
+
+                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+
+                    badge.textContent = `🟢 ${h}:${m}:${s}`;
+                });
+            };
+
+            updateTimers();
+            visitLiveInterval = setInterval(updateTimers, 1000);
+        }
+
+        function attachTimetrackListeners() {
+            document.getElementById('btn-start').addEventListener('click', async () => {
+                const nowPure = getPureLocalTimestamp();
+                try {
+                    if (!employeeDailyLog) {
+                        const { data, error } = await supabase.from('employee_daily_logs').insert([{
+                            employee_name: selectedEmployee,
+                            work_date: todayStr,
+                            clock_in_time: nowPure,
+                            status: 'activo'
+                        }]).select().single();
+                        if (error) throw error;
+                        employeeDailyLog = data;
+                    } else {
+                        const { data, error } = await supabase.from('employee_daily_logs')
+                            .update({ clock_in_time: nowPure, status: 'activo' })
+                            .eq('id', employeeDailyLog.id)
+                            .select().single();
+                        if (error) throw error;
+                        employeeDailyLog = data;
+                    }
+                    renderTimetrackView();
+                } catch (err) {
+                    alert('Error al iniciar: ' + err.message);
+                }
+            });
+
+            document.getElementById('btn-pause').addEventListener('click', async () => {
+                if (!employeeDailyLog) {
+                    alert('Primero debes iniciar tu jornada.');
+                    return;
+                }
+                const nextStatus = employeeDailyLog.status === 'pausa' ? 'activo' : 'pausa';
+                try {
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update({ status: nextStatus })
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+                    if (error) throw error;
+                    employeeDailyLog = data;
+                    renderTimetrackView();
+                } catch (err) {
+                    alert('Error al pausar: ' + err.message);
+                }
+            });
+
+            document.getElementById('btn-lunch').addEventListener('click', async () => {
+                if (!employeeDailyLog) {
+                    alert('Primero debes iniciar tu jornada.');
+                    return;
+                }
+                const nextStatus = employeeDailyLog.status === 'almuerzo' ? 'activo' : 'almuerzo';
+                try {
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update({ status: nextStatus })
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+                    if (error) throw error;
+                    employeeDailyLog = data;
+                    renderTimetrackView();
+                } catch (err) {
+                    alert('Error en almuerzo: ' + err.message);
+                }
+            });
+
+            document.getElementById('btn-end').addEventListener('click', async () => {
+                if (!employeeDailyLog) return;
+                const nowPure = getPureLocalTimestamp();
+                try {
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update({ clock_out_time: nowPure, status: 'finalizado' })
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+                    if (error) throw error;
+                    employeeDailyLog = data;
+                    renderTimetrackView();
+                } catch (err) {
+                    alert('Error al finalizar: ' + err.message);
+                }
+            });
+        }
+
+        const empModal = document.getElementById('employee-modal');
+        const empDropdown = document.getElementById('employee-select-dropdown');
+
+        document.getElementById('close-emp-modal').addEventListener('click', () => { empModal.style.display = 'none'; });
+        document.getElementById('btn-cancel-emp').addEventListener('click', () => { empModal.style.display = 'none'; });
+
+        document.getElementById('btn-confirm-emp').addEventListener('click', async () => {
+            const chosenEmp = empDropdown.value;
+            if (!chosenEmp || !currentAppointmentForEmp) return;
+
+            empModal.style.display = 'none';
+            const a = currentAppointmentForEmp;
+
+            let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+            if (!currentList.map(el => el.toLowerCase()).includes(chosenEmp.toLowerCase())) {
+                currentList.push(chosenEmp);
+            }
+            const newListStr = currentList.join(', ');
+
+            let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+            sessions.push({
+                employee: chosenEmp,
+                check_in: getPureLocalTimestamp(),
+                check_out: null,
+                minutes: 0
+            });
+
+            const { error } = await supabase.from('appointments').update({ 
+                assigned_employee: newListStr,
+                sessions: sessions
+            }).eq('id', a.id);
+
+            if (!error) {
+                await fetchData();
+                renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+            } else alert('Error al agregar empleado: ' + error.message);
+        });
+
+        function attachClientTimerListeners() {
+            document.querySelectorAll('.btn-open-add-emp').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    currentAppointmentForEmp = allAppointments.find(x => x.id === id);
+                    if (!currentAppointmentForEmp) return;
+
+                    empDropdown.innerHTML = '';
+                    if (allEmployeeNames.length === 0) {
+                        empDropdown.innerHTML = `<option value="">No hay empleados registrados en la tabla</option>`;
+                    } else {
+                        allEmployeeNames.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = `👷‍♂️ ${name}`;
+                            empDropdown.appendChild(opt);
+                        });
+                    }
+
+                    empModal.style.display = 'flex';
+                });
+            });
+
+            document.querySelectorAll('.btn-remove-employee').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const empToRemove = e.target.getAttribute('data-emp');
+                    if (!confirm(`¿Deseas retirar a ${empToRemove} de esta visita y cerrar su sesión?`)) return;
+
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
+                    const nowPure = getPureLocalTimestamp();
+                    if (activeSession) {
+                        activeSession.check_out = nowPure;
+                        activeSession.minutes = Math.max(1, Math.round((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 60000));
+                    }
+
+                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    currentList = currentList.filter(el => el.toLowerCase() !== empToRemove.toLowerCase());
+                    const newListStr = currentList.join(', ');
+
+                    let updateData = {
+                        assigned_employee: newListStr,
+                        sessions: sessions
+                    };
+
+                    if (currentList.length === 0) {
+                        const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
+                        updateData.check_out_time = nowPure;
+                        updateData.total_labor_minutes = totalLabor;
+                    }
+
+                    const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
+
+                    if (!error) {
+                        await fetchData();
+                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error al retirar empleado: ' + error.message);
+                });
+            });
+
+            document.querySelectorAll('.btn-join').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
+                        currentList.push(selectedEmployee);
+                    }
+                    const newListStr = currentList.join(', ');
+
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    sessions.push({
+                        employee: selectedEmployee,
+                        check_in: getPureLocalTimestamp(),
+                        check_out: null,
+                        minutes: 0
+                    });
+
+                    const { error } = await supabase.from('appointments').update({ 
+                        assigned_employee: newListStr,
+                        sessions: sessions
+                    }).eq('id', id);
+                    if (!error) {
+                        await fetchData();
+                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error al unirse: ' + error.message);
+                });
+            });
+
+            document.querySelectorAll('.btn-unassign').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
+                    const nowPure = getPureLocalTimestamp();
+                    if (activeSession) {
+                        activeSession.check_out = nowPure;
+                        activeSession.minutes = Math.max(1, Math.round((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 60000));
+                    }
+
+                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    currentList = currentList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
+                    const newListStr = currentList.join(', ');
+
+                    const { error } = await supabase.from('appointments').update({ 
+                        assigned_employee: newListStr,
+                        sessions: sessions
+                    }).eq('id', id);
+                    if (!error) {
+                        await fetchData();
+                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error al desasignarse: ' + error.message);
+                });
+            });
+
+            document.querySelectorAll('.btn-checkin').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const nowPure = getPureLocalTimestamp();
+                    
+                    const a = allAppointments.find(x => x.id === id);
+                    let currentList = a && a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    
+                    if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
+                        currentList.push(selectedEmployee);
+                    }
+                    const newListStr = currentList.join(', ');
+
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    sessions.push({
+                        employee: selectedEmployee,
+                        check_in: nowPure,
+                        check_out: null,
+                        minutes: 0
+                    });
+
+                    const { error } = await supabase.from('appointments').update({ 
+                        check_in_time: a.check_in_time || nowPure,
+                        assigned_employee: newListStr,
+                        sessions: sessions
+                    }).eq('id', id);
+
+                    if (!error) {
+                        await fetchData();
+                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error: ' + error.message);
+                });
+            });
+
+            document.querySelectorAll('.btn-checkout').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const now = new Date();
+                    const nowPure = getPureLocalTimestamp();
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
+                    let sessionMins = 1;
+                    if (activeSession && activeSession.check_in) {
+                        sessionMins = Math.max(1, Math.round((now - new Date(activeSession.check_in.replace(' ', 'T'))) / 60000));
+                        activeSession.check_out = nowPure;
+                        activeSession.minutes = sessionMins;
+                    }
+
+                    let assignedList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+
+                    if (assignedList.length > 1) {
+                        assignedList = assignedList.filter(el => el.toLowerCase() !== selectedEmployee.toLowerCase());
+                        const newListStr = assignedList.join(', ');
+
+                        const { error } = await supabase.from('appointments').update({
+                            assigned_employee: newListStr,
+                            sessions: sessions
+                        }).eq('id', id);
+
+                        if (!error) {
+                            await fetchData();
+                            renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                        } else alert('Error al salir: ' + error.message);
+
+                    } else {
+                        const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
+
+                        const { error } = await supabase.from('appointments').update({
+                            check_out_time: nowPure,
+                            visit_duration_minutes: sessionMins,
+                            total_labor_minutes: totalLabor > 0 ? totalLabor : sessionMins,
+                            sessions: sessions
+                        }).eq('id', id);
+
+                        if (!error) {
+                            await fetchData();
+                            renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                        } else alert('Error al cerrar visita: ' + error.message);
+                    }
+                });
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
