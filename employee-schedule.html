@@ -902,7 +902,7 @@
                 });
             });
 
-            // Botón de la X para dar de baja / salir individualmente (preservando la asignación inicial del cliente)
+            // Botón de la X para dar de baja / salir individualmente
             document.querySelectorAll('.btn-remove-employee').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -915,14 +915,16 @@
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
                     const nowPure = getPureLocalTimestamp();
+                    let sessionMins = 1;
+
                     if (activeSession) {
-                        activeSession.check_out = nowPure;
                         const diffSecs = Math.max(1, Math.round((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 1000));
-                        activeSession.minutes = Math.max(1, Math.round(diffSecs / 60));
+                        sessionMins = Math.max(1, Math.round(diffSecs / 60));
+                        activeSession.check_out = nowPure;
+                        activeSession.minutes = sessionMins;
                     }
 
-                    // IMPORTANTE: NO removemos a los empleados de `assigned_employee` para conservar intacta la asignación inicial del cliente.
-                    // Solo actualizamos las sesiones individuales y los tiempos laborales.
+                    // REGLA CLAVE: La visita global SOLO se finaliza (check_out_time) cuando TODAS las sesiones de la visita han cerrado.
                     const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
 
@@ -930,11 +932,12 @@
                         sessions: sessions
                     };
 
-                    if (allSessionsClosed || !a.check_out_time) {
+                    if (allSessionsClosed) {
                         updateData.check_out_time = nowPure;
-                        updateData.total_labor_minutes = totalLabor > 0 ? totalLabor : sessionMins;
+                        updateData.total_labor_minutes = totalLabor;
                     }
 
+                    // NOTA: Mantenemos `assigned_employee` intacto para preservar la asignación inicial del cliente.
                     const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
 
                     if (!error) {
@@ -1037,13 +1040,14 @@
                         sessions: sessions
                     };
 
-                    if (allSessionsClosed || !a.check_out_time) {
+                    // La visita global solo se cierra cuando TODAS las sesiones de los compañeros han concluido
+                    if (allSessionsClosed) {
                         updatePayload.check_out_time = nowPure;
                         updatePayload.visit_duration_minutes = sessionMins;
-                        updatePayload.total_labor_minutes = totalLabor > 0 ? totalLabor : sessionMins;
+                        updatePayload.total_labor_minutes = totalLabor;
                     }
 
-                    // NOTA: Mantenemos `assigned_employee` intacto para que la asignación inicial del cliente no se pierda ni se modifique por quién cierra último.
+                    // NOTA: Mantenemos `assigned_employee` intacto para preservar la asignación inicial del cliente.
                     const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id);
 
                     if (!error) {
