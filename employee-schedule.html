@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Portal Móvil Unificado</title>
+    <title>ClientSync | Portal Móvil (Tiempo Real)</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -32,19 +32,30 @@
             border-bottom: 1px solid #f1f5f9;
         }
         .header h1 {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 800;
             margin: 0;
             color: #0f172a;
         }
+        .user-pill {
+            font-size: 0.68rem;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin-top: 3px;
+            display: inline-block;
+        }
         .version-tag {
             font-size: 0.6rem;
-            background: #fef3c7;
-            color: #b45309;
+            background: #dcfce7;
+            color: #166534;
             padding: 2px 6px;
             border-radius: 4px;
             font-weight: 700;
-            margin-left: 6px;
+            margin-left: 4px;
             display: inline-block;
         }
         .icon-btn {
@@ -169,8 +180,8 @@
     <div class="app-container">
         <div class="header" id="app-header">
             <div>
-                <h1 id="header-title" style="display: inline-block;">👷‍♂️ Portal</h1>
-                <span class="version-tag">⚡ Unificado & Fluido</span>
+                <h1 id="header-title">👷‍♂️ Portal</h1>
+                <div id="user-badge" class="user-pill">👤 Usuario: ...</div>
             </div>
             <a href="./index.html" class="icon-btn">🏠 Salir</a>
         </div>
@@ -219,10 +230,6 @@
         let timetrackViewMode = 'assigned'; 
         let currentAppointmentForEmp = null;
 
-        // Variables locales para asegurar que el cronómetro de pausa/almuerzo corra de inmediato al hacer clic
-        let localPauseStartTime = null;
-        let localLunchStartTime = null;
-
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
         
@@ -237,6 +244,13 @@
             window.location.href = './index.html';
         } else {
             localStorage.setItem(STORAGE_KEY, selectedEmployee);
+        }
+
+        function updateUserBadge() {
+            const badge = document.getElementById('user-badge');
+            if (badge) {
+                badge.textContent = `👤 Activo: ${selectedEmployee}`;
+            }
         }
 
         function formatDate(str) {
@@ -258,6 +272,7 @@
 
         async function init() {
             try {
+                updateUserBadge();
                 await fetchData();
                 await fetchDailyLog();
 
@@ -316,16 +331,6 @@
                     .eq('work_date', todayStr)
                     .maybeSingle();
                 employeeDailyLog = data;
-
-                // Si ya está en pausa o almuerzo cargado de la base de datos, inicializamos las marcas locales si no existían
-                if (employeeDailyLog) {
-                    if (employeeDailyLog.status === 'pausa' && !localPauseStartTime) {
-                        localPauseStartTime = employeeDailyLog.updated_at ? new Date(employeeDailyLog.updated_at.replace(' ', 'T')).getTime() : new Date().getTime();
-                    }
-                    if (employeeDailyLog.status === 'almuerzo' && !localLunchStartTime) {
-                        localLunchStartTime = employeeDailyLog.lunch_start_time ? new Date(employeeDailyLog.lunch_start_time.replace(' ', 'T')).getTime() : new Date().getTime();
-                    }
-                }
             } catch (err) {
                 console.error(err);
             }
@@ -351,7 +356,8 @@
         function renderMainMenu() {
             if (timerInterval) clearInterval(timerInterval);
             if (visitLiveInterval) clearInterval(visitLiveInterval);
-            document.getElementById('header-title').textContent = `👷‍♂️ ${selectedEmployee}`;
+            document.getElementById('header-title').textContent = `👷‍♂️ Portal`;
+            updateUserBadge();
             document.getElementById('app-header').querySelector('a').style.display = 'inline-flex';
 
             document.getElementById('app-content').innerHTML = `
@@ -388,6 +394,7 @@
             if (timerInterval) clearInterval(timerInterval);
             if (visitLiveInterval) clearInterval(visitLiveInterval);
             document.getElementById('header-title').textContent = `📅 Agenda`;
+            updateUserBadge();
             document.getElementById('app-header').querySelector('a').style.display = 'none';
 
             const container = document.getElementById('app-content');
@@ -510,6 +517,7 @@
             if (visitLiveInterval) clearInterval(visitLiveInterval);
 
             document.getElementById('header-title').textContent = `⏱️ Tiempos`;
+            updateUserBadge();
             document.getElementById('app-header').querySelector('a').style.display = 'none';
 
             const container = document.getElementById('app-content');
@@ -521,9 +529,9 @@
             let badgeColor = '#475569';
             if (employeeDailyLog) {
                 if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Jornada en curso'; badgeBg = '#dcfce7'; badgeColor = '#166534'; }
-                else if (employeeDailyLog.status === 'pausa') { statusStr = '⏸️ En pausa momentánea'; badgeBg = '#fef9c3'; badgeColor = '#854d0e'; }
+                else if (employeeDailyLog.status === 'pausa') { statusStr = '⏸️ En pausa'; badgeBg = '#fef9c3'; badgeColor = '#854d0e'; }
                 else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
-                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
             container.innerHTML = `
@@ -614,7 +622,7 @@
                 let actionBtn = '';
 
                 if (isCompleted) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total: ${appt.total_labor_minutes || 0}m)</span>`;
+                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
                         actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
                     }
@@ -697,7 +705,7 @@
             attachClientTimerListeners();
         }
 
-        // Cronómetro global en vivo (Actualizado cada 50ms para movimiento súper rápido y fluido, con cronómetro de pausa y almuerzo garantizados)
+        // Cronómetro global en vivo (TIEMPO REAL NORMAL: actualiza cada segundo y muestra formato H:M:S exacto)
         function startLiveTimer() {
             if (timerInterval) clearInterval(timerInterval);
             
@@ -710,52 +718,26 @@
                     return;
                 }
 
-                const now = new Date().getTime();
-
-                // Si está en PAUSA: Cronómetro rápido y fluido garantizado
-                if (employeeDailyLog.status === 'pausa') {
-                    if (!localPauseStartTime) localPauseStartTime = now;
-                    let diff = Math.floor(((now - localPauseStartTime) / 1000) * 60); 
-                    if (diff < 0) diff = 0;
-                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                    const s = String(diff % 60).padStart(2, '0');
-                    const ms = String(Math.floor((now % 1000) / 10)).padStart(2, '0');
-                    timerEl.innerHTML = `<span style="color: #d97706; font-size: 1.2rem;">⏸️ Pausa: ${h}:${m}:${s}.${ms}</span>`;
+                if (employeeDailyLog.status === 'pausa' || employeeDailyLog.status === 'almuerzo') {
+                    timerEl.textContent = employeeDailyLog.status === 'pausa' ? "⏸️ EN PAUSA" : "☕ EN ALMUERZO";
                     return;
                 }
 
-                // Si está en ALMUERZO: Cronómetro rápido y fluido garantizado
-                if (employeeDailyLog.status === 'almuerzo') {
-                    if (!localLunchStartTime) {
-                        localLunchStartTime = employeeDailyLog.lunch_start_time ? new Date(employeeDailyLog.lunch_start_time.replace(' ', 'T')).getTime() : now;
-                    }
-                    let diff = Math.floor(((now - localLunchStartTime) / 1000) * 60); 
-                    if (diff < 0) diff = 0;
-                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                    const s = String(diff % 60).padStart(2, '0');
-                    const ms = String(Math.floor((now % 1000) / 10)).padStart(2, '0');
-                    timerEl.innerHTML = `<span style="color: #b45309; font-size: 1.2rem;">☕ Almuerzo: ${h}:${m}:${s}.${ms}</span>`;
-                    return;
-                }
-
-                // Si está ACTIVO: Jornada corriendo rapidísimo y fluido
                 const cleanClockIn = employeeDailyLog.clock_in_time.replace(' ', 'T');
                 const start = new Date(cleanClockIn).getTime();
-                let diff = Math.floor(((now - start) / 1000) * 60); 
+                const now = new Date().getTime();
+                let diff = Math.floor((now - start) / 1000); // Segundos reales
                 if (diff < 0) diff = 0;
 
                 const h = String(Math.floor(diff / 3600)).padStart(2, '0');
                 const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
                 const s = String(diff % 60).padStart(2, '0');
-                const ms = String(Math.floor((now % 1000) / 10)).padStart(2, '0');
 
-                timerEl.textContent = `${h}:${m}:${s}.${ms}`;
-            }, 50);
+                timerEl.textContent = `${h}:${m}:${s}`;
+            }, 1000);
         }
 
-        // Cronómetro de visitas en vivo (También rápido y fluido)
+        // Cronómetro de visitas en vivo (TIEMPO REAL NORMAL, mostrando segundos para que visiones visitas de menos de 1 minuto)
         function startVisitLiveTimer() {
             if (visitLiveInterval) clearInterval(visitLiveInterval);
 
@@ -768,20 +750,19 @@
 
                     const cleanCheckIn = checkinStr.replace(' ', 'T');
                     const start = new Date(cleanCheckIn).getTime();
-                    let diff = Math.floor(((now - start) / 1000) * 60); 
+                    let diff = Math.floor((now - start) / 1000); // Segundos reales
                     if (diff < 0) diff = 0;
 
                     const h = String(Math.floor(diff / 3600)).padStart(2, '0');
                     const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
                     const s = String(diff % 60).padStart(2, '0');
-                    const ms = String(Math.floor((now % 1000) / 10)).padStart(2, '0');
 
-                    badge.textContent = `🟢 ${h}:${m}:${s}.${ms}`;
+                    badge.textContent = `🟢 ${h}:${m}:${s}`;
                 });
             };
 
             updateTimers();
-            visitLiveInterval = setInterval(updateTimers, 50);
+            visitLiveInterval = setInterval(updateTimers, 1000);
         }
 
         function attachTimetrackListeners() {
@@ -805,8 +786,6 @@
                         if (error) throw error;
                         employeeDailyLog = data;
                     }
-                    localPauseStartTime = null;
-                    localLunchStartTime = null;
                     renderTimetrackView();
                 } catch (err) {
                     alert('Error al iniciar: ' + err.message);
@@ -819,8 +798,6 @@
                     return;
                 }
                 const nextStatus = employeeDailyLog.status === 'pausa' ? 'activo' : 'pausa';
-                if (nextStatus === 'pausa') localPauseStartTime = new Date().getTime();
-                
                 try {
                     const { data, error } = await supabase.from('employee_daily_logs')
                         .update({ status: nextStatus })
@@ -839,23 +816,11 @@
                     alert('Primero debes iniciar tu jornada.');
                     return;
                 }
-
+                const nextStatus = employeeDailyLog.status === 'almuerzo' ? 'activo' : 'almuerzo';
                 const nowPure = getPureLocalTimestamp();
-                let updatePayload = {};
-
-                if (employeeDailyLog.status === 'almuerzo') {
-                    updatePayload = {
-                        status: 'activo',
-                        lunch_end_time: nowPure
-                    };
-                    localLunchStartTime = null;
-                } else {
-                    updatePayload = {
-                        status: 'almuerzo',
-                        lunch_start_time: nowPure
-                    };
-                    localLunchStartTime = new Date().getTime();
-                }
+                let updatePayload = { status: nextStatus };
+                if (nextStatus === 'almuerzo') updatePayload.lunch_start_time = nowPure;
+                else updatePayload.lunch_end_time = nowPure;
 
                 try {
                     const { data, error } = await supabase.from('employee_daily_logs')
@@ -962,7 +927,9 @@
                     const nowPure = getPureLocalTimestamp();
                     if (activeSession) {
                         activeSession.check_out = nowPure;
-                        activeSession.minutes = Math.max(1, Math.round(((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 60000) * 60));
+                        // Cálculo preciso en minutos reales (redondeado o mínimo 1 si pasaron segundos)
+                        const diffSecs = Math.max(1, Math.round((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 1000));
+                        activeSession.minutes = Math.max(1, Math.round(diffSecs / 60));
                     }
 
                     let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
@@ -1031,7 +998,8 @@
                     const nowPure = getPureLocalTimestamp();
                     if (activeSession) {
                         activeSession.check_out = nowPure;
-                        activeSession.minutes = Math.max(1, Math.round(((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 60000) * 60));
+                        const diffSecs = Math.max(1, Math.round((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 1000));
+                        activeSession.minutes = Math.max(1, Math.round(diffSecs / 60));
                     }
 
                     let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
@@ -1095,9 +1063,13 @@
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
                     let sessionMins = 1;
                     if (activeSession && activeSession.check_in) {
-                        sessionMins = Math.max(1, Math.round(((now - new Date(activeSession.check_in.replace(' ', 'T'))) / 60000) * 60));
+                        const diffSecs = Math.max(1, Math.round((now - new Date(activeSession.check_in.replace(' ', 'T'))) / 1000));
+                        sessionMins = Math.max(1, Math.round(diffSecs / 60));
                         activeSession.check_out = nowPure;
                         activeSession.minutes = sessionMins;
+                    } else if (a.check_in_time) {
+                        const diffSecs = Math.max(1, Math.round((now - new Date(a.check_in_time.replace(' ', 'T'))) / 1000));
+                        sessionMins = Math.max(1, Math.round(diffSecs / 60));
                     }
 
                     let assignedList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
