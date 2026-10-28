@@ -406,8 +406,8 @@
             return allAppointments.filter(a => {
                 if (!a.scheduled_date || a.scheduled_date.split('T')[0] !== dateStr) return false;
                 if (!a.assigned_employee) return false;
-                const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
-                return list.includes(selectedEmployee.toLowerCase()) && map.has(a.client_id);
+                const primary = a.assigned_employee.split(',')[0].trim().toLowerCase();
+                return primary === selectedEmployee.toLowerCase() && map.has(a.client_id);
             });
         }
 
@@ -428,7 +428,6 @@
             } else {
                 appts.forEach((a, idx) => {
                     const c = map.get(a.client_id);
-                    const colleagues = (a.assigned_employee || '').split(',').map(e => e.trim()).filter(e => e.toLowerCase() !== selectedEmployee.toLowerCase());
                     html += `
                         <div class="item-card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
@@ -437,7 +436,6 @@
                             </div>
                             <div style="font-size: 0.72rem; color: #64748b;">
                                 📍 ${c.address || 'Sin dirección'}
-                                ${colleagues.length ? `<div style="color: #d97706; font-weight: 700; margin-top: 2px;">👥 Con: ${colleagues.join(', ')}</div>` : ''}
                             </div>
                         </div>
                     `;
@@ -571,8 +569,8 @@
             if (timetrackViewMode === 'assigned') {
                 filteredAppts = appts.filter(a => {
                     if (!a.assigned_employee) return false;
-                    const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
-                    return list.includes(selectedEmployee.toLowerCase());
+                    const primary = a.assigned_employee.split(',')[0].trim().toLowerCase();
+                    return primary === selectedEmployee.toLowerCase();
                 });
             } else {
                 filteredAppts = appts.filter(a => a.check_in_time && !a.check_out_time && map.has(a.client_id));
@@ -591,10 +589,15 @@
                 const c = map.get(appt.client_id);
                 if (!c) return;
 
-                const assignedList = appt.assigned_employee ? appt.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
+                const primaryEmployee = appt.assigned_employee ? appt.assigned_employee.split(',')[0].trim() : '';
+                const sessions = appt.sessions ? (typeof appt.sessions === 'string' ? JSON.parse(appt.sessions) : appt.sessions) : [];
+                // Empleados activos actualmente en la visita (basado en sesiones sin checkout)
+                const activeInVisit = sessions.filter(s => !s.check_out).map(s => s.employee);
+                
                 const isCheckedIn = appt.check_in_time && !appt.check_out_time;
                 const isCompleted = !!appt.check_out_time;
-                const amAssigned = assignedList.map(e => e.toLowerCase()).includes(selectedEmployee.toLowerCase());
+                const amPrimary = primaryEmployee.toLowerCase() === selectedEmployee.toLowerCase();
+                const amActiveInVisit = sessions.some(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
 
                 let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
                 let actionBtn = '';
@@ -608,9 +611,13 @@
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                     
                     if (timetrackViewMode === 'assigned') {
-                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                        if (amActiveInVisit) {
+                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
+                        } else {
+                            actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Tu sesión finalizó</span>`;
+                        }
                     } else {
-                        if (!amAssigned) {
+                        if (!amActiveInVisit) {
                             actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Unirme</button>`;
                         } else {
                             actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
@@ -623,7 +630,7 @@
                 }
 
                 let teamHtml = '';
-                if (assignedList.length > 0 || isCheckedIn) {
+                if (sessions.length > 0 || isCheckedIn) {
                     teamHtml = `
                         <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px dashed #e2e8f0;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -631,10 +638,10 @@
                                 ${isCheckedIn ? `<button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">+ Añadir persona</button>` : ''}
                             </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                ${assignedList.map((emp) => `
-                                    <span class="team-chip">
-                                        👷‍♂️ ${emp}
-                                        ${isCheckedIn ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${emp}" title="Dar de baja / Salir a ${emp}">×</button>` : ''}
+                                ${sessions.map((s) => `
+                                    <span class="team-chip" style="${s.check_out ? 'background: #f1f5f9; color: #64748b; border-color: #cbd5e1;' : ''}">
+                                        👷‍♂️ ${s.employee} ${s.check_out ? '(Finalizado)' : ''}
+                                        ${isCheckedIn && !s.check_out ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${s.employee}" title="Dar de baja / Salir a ${s.employee}">×</button>` : ''}
                                     </span>
                                 `).join('')}
                             </div>
@@ -655,7 +662,7 @@
                         ${teamHtml}
 
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
-                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h</span>
+                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h (Principal: ${primaryEmployee})</span>
                             <div style="width: 130px;">${actionBtn}</div>
                         </div>
                     </div>
@@ -854,19 +861,20 @@
             empModal.style.display = 'none';
             const a = currentAppointmentForEmp;
 
-            let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
-            if (!currentList.map(el => el.toLowerCase()).includes(chosenEmp.toLowerCase())) {
-                currentList.push(chosenEmp);
-            }
-            const newListStr = currentList.join(', ');
+            // Mantener al empleado principal intacto en `assigned_employee` (primer elemento o único)
+            const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
+            const newListStr = primaryEmp; // assigned_employee siempre se mantiene con el principal
 
             let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-            sessions.push({
-                employee: chosenEmp,
-                check_in: getPureLocalTimestamp(),
-                check_out: null,
-                minutes: 0
-            });
+            // Verificar si ya existe sesión para este empleado
+            if (!sessions.some(s => s.employee.toLowerCase() === chosenEmp.toLowerCase())) {
+                sessions.push({
+                    employee: chosenEmp,
+                    check_in: getPureLocalTimestamp(),
+                    check_out: null,
+                    minutes: 0
+                });
+            }
 
             const { error } = await supabase.from('appointments').update({ 
                 assigned_employee: newListStr,
@@ -902,7 +910,7 @@
                 });
             });
 
-            // Botón de la X para dar de baja / salir individualmente
+            // Botón de la X para dar de baja / salir individualmente a un empleado
             document.querySelectorAll('.btn-remove-employee').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -915,20 +923,19 @@
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
                     const nowPure = getPureLocalTimestamp();
-                    let sessionMins = 1;
 
                     if (activeSession) {
                         const diffSecs = Math.max(1, Math.round((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 1000));
-                        sessionMins = Math.max(1, Math.round(diffSecs / 60));
                         activeSession.check_out = nowPure;
-                        activeSession.minutes = sessionMins;
+                        activeSession.minutes = Math.max(1, Math.round(diffSecs / 60));
                     }
 
-                    // REGLA CLAVE: La visita global SOLO se finaliza (check_out_time) cuando TODAS las sesiones de la visita han cerrado.
+                    const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
                     const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
 
                     let updateData = {
+                        assigned_employee: primaryEmp, // Garantiza que solo quede el principal en la tabla
                         sessions: sessions
                     };
 
@@ -937,7 +944,6 @@
                         updateData.total_labor_minutes = totalLabor;
                     }
 
-                    // NOTA: Mantenemos `assigned_employee` intacto para preservar la asignación inicial del cliente.
                     const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
 
                     if (!error) {
@@ -953,22 +959,20 @@
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
-                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
-                    if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
-                        currentList.push(selectedEmployee);
-                    }
-                    const newListStr = currentList.join(', ');
-
+                    const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-                    sessions.push({
-                        employee: selectedEmployee,
-                        check_in: getPureLocalTimestamp(),
-                        check_out: null,
-                        minutes: 0
-                    });
+                    
+                    if (!sessions.some(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase())) {
+                        sessions.push({
+                            employee: selectedEmployee,
+                            check_in: getPureLocalTimestamp(),
+                            check_out: null,
+                            minutes: 0
+                        });
+                    }
 
                     const { error } = await supabase.from('appointments').update({ 
-                        assigned_employee: newListStr,
+                        assigned_employee: primaryEmp,
                         sessions: sessions
                     }).eq('id', id);
                     if (!error) {
@@ -984,12 +988,7 @@
                     const nowPure = getPureLocalTimestamp();
                     
                     const a = allAppointments.find(x => x.id === id);
-                    let currentList = a && a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
-                    
-                    if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
-                        currentList.push(selectedEmployee);
-                    }
-                    const newListStr = currentList.join(', ');
+                    const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     let existingSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
@@ -1004,7 +1003,7 @@
 
                     const { error } = await supabase.from('appointments').update({ 
                         check_in_time: a.check_in_time || nowPure,
-                        assigned_employee: newListStr,
+                        assigned_employee: primaryEmp,
                         sessions: sessions
                     }).eq('id', id);
 
@@ -1033,21 +1032,21 @@
                         activeSession.minutes = sessionMins;
                     }
 
+                    const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
                     const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
 
                     let updatePayload = {
+                        assigned_employee: primaryEmp, // Garantiza que en la tabla solo figure el empleado principal
                         sessions: sessions
                     };
 
-                    // La visita global solo se cierra cuando TODAS las sesiones de los compañeros han concluido
                     if (allSessionsClosed) {
                         updatePayload.check_out_time = nowPure;
                         updatePayload.visit_duration_minutes = sessionMins;
                         updatePayload.total_labor_minutes = totalLabor;
                     }
 
-                    // NOTA: Mantenemos `assigned_employee` intacto para preservar la asignación inicial del cliente.
                     const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id);
 
                     if (!error) {
