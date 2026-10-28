@@ -237,16 +237,54 @@
             color: var(--text-secondary);
             margin-bottom: 6px;
             text-transform: uppercase;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        details.accordion-visits {
+            background: #f8fafc;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+        }
+
+        details.accordion-visits summary {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            cursor: pointer;
+            outline: none;
+            list-style: none; /* Ocultar flecha por defecto en algunos navegadores */
+        }
+
+        details.accordion-visits summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.accordion-visits summary::after {
+            content: ' ▼';
+            font-size: 0.6rem;
+            float: right;
+            transition: transform 0.2s;
+        }
+
+        details.accordion-visits[open] summary::after {
+            transform: rotate(180deg);
         }
 
         .visit-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            margin-top: 8px;
         }
 
         .visit-item {
-            background: #f8fafc;
+            background: #ffffff;
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-sm);
             padding: 10px;
@@ -598,14 +636,19 @@
                                 <div><span style="color:var(--text-secondary);">☕ Almuerzo</span> <strong style="color:#d97706;">-${formatHoursAndMinutes(pauseMinutes)}</strong></div>
                                 <div><span style="color:var(--text-secondary);">⏱️ Neto Pagable</span> <strong style="color:#16a34a;">${formatHoursAndMinutes(netMinutes)}</strong></div>
                             </div>
-
-                            <div class="section-subtitle">📍 Clientes Visitados por este Empleado:</div>
                     `;
 
                     if (dayAppts.length === 0) {
-                        html += `<div style="font-size: 0.7rem; color: var(--text-secondary); font-style: italic; padding: 4px 0;">No hubo visitas registradas en esta fecha.</div>`;
+                        html += `
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px;">📍 Clientes Visitados por este Empleado:</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); font-style: italic; padding: 4px 0;">No hubo visitas registradas en esta fecha.</div>
+                        `;
                     } else {
-                        html += `<div class="visit-list">`;
+                        html += `
+                            <details class="accordion-visits">
+                                <summary>📍 Clientes Visitados por este Empleado (${dayAppts.length})</summary>
+                                <div class="visit-list">
+                        `;
                         dayAppts.forEach(a => {
                             const client = clientsMap.get(a.client_id) || { name: 'Cliente Desconocido' };
                             const checkInTime = formatFlatTime(a.check_in_time);
@@ -632,7 +675,7 @@
                                 </div>
                             `;
                         });
-                        html += `</div>`;
+                        html += `</div></details>`;
                     }
                     html += `</div>`;
                 });
