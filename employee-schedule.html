@@ -147,7 +147,7 @@
             border: 1px solid #bbf7d0;
         }
         .team-chip button {
-            background: none; border: none; color: #dc2626; font-weight: bold; cursor: pointer; padding: 0 2px; font-size: 0.7rem;
+            background: none; border: none; color: #dc2626; font-weight: bold; cursor: pointer; padding: 0 2px; font-size: 0.7rem; margin-left: 4px;
         }
         .tabs-header { display: flex; gap: 6px; margin-bottom: 14px; }
         .tab-pill {
@@ -608,7 +608,6 @@
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
                     
                     if (timetrackViewMode === 'assigned') {
-                        // El usuario principal ya hizo checkout o sigue activo, permitimos terminar o salirse sin perder la asignación inicial
                         actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Terminar</button>`;
                     } else {
                         if (!amAssigned) {
@@ -635,6 +634,7 @@
                                 ${assignedList.map((emp) => `
                                     <span class="team-chip">
                                         👷‍♂️ ${emp}
+                                        ${isCheckedIn ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${emp}" title="Dar de baja / Salir a ${emp}">×</button>` : ''}
                                     </span>
                                 `).join('')}
                             </div>
@@ -902,6 +902,48 @@
                 });
             });
 
+            // Botón de la X para dar de baja / salir individualmente (preservando la asignación inicial del cliente)
+            document.querySelectorAll('.btn-remove-employee').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const empToRemove = e.target.getAttribute('data-emp');
+                    if (!confirm(`¿Deseas dar de baja / salir a ${empToRemove} de esta visita y cerrar su sesión?`)) return;
+
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
+                    const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
+                    const nowPure = getPureLocalTimestamp();
+                    if (activeSession) {
+                        activeSession.check_out = nowPure;
+                        const diffSecs = Math.max(1, Math.round((new Date(nowPure.replace(' ', 'T')) - new Date(activeSession.check_in.replace(' ', 'T'))) / 1000));
+                        activeSession.minutes = Math.max(1, Math.round(diffSecs / 60));
+                    }
+
+                    // IMPORTANTE: NO removemos a los empleados de `assigned_employee` para conservar intacta la asignación inicial del cliente.
+                    // Solo actualizamos las sesiones individuales y los tiempos laborales.
+                    const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
+                    const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
+
+                    let updateData = {
+                        sessions: sessions
+                    };
+
+                    if (allSessionsClosed || !a.check_out_time) {
+                        updateData.check_out_time = nowPure;
+                        updateData.total_labor_minutes = totalLabor > 0 ? totalLabor : sessionMins;
+                    }
+
+                    const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
+
+                    if (!error) {
+                        await fetchData();
+                        renderClientsList(allAppointments.filter(x => x.scheduled_date && x.scheduled_date.split('T')[0] === todayStr), new Map(allClients.map(c => [c.id, c])));
+                    } else alert('Error al retirar empleado: ' + error.message);
+                });
+            });
+
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -947,7 +989,6 @@
                     const newListStr = currentList.join(', ');
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-                    // Verificar si ya existe una sesión para este empleado
                     let existingSession = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
                     if (!existingSession) {
                         sessions.push({
@@ -989,22 +1030,20 @@
                         activeSession.minutes = sessionMins;
                     }
 
-                    // Verificamos si todos los empleados de la sesión ya terminaron o si este es el último en cerrar la visita global
-                    const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
+                    const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
 
                     let updatePayload = {
                         sessions: sessions
                     };
 
-                    // Si este usuario era el que cerraba la última sesión pendiente de la cita, marcamos el check_out_time global de la cita
-                    // NOTA: NO alteramos ni removemos a nadie de `assigned_employee` para conservar la asignación inicial intacta y permanente.
                     if (allSessionsClosed || !a.check_out_time) {
                         updatePayload.check_out_time = nowPure;
                         updatePayload.visit_duration_minutes = sessionMins;
                         updatePayload.total_labor_minutes = totalLabor > 0 ? totalLabor : sessionMins;
                     }
 
+                    // NOTA: Mantenemos `assigned_employee` intacto para que la asignación inicial del cliente no se pierda ni se modifique por quién cierra último.
                     const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id);
 
                     if (!error) {
