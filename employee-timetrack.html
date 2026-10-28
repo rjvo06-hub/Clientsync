@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Control de Tiempos (Modo Prueba)</title>
+    <title>ClientSync | Control de Tiempos</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -39,8 +39,8 @@
         }
         .version-tag {
             font-size: 0.6rem;
-            background: #fef3c7;
-            color: #b45309;
+            background: #e0f2fe;
+            color: #0369a1;
             padding: 2px 6px;
             border-radius: 4px;
             font-weight: 700;
@@ -143,7 +143,7 @@
         <div class="header">
             <div>
                 <h1 id="header-title" style="display: inline-block;">⏱️ Tiempos</h1>
-                <span class="version-tag">⚡ Modo Prueba (1s = 1min)</span>
+                <span class="version-tag">v2.4-pause-timer</span>
             </div>
             <div>
                 <button type="button" class="btn-active-clients" id="btn-toggle-view" style="margin-right: 6px;">🟢 Clientes Activos</button>
@@ -389,7 +389,7 @@
             attachClientTimerListeners();
         }
 
-        // Cronómetro global en vivo (MODO PRUEBA: 1 segundo real = 60 segundos / 1 minuto simulado)
+        // Cronómetro global en vivo (Velocidad real por segundo + Cronómetro visible durante Pausa o Almuerzo)
         function startLiveTimer() {
             if (timerInterval) clearInterval(timerInterval);
             
@@ -402,17 +402,37 @@
                     return;
                 }
 
-                if (employeeDailyLog.status === 'pausa' || employeeDailyLog.status === 'almuerzo') {
-                    timerEl.textContent = "PAUSADO";
+                const now = new Date().getTime();
+
+                // Si está en PAUSA
+                if (employeeDailyLog.status === 'pausa') {
+                    const pauseStart = employeeDailyLog.updated_at ? new Date(employeeDailyLog.updated_at.replace(' ', 'T')).getTime() : now;
+                    let diff = Math.floor((now - pauseStart) / 1000);
+                    if (diff < 0) diff = 0;
+                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    timerEl.innerHTML = `<span style="color: #d97706; font-size: 1.4rem;">⏸️ Pausa: ${h}:${m}:${s}</span>`;
                     return;
                 }
 
+                // Si está en ALMUERZO
+                if (employeeDailyLog.status === 'almuerzo') {
+                    const lunchStartStr = employeeDailyLog.lunch_start_time || employeeDailyLog.updated_at;
+                    const lunchStart = lunchStartStr ? new Date(lunchStartStr.replace(' ', 'T')).getTime() : now;
+                    let diff = Math.floor((now - lunchStart) / 1000);
+                    if (diff < 0) diff = 0;
+                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    timerEl.innerHTML = `<span style="color: #b45309; font-size: 1.4rem;">☕ Almuerzo: ${h}:${m}:${s}</span>`;
+                    return;
+                }
+
+                // Si está ACTIVO (Jornada normal)
                 const cleanClockIn = employeeDailyLog.clock_in_time.replace(' ', 'T');
                 const start = new Date(cleanClockIn).getTime();
-                const now = new Date().getTime();
-                
-                // Diferencia en segundos reales multiplicada por 60 (1s real = 1min simulado)
-                let diff = Math.floor((now - start) / 1000) * 60; 
+                let diff = Math.floor((now - start) / 1000); 
                 if (diff < 0) diff = 0;
 
                 const h = String(Math.floor(diff / 3600)).padStart(2, '0');
@@ -423,7 +443,7 @@
             }, 1000);
         }
 
-        // Cronómetro de visitas en vivo (MODO PRUEBA: 1 segundo real = 1 minuto simulado)
+        // Cronómetro de visitas en vivo
         function startVisitLiveTimer() {
             if (visitLiveInterval) clearInterval(visitLiveInterval);
 
@@ -436,9 +456,7 @@
 
                     const cleanCheckIn = checkinStr.replace(' ', 'T');
                     const start = new Date(cleanCheckIn).getTime();
-                    
-                    // Multiplicado por 60 para acelerar la simulación
-                    let diff = Math.floor((now - start) / 1000) * 60;
+                    let diff = Math.floor((now - start) / 1000);
                     if (diff < 0) diff = 0;
 
                     const h = String(Math.floor(diff / 3600)).padStart(2, '0');
@@ -603,8 +621,7 @@
                     let mins = 1;
                     if (a && a.check_in_time) {
                         const cleanCheckIn = a.check_in_time.replace(' ', 'T');
-                        // En modo simulación, la diferencia real en minutos se multiplica por 60 para que coincida con lo avanzado en pantalla
-                        mins = Math.max(1, Math.round(((now - new Date(cleanCheckIn)) / 60000) * 60));
+                        mins = Math.max(1, Math.round((now - new Date(cleanCheckIn)) / 60000));
                     }
                     const count = Math.max(1, (a.assigned_employee || '').split(',').length);
                     const totalLabor = mins * count;
