@@ -231,19 +231,6 @@
             gap: 1px;
         }
 
-        .section-subtitle {
-            font-size: 0.74rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            cursor: pointer;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
         details.accordion-visits {
             background: #f8fafc;
             border: 1px solid var(--border-subtle);
@@ -258,7 +245,7 @@
             text-transform: uppercase;
             cursor: pointer;
             outline: none;
-            list-style: none; /* Ocultar flecha por defecto en algunos navegadores */
+            list-style: none;
         }
 
         details.accordion-visits summary::-webkit-details-marker {
@@ -549,16 +536,18 @@
 
             if (currentView === 'employees') {
                 // ==========================================
-                // VISTA 1: EMPLEADOS (Jornadas y sus visitas)
+                // VISTA 1: EMPLEADOS (Solo con fichaje/inicio de sesión)
                 // ==========================================
                 const reportMap = new Map();
 
+                // 1. Inicializar estrictamente con los registros (logs) que tengan fichaje o inicio de sesión válido
                 logs.forEach(l => {
+                    if (!l.clock_in_time) return; // Omitir si no inició sesión
                     const key = `${l.employee_name}_${l.work_date}`;
-                    if (!reportMap.has(key)) reportMap.set(key, { employee: l.employee_name, date: l.work_date, log: l, appointments: [] });
-                    else reportMap.get(key).log = l;
+                    reportMap.set(key, { employee: l.employee_name, date: l.work_date, log: l, appointments: [] });
                 });
 
+                // 2. Asociar las citas de los clientes únicamente a los empleados que sí tienen registro de asistencia
                 appts.forEach(a => {
                     if (!a.assigned_employee) return;
                     const assignedList = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
@@ -566,17 +555,17 @@
 
                     const apptDate = a.scheduled_date.split('T')[0];
                     assignedList.forEach(empLower => {
-                        const empObj = employeesListMatch(empLower, logs, selectedEmp);
-                        const key = `${empObj}_${apptDate}`;
-                        if (!reportMap.has(key)) {
-                            reportMap.set(key, { employee: empObj, date: apptDate, log: null, appointments: [] });
+                        // Buscar si existe un log activo para este empleado en esta fecha
+                        for (let [key, item] of reportMap.entries()) {
+                            if (item.date === apptDate && item.employee.toLowerCase() === empLower) {
+                                item.appointments.push(a);
+                            }
                         }
-                        reportMap.get(key).appointments.push(a);
                     });
                 });
 
                 if (reportMap.size === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.78rem;">No hay actividad de empleados para los criterios seleccionados.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.78rem;">No hay registros de asistencia de empleados para los criterios seleccionados.</div>`;
                     return;
                 }
 
@@ -740,7 +729,6 @@
                         let totalLaborMins = 0;
 
                         if (sessionsList.length > 0) {
-                            // Agrupar por empleado para unificar los tiempos si entró varias veces
                             const aggregatedSessions = new Map();
                             sessionsList.forEach(s => {
                                 const empName = s.employee || 'Desconocido';
