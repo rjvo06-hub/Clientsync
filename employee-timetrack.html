@@ -167,8 +167,38 @@
         let viewMode = 'assigned'; 
 
         const nowLocalDate = new Date();
-        const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;  const STORAGE_KEY = 'clientSync_saved_employee'; const urlParams = new URLSearchParams(window.location.search); selectedEmployee = urlParams.get('employee') \vert{}\vert{} localStorage.getItem(STORAGE_KEY) \vert{}\vert{} '';  const linkCitas = document.getElementById('link-citas');  if (!selectedEmployee) { alert('Por favor, inicia sesión primero.'); window.location.href = './index.html'; } else { localStorage.setItem(STORAGE_KEY, selectedEmployee); linkCitas.href = `./employee-schedule.html?employee=${encodeURIComponent(selectedEmployee)}`;
-            document.getElementById('header-title').textContent = `⏱️ Tiempos: ${selectedEmployee}`; }  function getPureLocalTimestamp() { const d = new Date(); const year = d.getFullYear(); const month = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); const hours = String(d.getHours()).padStart(2, '0'); const minutes = String(d.getMinutes()).padStart(2, '0'); const seconds = String(d.getSeconds()).padStart(2, '0'); return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`; }  function formatDate(str) { if (!str) return ''; const p = str.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
+        const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
+        
+        const STORAGE_KEY = 'clientSync_saved_employee';
+        const urlParams = new URLSearchParams(window.location.search);
+        selectedEmployee = urlParams.get('employee') || localStorage.getItem(STORAGE_KEY) || '';
+
+        const linkCitas = document.getElementById('link-citas');
+
+        if (!selectedEmployee) {
+            alert('Por favor, inicia sesión primero.');
+            window.location.href = './index.html';
+        } else {
+            localStorage.setItem(STORAGE_KEY, selectedEmployee);
+            linkCitas.href = `./employee-schedule.html?employee=${encodeURIComponent(selectedEmployee)}`;
+            document.getElementById('header-title').textContent = `⏱️ Tiempos: ${selectedEmployee}`;
+        }
+
+        function getPureLocalTimestamp() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const seconds = String(d.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function formatDate(str) {
+            if (!str) return '';
+            const p = str.split('-');
+            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
         }
 
         async function init() {
@@ -231,4 +261,389 @@
                 <div class="card-box">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <strong style="font-size: 0.82rem; color: #0f172a;">🏢 Jornada Laboral</strong>
-                        <span style="background: ${badgeBg}; color:${badgeColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 7
+                        <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700;">${statusStr}</span>
+                    </div>
+
+                    <div class="timer-display" id="global-timer">00:00:00</div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success" id="btn-start">▶️ Iniciar</button>
+                        <button type="button" class="btn btn-warning" id="btn-pause">⏸️ Pausa</button>
+                    </div>
+                    <div class="btn-group" style="margin-top: 6px;">
+                        <button type="button" class="btn btn-secondary" style="background:#fed7aa; color:#9a3412;" id="btn-lunch">☕ Almuerzo</button>
+                        <button type="button" class="btn btn-danger" id="btn-end">⏹️ Finalizar</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong id="section-title" style="font-size: 0.82rem; color: #0f172a;">
+                        ${viewMode === 'assigned' ? '📍 Clientes Asignados Hoy:' : '🟢 Clientes Activos en la Empresa:'}
+                    </strong>
+                    <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">${formatDate(todayStr)}</span>
+                </div>
+                <div id="clients-timetrack-list"></div>
+            `;
+
+            document.getElementById('btn-toggle-view').addEventListener('click', () => {
+                viewMode = viewMode === 'assigned' ? 'active' : 'assigned';
+                renderTimetrackView();
+            });
+
+            renderClientsList(todayAppts, map);
+            startLiveTimer();
+            startVisitLiveTimer();
+            attachTimetrackListeners();
+        }
+
+        function renderClientsList(appts, map) {
+            const listContainer = document.getElementById('clients-timetrack-list');
+            if (!listContainer) return;
+            
+            let filteredAppts = [];
+            if (viewMode === 'assigned') {
+                filteredAppts = appts.filter(a => {
+                    if (!a.assigned_employee) return false;
+                    const list = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                    return list.includes(selectedEmployee.toLowerCase());
+                });
+            } else {
+                filteredAppts = appts.filter(a => a.check_in_time && !a.check_out_time && map.has(a.client_id));
+            }
+
+            if (filteredAppts.length === 0) {
+                const msg = viewMode === 'assigned' 
+                    ? 'No tienes clientes asignados para hoy.' 
+                    : '🟢 No hay clientes activos en este momento en la empresa.';
+                listContainer.innerHTML = `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.8rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">${msg}</div>`;
+                return;
+            }
+
+            let html = '';
+            filteredAppts.forEach((appt, idx) => {
+                const c = map.get(appt.client_id);
+                if (!c) return;
+
+                const assignedList = appt.assigned_employee ? appt.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
+                const isCheckedIn = appt.check_in_time && !appt.check_out_time;
+                const isCheckedOut = !!appt.check_out_time;
+                const amAssigned = assignedList.map(e => e.toLowerCase()).includes(selectedEmployee.toLowerCase());
+
+                let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
+                let actionBtn = '';
+
+                if (viewMode === 'assigned') {
+                    if (isCheckedOut) {
+                        badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizada</span>`;
+                        actionBtn = `<span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Cerrada</span>`;
+                    } else if (isCheckedIn) {
+                        badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
+                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
+                    } else {
+                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">▶️ Llegué</button>`;
+                    }
+                } else {
+                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-checkin="${appt.check_in_time}">🟢 00:00:00</span>`;
+                    
+                    if (!amAssigned) {
+                        actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">➕ Unirme</button>`;
+                    } else {
+                        actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.72rem;">⏹️ Terminar</button>`;
+                    }
+                }
+
+                let teamHtml = '';
+                if (assignedList.length > 0) {
+                    teamHtml = `
+                        <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                            <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">👥 Empleados trabajando:</span>
+                            ${assignedList.map(emp => `<span class="team-chip">👷‍♂️ ${emp}</span>`).join('')}
+                        </div>
+                    `;
+                } else {
+                    teamHtml = `<div style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;">⚠️ Sin empleados registrados en esta visita</div>`;
+                }
+
+                html += `
+                    <div class="item-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
+                            <div>
+                                <strong style="font-size: 0.85rem; color: #0f172a;">🏢 ${c.name}</strong>
+                                <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">📍 ${c.address || 'Sin dirección'}</div>
+                            </div>
+                            <div>
+                                ${badge}
+                            </div>
+                        </div>
+
+                        ${teamHtml}
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9;">
+                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ Inicio: ${appt.check_in_time ? appt.check_in_time.replace('T', ' ').substring(11,16) : 'N/D'}</span>
+                            <div style="width: 130px;">${actionBtn}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+            attachClientTimerListeners();
+        }
+
+        // Cronómetro global en vivo (Actualizado cada 50ms para movimiento súper rápido y fluido)
+        function startLiveTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                const timerEl = document.getElementById('global-timer');
+                if (!timerEl) return;
+
+                if (!employeeDailyLog || !employeeDailyLog.clock_in_time || employeeDailyLog.status === 'finalizado') {
+                    timerEl.textContent = "00:00:00";
+                    return;
+                }
+
+                const now = new Date().getTime();
+
+                // Si está en PAUSA: Cronómetro rápido y fluido de pausa
+                if (employeeDailyLog.status === 'pausa') {
+                    const pauseStart = employeeDailyLog.updated_at ? new Date(employeeDailyLog.updated_at.replace(' ', 'T')).getTime() : now;
+                    let diff = Math.floor(((now - pauseStart) / 1000) * 60); 
+                    if (diff < 0) diff = 0;
+                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    const ms = String(Math.floor((now % 1000) / 10)).padStart(2, '0');
+                    timerEl.innerHTML = `<span style="color: #d97706; font-size: 1.2rem;">⏸️ Pausa: ${h}:${m}:${s}.${ms}</span>`;
+                    return;
+                }
+
+                // Si está en ALMUERZO: Cronómetro rápido y fluido de almuerzo
+                if (employeeDailyLog.status === 'almuerzo') {
+                    const lunchStartStr = employeeDailyLog.lunch_start_time || employeeDailyLog.updated_at;
+                    const lunchStart = lunchStartStr ? new Date(lunchStartStr.replace(' ', 'T')).getTime() : now;
+                    let diff = Math.floor(((now - lunchStart) / 1000) * 60); 
+                    if (diff < 0) diff = 0;
+                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    const ms = String(Math.floor((now % 1000) / 10)).padStart(2, '0');
+                    timerEl.innerHTML = `<span style="color: #b45309; font-size: 1.2rem;">☕ Almuerzo: ${h}:${m}:${s}.${ms}</span>`;
+                    return;
+                }
+
+                // Si está ACTIVO: Jornada corriendo rapidísimo y fluido
+                const cleanClockIn = employeeDailyLog.clock_in_time.replace(' ', 'T');
+                const start = new Date(cleanClockIn).getTime();
+                let diff = Math.floor(((now - start) / 1000) * 60); 
+                if (diff < 0) diff = 0;
+
+                const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                const s = String(diff % 60).padStart(2, '0');
+                const ms = String(Math.floor((now % 1000) / 10)).padStart(2, '0');
+
+                timerEl.textContent = `${h}:${m}:${s}.${ms}`;
+            }, 50); // Actualización fluida cada 50 milisegundos
+        }
+
+        // Cronómetro de visitas en vivo (También rápido y fluido)
+        function startVisitLiveTimer() {
+            if (visitLiveInterval) clearInterval(visitLiveInterval);
+
+            const updateTimers = () => {
+                const now = new Date().getTime();
+
+                document.querySelectorAll('.visit-timer-badge').forEach(badge => {
+                    const checkinStr = badge.getAttribute('data-checkin');
+                    if (!checkinStr) return;
+
+                    const cleanCheckIn = checkinStr.replace(' ', 'T');
+                    const start = new Date(cleanCheckIn).getTime();
+                    let diff = Math.floor(((now - start) / 1000) * 60); 
+                    if (diff < 0) diff = 0;
+
+                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    const ms = String(Math.floor((now % 1000) / 10)).padStart(2, '0');
+
+                    badge.textContent = `🟢 ${h}:${m}:${s}.${ms}`;
+                });
+            };
+
+            updateTimers();
+            visitLiveInterval = setInterval(updateTimers, 50);
+        }
+
+        function attachTimetrackListeners() {
+            document.getElementById('btn-start').addEventListener('click', async () => {
+                const nowPure = getPureLocalTimestamp();
+                try {
+                    if (!employeeDailyLog) {
+                        const { data, error } = await supabase.from('employee_daily_logs').insert([{
+                            employee_name: selectedEmployee,
+                            work_date: todayStr,
+                            clock_in_time: nowPure,
+                            status: 'activo'
+                        }]).select().single();
+                        if (error) throw error;
+                        employeeDailyLog = data;
+                    } else {
+                        const { data, error } = await supabase.from('employee_daily_logs')
+                            .update({ clock_in_time: nowPure, status: 'activo' })
+                            .eq('id', employeeDailyLog.id)
+                            .select().single();
+                        if (error) throw error;
+                        employeeDailyLog = data;
+                    }
+                    loadDataFromSupabase();
+                } catch (err) {
+                    alert('Error al iniciar: ' + err.message);
+                }
+            });
+
+            document.getElementById('btn-pause').addEventListener('click', async () => {
+                if (!employeeDailyLog) {
+                    alert('Primero debes iniciar tu jornada.');
+                    return;
+                }
+                const nextStatus = employeeDailyLog.status === 'pausa' ? 'activo' : 'pausa';
+                try {
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update({ status: nextStatus })
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+                    if (error) throw error;
+                    employeeDailyLog = data;
+                    loadDataFromSupabase();
+                } catch (err) {
+                    alert('Error al pausar: ' + err.message);
+                }
+            });
+
+            document.getElementById('btn-lunch').addEventListener('click', async () => {
+                if (!employeeDailyLog) {
+                    alert('Primero debes iniciar tu jornada.');
+                    return;
+                }
+
+                const nowPure = getPureLocalTimestamp();
+                let updatePayload = {};
+
+                if (employeeDailyLog.status === 'almuerzo') {
+                    updatePayload = {
+                        status: 'activo',
+                        lunch_end_time: nowPure
+                    };
+                } else {
+                    updatePayload = {
+                        status: 'almuerzo',
+                        lunch_start_time: nowPure
+                    };
+                }
+
+                try {
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update(updatePayload)
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+                    if (error) throw error;
+                    employeeDailyLog = data;
+                    loadDataFromSupabase();
+                } catch (err) {
+                    alert('Error en almuerzo: ' + err.message);
+                }
+            });
+
+            document.getElementById('btn-end').addEventListener('click', async () => {
+                if (!employeeDailyLog) return;
+                const nowPure = getPureLocalTimestamp();
+                try {
+                    const { data, error } = await supabase.from('employee_daily_logs')
+                        .update({ clock_out_time: nowPure, status: 'finalizado' })
+                        .eq('id', employeeDailyLog.id)
+                        .select().single();
+                    if (error) throw error;
+                    employeeDailyLog = data;
+                    loadDataFromSupabase();
+                } catch (err) {
+                    alert('Error al finalizar: ' + err.message);
+                }
+            });
+        }
+
+        function attachClientTimerListeners() {
+            document.querySelectorAll('.btn-join').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const a = allAppointments.find(x => x.id === id);
+                    if (!a) return;
+
+                    let currentList = a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
+                        currentList.push(selectedEmployee);
+                    }
+                    const newListStr = currentList.join(', ');
+
+                    const { error } = await supabase.from('appointments').update({ assigned_employee: newListStr }).eq('id', id);
+                    if (!error) {
+                        await loadDataFromSupabase();
+                    } else alert('Error al unirse: ' + error.message);
+                });
+            });
+
+            document.querySelectorAll('.btn-checkin').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const nowPure = getPureLocalTimestamp();
+                    
+                    const a = allAppointments.find(x => x.id === id);
+                    let currentList = a && a.assigned_employee ? a.assigned_employee.split(',').map(el => el.trim()).filter(Boolean) : [];
+                    
+                    if (!currentList.map(el => el.toLowerCase()).includes(selectedEmployee.toLowerCase())) {
+                        currentList.push(selectedEmployee);
+                    }
+                    const newListStr = currentList.join(', ');
+
+                    const { error } = await supabase.from('appointments').update({ 
+                        check_in_time: nowPure,
+                        assigned_employee: newListStr
+                    }).eq('id', id);
+
+                    if (!error) {
+                        await loadDataFromSupabase();
+                    } else alert('Error al hacer check-in: ' + error.message);
+                });
+            });
+
+            document.querySelectorAll('.btn-checkout').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.target.getAttribute('data-id');
+                    const now = new Date();
+                    const nowPure = getPureLocalTimestamp();
+                    const a = allAppointments.find(x => x.id === id);
+                    let mins = 1;
+                    if (a && a.check_in_time) {
+                        const cleanCheckIn = a.check_in_time.replace(' ', 'T');
+                        mins = Math.max(1, Math.round(((now - new Date(cleanCheckIn)) / 60000) * 60));
+                    }
+                    const count = Math.max(1, (a.assigned_employee || '').split(',').length);
+                    const totalLabor = mins * count;
+
+                    const { error } = await supabase.from('appointments').update({
+                        check_out_time: nowPure,
+                        visit_duration_minutes: mins,
+                        total_labor_minutes: totalLabor
+                    }).eq('id', id);
+
+                    if (!error) {
+                        await loadDataFromSupabase();
+                    } else alert('Error al terminar: ' + error.message);
+                });
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
