@@ -599,11 +599,12 @@
                 const primaryEmployee = appt.assigned_employee ? appt.assigned_employee.split(',')[0].trim() : '';
                 const sessions = appt.sessions ? (typeof appt.sessions === 'string' ? JSON.parse(appt.sessions) : appt.sessions) : [];
                 
+                // Filtramos SOLO las sesiones activas (sin check_out) para mostrarlas en los chips y evitar que aparezcan en gris
+                const activeSessions = sessions.filter(s => !s.check_out);
+                
                 const isCheckedIn = appt.check_in_time && !appt.check_out_time;
                 const isCompleted = !!appt.check_out_time;
-                
-                // Ver si el usuario actual tiene una sesión ACTIVA (sin check_out)
-                const activeSessionForMe = sessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase() && !s.check_out);
+                const activeSessionForMe = activeSessions.find(s => s.employee.toLowerCase() === selectedEmployee.toLowerCase());
                 const amActiveInVisit = !!activeSessionForMe;
 
                 let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
@@ -612,7 +613,6 @@
                 if (isCompleted) {
                     badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total: ${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
-                        // Si está completada la visita general pero el usuario quiere volver a incluirse (si la visita sigue abierta globalmente), permitimos unirse
                         if (isCheckedIn && !amActiveInVisit) {
                             actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
                         } else {
@@ -620,7 +620,6 @@
                         }
                     }
                 } else if (isCheckedIn) {
-                    // Si el usuario tiene una sesión activa, mostramos su cronómetro individual o el de la visita
                     const timerStartMs = activeSessionForMe ? parseTimestampToMs(activeSessionForMe.check_in) : parseTimestampToMs(appt.check_in_time);
                     badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-start-ms="${timerStartMs}">🟢 00:00:00</span>`;
                     
@@ -644,18 +643,18 @@
                 }
 
                 let teamHtml = '';
-                if (sessions.length > 0 || isCheckedIn) {
+                if (activeSessions.length > 0 || isCheckedIn) {
                     teamHtml = `
                         <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px dashed #e2e8f0;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Personal en visita:</span>
+                                <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Personal activo en visita:</span>
                                 ${isCheckedIn ? `<button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">+ Añadir persona</button>` : ''}
                             </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                ${sessions.map((s) => `
-                                    <span class="team-chip" style="${s.check_out ? 'background: #f1f5f9; color: #64748b; border-color: #cbd5e1;' : ''}">
-                                        👷‍♂️ ${s.employee} ${s.check_out ? `(${s.minutes || 0}m)` : '(Activo)'}
-                                        ${isCheckedIn && !s.check_out ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${s.employee}" title="Finalizar a ${s.employee}">×</button>` : ''}
+                                ${activeSessions.map((s) => `
+                                    <span class="team-chip">
+                                        👷‍♂️ ${s.employee} (Activo)
+                                        ${isCheckedIn ? `<button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${s.employee}" title="Finalizar a ${s.employee}">×</button>` : ''}
                                     </span>
                                 `).join('')}
                             </div>
@@ -875,7 +874,6 @@
             const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
             let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
             
-            // Añadir nueva sesión para este empleado (incluso si ya tuvo anteriores)
             sessions.push({
                 employee: chosenEmp,
                 check_in: getPureLocalTimestamp(),
@@ -886,7 +884,7 @@
             const { error } = await supabase.from('appointments').update({ 
                 assigned_employee: primaryEmp,
                 sessions: sessions,
-                check_out_time: null // Si se añade alguien, la visita se reabre globalmente si estaba cerrada
+                check_out_time: null 
             }).eq('id', a.id);
 
             if (!error) {
@@ -918,7 +916,7 @@
                 });
             });
 
-            // Botón de la X para dar de baja / salir individualmente a un empleado
+            // Botón de la X para finalizar la sesión del empleado
             document.querySelectorAll('.btn-remove-employee').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -932,7 +930,6 @@
                     const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
 
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-                    // Buscar la sesión activa (sin check_out) específica de este empleado
                     const activeSession = sessions.find(s => s.employee.toLowerCase() === empToRemove.toLowerCase() && !s.check_out);
                     const nowPure = getPureLocalTimestamp();
 
@@ -945,7 +942,6 @@
 
                     const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
                     const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
-                    // SUMA TOTAL de minutos de todas las sesiones de todos los empleados
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
 
                     let updateData = {
@@ -968,7 +964,7 @@
                 });
             });
 
-            // Botón para unirse / incluirse otra vez (crea una nueva sesión en el array)
+            // Botón para incluirse otra vez (crea una nueva sesión activa)
             document.querySelectorAll('.btn-join').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -978,7 +974,6 @@
                     const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
                     let sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
                     
-                    // Añadir una NUEVA sesión activa para este usuario (permite múltiples NIK / registros)
                     sessions.push({
                         employee: selectedEmployee,
                         check_in: getPureLocalTimestamp(),
@@ -990,7 +985,7 @@
                         assigned_employee: primaryEmp,
                         sessions: sessions,
                         check_in_time: a.check_in_time || getPureLocalTimestamp(),
-                        check_out_time: null // Reactiva la visita globalmente si estaba cerrada
+                        check_out_time: null 
                     }).eq('id', id);
 
                     if (!error) {
@@ -1053,7 +1048,6 @@
                     }
 
                     const primaryEmp = a.assigned_employee ? a.assigned_employee.split(',')[0].trim() : selectedEmployee;
-                    // SUMA TOTAL de minutos de todas las sesiones de todos los empleados
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
                     const allSessionsClosed = sessions.length > 0 && sessions.every(s => s.check_out);
 
