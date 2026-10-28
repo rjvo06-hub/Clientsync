@@ -109,15 +109,18 @@
             background: #dcfce7;
             border: 1px solid #86efac;
             color: #166534;
-            padding: 12px 14px;
-            border-radius: 14px;
+            padding: 10px 12px;
+            border-radius: 12px;
             margin-bottom: 16px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
             box-shadow: 0 2px 6px rgba(22, 101, 52, 0.08);
         }
+        .active-client-banner:hover { background: #bbf7d0; transform: scale(1.01); }
         .btn {
             width: 100%;
             padding: 12px;
@@ -505,7 +508,6 @@
             const map = new Map(allClients.map(c => [c.id, c]));
             const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
 
-            // Obtener la lista de citas asignadas al usuario actual hoy
             const assignedTodayAppts = todayAppts.filter(a => {
                 if (!a.assigned_employee) return false;
                 const primary = a.assigned_employee.split(',')[0].trim().toLowerCase();
@@ -513,7 +515,6 @@
             });
             const assignedApptIds = new Set(assignedTodayAppts.map(a => a.id));
 
-            // Buscar si el usuario actual está activo en ALGUNA cita de hoy que NO esté en sus asignadas
             let externalActiveAppointment = null;
             todayAppts.forEach(a => {
                 const sessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
@@ -533,17 +534,13 @@
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
-            // El banner solo aparece si estás activo en un cliente externo (fuera de tus asignados)
+            // Banner compacto sin botón de terminar y que redirige a Clientes Activos Globales al hacer clic
             let activeBannerHtml = '';
             if (externalActiveAppointment) {
                 activeBannerHtml = `
-                    <div class="active-client-banner">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong>🟢 ¡Estás activo en este cliente externo!</strong>
-                            <button type="button" class="btn btn-danger btn-checkout" data-id="${externalActiveAppointment.appt.id}" style="width: auto; padding: 4px 10px; font-size: 0.68rem;">⏹️ Terminar</button>
-                        </div>
-                        <span style="font-weight: 700; color: #166534; font-size: 0.85rem;">🏢 ${externalActiveAppointment.client.name}</span>
-                        <span style="font-size: 0.72rem; color: #166534;">📍 ${externalActiveAppointment.client.address || 'Sin dirección'}</span>
+                    <div class="active-client-banner" id="banner-goto-active">
+                        <strong style="color: #166534; font-size: 0.78rem;">🟢 ¡Estás activo en el cliente: ${externalActiveAppointment.client.name}!</strong>
+                        <span style="font-size: 0.7rem; color: #166534;">📍 ${externalActiveAppointment.client.address || 'Sin dirección'}</span>
                     </div>
                 `;
             }
@@ -594,6 +591,15 @@
                 timetrackViewMode = timetrackViewMode === 'assigned' ? 'active' : 'assigned';
                 renderTimetrackView();
             });
+
+            // Al hacer clic en el banner compacto, cambia automáticamente a Clientes Activos Globales
+            const bannerEl = document.getElementById('banner-goto-active');
+            if (bannerEl) {
+                bannerEl.addEventListener('click', () => {
+                    timetrackViewMode = 'active';
+                    renderTimetrackView();
+                });
+            }
 
             renderClientsList(todayAppts, map);
             startLiveTimer();
