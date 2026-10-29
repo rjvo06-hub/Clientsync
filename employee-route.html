@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Mapa de Ruta del Día</title>
+    <title>ClientSync | Tagesroute & Karte</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
@@ -90,14 +90,14 @@
     <div class="container">
         <!-- Cabecera -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 style="margin: 0; font-size: 1rem; color: #1e293b; font-weight: 800;">🗺️ Ruta del Día</h1>
-            <a href="#" id="back-link" style="padding: 4px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">← Volver</a>
+            <h1 style="margin: 0; font-size: 1rem; color: #1e293b; font-weight: 800;">🗺️ Tagesroute</h1>
+            <a href="#" id="back-link" style="padding: 4px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">← Zurück</a>
         </div>
 
         <!-- Barra de Controles: Selector de fecha -->
         <div class="controls-bar">
             <div style="flex: 1;">
-                <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">📅 Seleccionar Fecha:</label>
+                <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">📅 Datum auswählen:</label>
                 <input type="date" id="route-date-input">
             </div>
         </div>
@@ -119,7 +119,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span id="segment-color-dot" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
-                        <strong style="color: #0284c7; font-size: 0.78rem; font-weight: 700;">Detalle del Trayecto</strong>
+                        <strong style="color: #0284c7; font-size: 0.78rem; font-weight: 700;">Streckendetails</strong>
                     </div>
                     <button type="button" id="close-panel-btn" style="background: transparent; border: none; color: #64748b; font-size: 0.85rem; cursor: pointer; font-weight: bold; padding: 0 4px;">✕</button>
                 </div>
@@ -324,7 +324,7 @@
             clearPreviousRoutes();
 
             if (dayAppointments.length === 0) {
-                alert('No hay citas programadas para esta fecha.');
+                alert('Keine geplanten Termine für dieses Datum.');
                 map.setCenter({ lat: 48.0664, lng: 11.6611 });
                 map.setZoom(13);
                 return;
@@ -343,7 +343,7 @@
             });
 
             if (validStops.length === 0) {
-                alert('Las citas de este día no tienen coordenadas geográficas válidas registradas.');
+                alert('Für die Termine dieses Tages wurden keine gültigen geografischen Koordinaten registriert.');
                 return;
             }
 
@@ -366,18 +366,18 @@
                         color: "white",
                         fontWeight: "bold"
                     },
-                    title: `Parada #${index + 1}: ${stop.client.name}`
+                    title: `Stopp #${index + 1}: ${stop.client.name}`
                 });
 
-                const clientPhone = stop.client.phone || 'No registrado';
+                const clientPhone = stop.client.phone || 'Nicht registriert';
                 
                 const windowContent = `
                     <div style="font-family: -apple-system, sans-serif; background: #ffffff; color: #1e293b; padding: 8px; border-radius: 8px; width: 200px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 6px;">
                             <span style="color: #0284c7; font-size: 0.78rem; font-weight: 700;">#${index + 1} ${stop.client.name}</span>
-                            <span style="color: #1e293b; font-size: 0.75rem; font-weight: bold;">⏰ ${stop.appt.time_slot || '09:00'}h</span>
+                            <span style="color: #1e293b; font-size: 0.75rem; font-weight: bold;">⏰ ${stop.appt.time_slot || '09:00'} Uhr</span>
                         </div>
-                        <p style="margin: 0 0 3px 0; font-size: 0.68rem; color: #64748b;">📍 ${stop.client.address || 'Sin dirección'}</p>
+                        <p style="margin: 0 0 3px 0; font-size: 0.68rem; color: #64748b;">📍 ${stop.client.address || 'Keine Adresse'}</p>
                         <p style="margin: 0; font-size: 0.68rem; color: #64748b;">📞 ${clientPhone}</p>
                     </div>
                 `;
@@ -437,8 +437,8 @@
 
                         const durationMins = Math.round(durationSecs / 60);
                         const durationText = durationMins >= 60 
-                            ? `${Math.floor(durationMins / 60)}h ${durationMins % 60}min` 
-                            : `${durationMins} min`;
+                            ? `${Math.floor(durationMins / 60)} Std. ${durationMins % 60} Min.` 
+                            : `${durationMins} Min.`;
 
                         const decodedPath = google.maps.geometry.encoding.decodePath(encodedPolyline);
 
@@ -464,17 +464,17 @@
                             segmentColorDot.style.background = segmentColor;
                             panelBody.innerHTML = `
                                 <div style="margin-bottom: 4px;">
-                                    <span style="color: #0284c7; font-weight: 700;">Desde (#${i+1}):</span> <strong>${originStop.client.name}</strong><br>
-                                    <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${originStop.client.address || 'Sin dirección'}</span>
+                                    <span style="color: #0284c7; font-weight: 700;">Von (#${i+1}):</span> <strong>${originStop.client.name}</strong><br>
+                                    <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${originStop.client.address || 'Keine Adresse'}</span>
                                 </div>
                                 <div style="margin-bottom: 6px;">
-                                    <span style="color: #dc2626; font-weight: 700;">Hasta (#${i+2}):</span> <strong>${destStop.client.name}</strong><br>
-                                    <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${destStop.client.address || 'Sin dirección'}</span>
+                                    <span style="color: #dc2626; font-weight: 700;">Nach (#${i+2}):</span> <strong>${destStop.client.name}</strong><br>
+                                    <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${destStop.client.address || 'Keine Adresse'}</span>
                                 </div>
                                 <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem;">
                                     <span style="color: #475569;">📏 <strong>${distanceText}</strong></span>
                                     <span style="color: #475569; text-align: center;">⏱️ <strong>${durationText}</strong></span>
-                                    <a href="${mapsNavUrl}" target="_blank" style="background: #2563eb; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.68rem; display: inline-flex; align-items: center; gap: 2px;">🧭 Navegar</a>
+                                    <a href="${mapsNavUrl}" target="_blank" style="background: #2563eb; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.68rem; display: inline-flex; align-items: center; gap: 2px;">🧭 Navigieren</a>
                                 </div>
                             `;
 
