@@ -110,25 +110,25 @@
             box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
 
-        /* Grid simétrico ajustado a los bordes exactos del contenedor padre */
+        /* Grid simétrico con separadores transparentes laterales y uno central exacto */
         .grid-with-spacers {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr);
+            grid-template-columns: 8px minmax(0, 1fr) 12px minmax(0, 1fr) 8px;
             width: 100%;
             align-items: center;
         }
 
-        .grid-with-spacers .col-1 { grid-column: 1; }
-        .grid-with-spacers .col-2 { grid-column: 3; }
+        .grid-with-spacers .col-1 { grid-column: 2; }
+        .grid-with-spacers .col-2 { grid-column: 4; }
 
         /* Contenedor específico para fecha única simétrica */
         .single-date-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr);
+            grid-template-columns: 8px minmax(0, 1fr) 8px;
             width: 100%;
             align-items: center;
         }
-        .single-date-grid .col-single { grid-column: 1; }
+        .single-date-grid .col-single { grid-column: 2; }
 
         .btn-query {
             background: #0f172a;
@@ -417,7 +417,7 @@
 
             <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 Consultar por rango (Semana / Mes)</button>
 
-            <!-- Contenedor con alineación exacta a los bordes -->
+            <!-- Contenedor con separadores transparentes simétricos -->
             <div id="range-container">
                 <div class="grid-with-spacers">
                     <div class="form-group col-1">
