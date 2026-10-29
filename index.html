@@ -245,7 +245,6 @@
                     <a href="./employee-builder.html"><span>👨‍🔧</span> Empleados</a>
                     <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Reporte Jornadas</a>
                     <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> Reporte PDF</a>
-                    <a href="./client-map.html" id="link-client-map" style="grid-column: span 2; flex-direction: row; justify-content: center; gap: 8px; background: #f8fafc;"><span>🗺️</span> Mapa General de Clientes</a>
                 </nav>
             </div>
         </div>
@@ -268,7 +267,6 @@
         const btnLogout = document.getElementById('btn-logout');
 
         const linkTeam = document.getElementById('link-employee-portal');
-        const linkMap = document.getElementById('link-client-map');
         const adminSectionContainer = document.getElementById('admin-section-container');
         const pdfLink = document.getElementById('navAdminPdf');
 
@@ -327,7 +325,6 @@
 
             // Actualizar enlaces dinámicos con el empleado
             linkTeam.href = `./employee-schedule.html?employee=${encodeURIComponent(empName)}`;
-            linkMap.href = `./employee-route.html?employee=${encodeURIComponent(empName)}&date=${new Date().toISOString().split('T')[0]}`;
 
             // Validar nivel de usuario para mostrar u ocultar la sección de administración
             const userLevel = Number(localStorage.getItem(LEVEL_KEY)) || 1;
