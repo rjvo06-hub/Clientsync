@@ -7,124 +7,145 @@
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f8fafc; 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f4f6f9; 
             margin: 0; 
-            padding: 12px; 
-            color: #1e293b;
+            padding: 16px; 
+            color: #0f172a;
         }
+
         .app-container { 
             max-width: 440px; 
-            margin: 8px auto 60px auto; 
+            margin: 10px auto 70px auto; 
             background: #ffffff; 
-            padding: 20px 16px; 
-            border-radius: 24px; 
-            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.03); 
-            border: 1px solid #f1f5f9;
+            padding: 24px 20px; 
+            border-radius: 28px; 
+            box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.05), 0 0 1px 1px rgba(0, 0, 0, 0.02); 
         }
+
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
             border-bottom: 1px solid #f1f5f9;
         }
+
         .header h1 {
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 800;
+            letter-spacing: -0.02em;
             margin: 0;
             color: #0f172a;
         }
+
         .version-tag {
             font-size: 0.6rem;
-            background: #dcfce7;
-            color: #166534;
-            padding: 2px 6px;
-            border-radius: 4px;
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #dcfce7;
+            padding: 2px 8px;
+            border-radius: 6px;
             font-weight: 700;
+            letter-spacing: 0.03em;
             margin-left: 6px;
             display: inline-block;
         }
+
         .icon-btn {
-            background: #f1f5f9;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-weight: 700;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-weight: 600;
             font-size: 0.75rem;
-            color: #475569;
+            color: #334155;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            transition: all 0.2s ease;
         }
+        .icon-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+
         .btn-active-clients {
-            background: #dcfce7;
-            color: #166534;
+            background: #f0fdf4;
+            color: #15803d;
             border: 1px solid #bbf7d0;
-            padding: 6px 10px;
-            border-radius: 10px;
+            padding: 6px 12px;
+            border-radius: 12px;
             font-weight: 700;
             font-size: 0.7rem;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            transition: all 0.2s ease;
         }
-        .btn-active-clients:hover { background: #bbf7d0; }
+        .btn-active-clients:hover { background: #dcfce7; }
+
         .menu-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 16px;
+            border-radius: 16px;
+            padding: 16px 18px;
             margin-bottom: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
         }
-        .menu-card:active { background: #f8fafc; border-color: #3b82f6; }
+        .menu-card:hover { border-color: #94a3b8; transform: translateY(-1px); }
+        .menu-card:active { background: #f8fafc; transform: scale(0.99); }
         .menu-card h3 { margin: 0 0 2px 0; font-size: 0.9rem; font-weight: 700; color: #0f172a; }
         .menu-card p { margin: 0; font-size: 0.72rem; color: #64748b; }
+
         .timer-display {
             font-variant-numeric: tabular-nums;
-            font-size: 1.35rem;
+            font-size: 2.2rem;
             font-weight: 800;
-            color: #2563eb;
+            color: #0f172a;
             text-align: center;
-            margin: 10px 0 16px 0;
-            letter-spacing: 1px;
+            margin: 12px 0 18px 0;
+            letter-spacing: -0.03em;
         }
+
         .card-box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 16px;
+            background: #fafafa;
+            border: 1px solid #eef2f6;
+            border-radius: 20px;
+            padding: 20px 16px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.01);
         }
+
         .active-client-banner {
-            background: #f8fafc;
+            background: #ffffff;
             border: 1px solid #cbd5e1;
-            color: #334155;
-            padding: 8px 12px;
-            border-radius: 10px;
-            margin-bottom: 14px;
-            font-size: 0.72rem;
+            color: #0f172a;
+            padding: 10px 14px;
+            border-radius: 14px;
+            margin-bottom: 16px;
+            font-size: 0.75rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
-        .active-client-banner:hover { background: #f1f5f9; border-color: #94a3b8; }
+        .active-client-banner:hover { border-color: #3b82f6; background: #f8fafc; }
+
         .btn {
             width: 100%;
-            padding: 12px;
-            border-radius: 12px;
+            padding: 13px;
+            border-radius: 14px;
             border: none;
             font-weight: 700;
             font-size: 0.82rem;
@@ -133,50 +154,64 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            transition: opacity 0.2s, transform 0.1s;
         }
-        .btn:active { opacity: 0.8; }
-        .btn-primary { background: #2563eb; color: white; }
-        .btn-success { background: #16a34a; color: white; }
-        .btn-danger { background: #dc2626; color: white; }
-        .btn-secondary { background: #e2e8f0; color: #334155; }
-        .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        .btn:active { opacity: 0.85; transform: scale(0.98); }
+        .btn-primary { background: #0f172a; color: white; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15); }
+        .btn-success { background: #16a34a; color: white; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15); }
+        .btn-danger { background: #dc2626; color: white; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15); }
+        .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+
         .item-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 14px;
+            border-radius: 16px;
+            padding: 16px;
             margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.015);
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            transition: border-color 0.2s;
         }
+        .item-card:hover { border-color: #cbd5e1; }
+
         .team-chip {
-            background: #dcfce7;
-            color: #166534;
+            background: #f0fdf4;
+            color: #15803d;
             font-size: 0.7rem;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-weight: 700;
-            display: inline-block;
-            border: 1px solid #bbf7d0;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #dcfce7;
         }
         .team-chip button {
-            background: none; border: none; color: #dc2626; font-weight: bold; cursor: pointer; padding: 0 2px; font-size: 0.7rem; margin-left: 4px;
+            background: none; border: none; color: #dc2626; font-weight: 800; cursor: pointer; padding: 0 0 0 6px; font-size: 0.8rem;
         }
-        .tabs-header { display: flex; gap: 6px; margin-bottom: 14px; }
+
+        .tabs-header { display: flex; gap: 6px; margin-bottom: 16px; background: #f1f5f9; padding: 4px; border-radius: 14px; }
         .tab-pill {
-            flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; font-weight: 700; font-size: 0.75rem; cursor: pointer; text-align: center;
+            flex: 1; padding: 9px; border-radius: 10px; border: none; background: transparent; color: #64748b; font-weight: 700; font-size: 0.75rem; cursor: pointer; text-align: center; transition: all 0.2s;
         }
-        .tab-pill.active { background: #2563eb; color: white; border-color: #2563eb; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 8px; }
+        .tab-pill.active { background: #ffffff; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px; }
         .cal-header { text-align: center; font-weight: 700; font-size: 0.68rem; color: #94a3b8; padding: 4px 0; }
-        .cal-day { min-height: 38px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #334155; }
-        .cal-day.has-appointments { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
-        .badge { font-size: 0.5rem; background: #2563eb; color: white; padding: 1px 4px; border-radius: 6px; margin-top: 2px; font-weight: 700; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(3px); }
-        .modal-body { background: white; width: 100%; max-width: 380px; max-height: 85vh; padding: 16px; border-radius: 16px; display: flex; flex-direction: column; overflow-y: auto; }
-        .select-dropdown { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.85rem; background: #f8fafc; margin-bottom: 12px; }
+        .cal-day { min-height: 40px; background: #fafafa; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #334155; transition: all 0.15s; }
+        .cal-day:hover { border-color: #94a3b8; background: #ffffff; }
+        .cal-day.has-appointments { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; font-weight: 700; }
+        
+        .badge { font-size: 0.55rem; background: #16a34a; color: white; padding: 1px 5px; border-radius: 6px; margin-top: 2px; font-weight: 700; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); z-index: 1000; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(4px); }
+        .modal-body { background: white; width: 100%; max-width: 380px; max-height: 85vh; padding: 20px; border-radius: 24px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        
+        .select-dropdown { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 0.85rem; background: #f8fafc; color: #0f172a; margin-bottom: 14px; outline: none; font-weight: 500; }
+        .select-dropdown:focus { border-color: #0f172a; background: #ffffff; }
     </style>
 </head>
 <body>
@@ -572,7 +607,7 @@
             let badgeBg = '#f1f5f9';
             let badgeColor = '#475569';
             if (employeeDailyLog) {
-                if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Jornada en curso'; badgeBg = '#dcfce7'; badgeColor = '#166534'; }
+                if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Jornada en curso'; badgeBg = '#f0fdf4'; badgeColor = '#15803d'; }
                 else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
@@ -591,10 +626,9 @@
                 `;
             }
 
-            // Textos dinámicos para el botón de almuerzo según el estado
             const isAtLunch = employeeDailyLog && employeeDailyLog.status === 'almuerzo';
             const lunchButtonText = isAtLunch ? '▶️ Volver de Almuerzo' : '☕ Almuerzo';
-            const lunchButtonStyle = isAtLunch ? 'background:#16a34a; color:#white;' : 'background:#fed7aa; color:#9a3412;';
+            const lunchButtonStyle = isAtLunch ? 'background:#16a34a; color:#ffffff;' : 'background:#ffedd5; color:#c2410c; border: 1px solid #fed7aa;';
 
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -605,17 +639,16 @@
                 <div class="card-box">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <strong style="font-size: 0.8rem; color: #0f172a;">🏢 Jornada Laboral</strong>
-                        <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 2px 6px; border-radius: 6px; font-size: 0.68rem; font-weight: 700;">${statusStr}</span>
+                        <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700;">${statusStr}</span>
                     </div>
 
                     <div class="timer-display" id="global-timer">00:00:00</div>
 
-                    <!-- Botones reestructurados (Sin pausa, con Iniciar, Almuerzo y Finalizar) -->
                     <div class="btn-group">
                         <button type="button" class="btn btn-success" id="btn-start" style="flex: 1;">▶️ Iniciar</button>
                         <button type="button" class="btn" style="flex: 1; ${lunchButtonStyle}" id="btn-lunch">${lunchButtonText}</button>
                     </div>
-                    <div style="margin-top: 6px;">
+                    <div style="margin-top: 8px;">
                         <button type="button" class="btn btn-danger" id="btn-end">⏹️ Finalizar Jornada</button>
                     </div>
                 </div>
@@ -678,7 +711,7 @@
                 const msg = timetrackViewMode === 'assigned' 
                     ? 'No tienes clientes asignados para hoy.' 
                     : '🟢 No hay clientes activos en este momento en la empresa.';
-                listContainer.innerHTML = `<div style="padding: 14px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">${msg}</div>`;
+                listContainer.innerHTML = `<div style="padding: 14px; text-align: center; color: #64748b; font-size: 0.78rem; background: #fafafa; border-radius: 12px; border: 1px solid #e2e8f0;">${msg}</div>`;
                 return;
             }
 
@@ -695,11 +728,11 @@
                 const myActiveVisit = apptVisits.find(v => v.employee_name.toLowerCase() === selectedEmployee.toLowerCase());
                 const amActiveInVisit = !!myActiveVisit;
 
-                let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
+                let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
                 let actionBtn = '';
 
                 if (isCompleted) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (Total: ${appt.total_labor_minutes || 0}m)</span>`;
+                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
                         if (isCheckedIn && !amActiveInVisit) {
                             actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
@@ -714,7 +747,7 @@
                         if (ms < earliestMs) earliestMs = ms;
                     });
                     
-                    badge = `<span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-start-ms="${earliestMs}">🟢 00:00:00</span>`;
+                    badge = `<span style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-start-ms="${earliestMs}">🟢 00:00:00</span>`;
                     
                     if (timetrackViewMode === 'assigned') {
                         if (amActiveInVisit) {
@@ -738,15 +771,15 @@
                 let teamHtml = '';
                 if (apptVisits.length > 0) {
                     teamHtml = `
-                        <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px dashed #e2e8f0;">
+                        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Personal activo en visita:</span>
-                                <button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">+ Añadir persona</button>
+                                <button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1;">+ Añadir persona</button>
                             </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                                 ${apptVisits.map((v) => `
                                     <span class="team-chip">
-                                        👷‍♂️ ${v.employee_name} (Activo)
+                                        👷‍♂️ ${v.employee_name}
                                         <button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${v.employee_name}" title="Retirarse de la visita">×</button>
                                     </span>
                                 `).join('')}
@@ -760,15 +793,15 @@
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
                             <div>
                                 <strong style="font-size: 0.8rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
-                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 1px;">📍 ${c.address || 'Sin dirección'}</div>
+                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">📍 ${c.address || 'Sin dirección'}</div>
                             </div>
                             <div>${badge}</div>
                         </div>
 
                         ${teamHtml}
 
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
-                            <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h (Principal: ${primaryEmployee})</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f8fafc;">
+                            <span style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h (Principal: ${primaryEmployee})</span>
                             <div style="width: 130px;">${actionBtn}</div>
                         </div>
                     </div>
@@ -799,7 +832,7 @@
                     const h = String(Math.floor(diff / 3600)).padStart(2, '0');
                     const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
                     const s = String(diff % 60).padStart(2, '0');
-                    timerEl.innerHTML = `<span style="color: #b45309; font-size: 1.1rem;">☕ Almuerzo: ${h}:${m}:${s}</span>`;
+                    timerEl.innerHTML = `<span style="color: #b45309; font-size: 1.8rem;">☕ Almuerzo: ${h}:${m}:${s}</span>`;
                     return;
                 }
 
