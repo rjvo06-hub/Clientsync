@@ -227,7 +227,7 @@
         <div id="app-content"></div>
     </div>
 
-    <!-- Modalseite für Termine / Monat -->
+    <!-- Modal General para Citas / Mes -->
     <div id="day-modal" class="modal-overlay">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
@@ -238,7 +238,7 @@
         </div>
     </div>
 
-    <!-- Modalseite zur Mitarbeiterauswahl -->
+    <!-- Modal Desplegable para Seleccionar Empleado -->
     <div id="employee-modal" class="modal-overlay">
         <div class="modal-body" style="max-width: 320px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
@@ -633,7 +633,9 @@
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <button type="button" class="icon-btn" id="btn-back-t">← Menü</button>
-                    <button type="button" class="btn-active-clients" id="btn-toggle-view">🟢 Aktive Kunden</button>
+                    <button type="button" class="btn-active-clients" id="btn-toggle-view">
+                        ${timetrackViewMode === 'assigned' ? '🟢 Aktive Kunden' : '📍 Zugewiesene Kunden'}
+                    </button>
                 </div>
 
                 <div class="card-box">
@@ -663,11 +665,30 @@
                 </div>
                 <div id="clients-timetrack-list"></div>
             `;
-            
-            // ... Mantiene el resto de la inicialización de eventos JS exactamente igual
+
+            // Escuchador explícito para regresar al menú principal
+            document.getElementById('btn-back-t').addEventListener('click', () => {
+                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}`);
+                renderMainMenu();
+            });
+
+            // Escuchador para alternar la vista entre asignados y activos
+            document.getElementById('btn-toggle-view').addEventListener('click', () => {
+                timetrackViewMode = timetrackViewMode === 'assigned' ? 'active' : 'assigned';
+                renderTimetrackView();
+            });
+
+            // Escuchador para el banner flotante de cliente activo
+            const banner = document.getElementById('banner-goto-active');
+            if (banner) {
+                banner.addEventListener('click', () => {
+                    timetrackViewMode = 'active';
+                    renderTimetrackView();
+                });
+            }
         }
 
-        // Inicialización
+        // Inicialización de la app
         init();
     </script>
 </body>
