@@ -744,7 +744,7 @@
                                 ${apptVisits.map((v) => `
                                     <span class="team-chip">
                                         👷‍♂️ ${v.employee_name} (Activo)
-                                        <button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${v.employee_name}" title="Finalizar a ${v.employee_name}">×</button>
+                                        <button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${v.employee_name}" title="Retirarse de la visita">×</button>
                                     </span>
                                 `).join('')}
                             </div>
@@ -1004,7 +1004,7 @@
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
                     const empToRemove = e.target.getAttribute('data-emp');
-                    if (!confirm(`¿Deseas finalizar la sesión de ${empToRemove} en esta visita?`)) return;
+                    if (!confirm(`¿Deseas retirarte de esta visita, ${empToRemove}?`)) return;
 
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
@@ -1114,92 +1114,64 @@
                 });
             });
 
-            // NUEVA VALIDACIÓN INTELIGENTE AL DAR A FINALIZAR
+            // VALIDACIÓN FORMAL AL DAR A FINALIZAR
             document.querySelectorAll('.btn-checkout').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
-                    // Comprobamos quiénes están activos en esta visita actualmente
                     const apptVisits = activeVisitsList.filter(v => String(v.appointment_id) === String(id));
                     const otherActiveEmps = apptVisits.filter(v => v.employee_name.toLowerCase() !== selectedEmployee.toLowerCase());
 
-                    let shouldCloseEntireVisit = true;
-
-                    // Si hay otros compañeros activos, le preguntamos al usuario qué desea hacer
+                    // Mensaje formal de advertencia si hay compañeros activos
                     if (otherActiveEmps.length > 0) {
                         const otherNames = otherActiveEmps.map(v => v.employee_name).join(', ');
-                        const choice = confirm(
-                            `⚠️ Atención: Todavía hay otros compañeros activos en esta visita (${otherNames}).\n\n` +
-                            `• ¿Deseas finalizar la visita por completo para todos? (Pulsa Aceptar)\n` +
-                            `• ¿Deseas salirte únicamente tú y dejar la visita abierta para ellos? (Pulsa Cancelar)`
+                        const proceed = confirm(
+                            `⚠️ Aviso de Cierre de Visita\n\n` +
+                            `Actualmente aún hay compañeros activos en este cliente: [ ${otherNames} ].\n\n` +
+                            `Si continúas y finalizas la visita, se cerrará por completo para todos los participantes.\n\n` +
+                            `¿Deseas proceder con el cierre total de la visita?`
                         );
-                        shouldCloseEntireVisit = choice;
+                        if (!proceed) return; // Si cancela, se detiene la acción y no lo saca ni finaliza nada
+                    } else {
+                        const confirmSingle = confirm(`¿Estás seguro de que deseas finalizar y cerrar esta visita?`);
+                        if (!confirmSingle) return;
                     }
 
                     const clientObj = allClients.find(cl => String(cl.id) === String(a.client_id));
                     const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
-
-                    const visitRecord = apptVisits.find(v => v.employee_name.toLowerCase() === selectedEmployee.toLowerCase());
                     const nowPure = getPureLocalTimestamp();
-                    let sessionMinutes = 1;
+                    let rawSessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
 
-                    if (visitRecord) {
-                        const startMs = parseTimestampToMs(visitRecord.check_in);
+                    // Cerramos a todos los que estaban activos en esta visita
+                    for (let v of apptVisits) {
+                        const startMs = parseTimestampToMs(v.check_in);
                         const diffSecs = Math.max(1, Math.round((Date.now() - startMs) / 1000));
-                        sessionMinutes = Math.max(1, Math.round(diffSecs / 60));
+                        const sessionMins = Math.max(1, Math.round(diffSecs / 60));
 
-                        await supabase.from('active_visits').delete().eq('id', visitRecord.id);
+                        rawSessions.push({
+                            employee: v.employee_name,
+                            check_in: v.check_in,
+                            check_out: nowPure,
+                            minutes: sessionMins
+                        });
+                        await supabase.from('active_visits').delete().eq('id', v.id);
                     }
 
-                    let rawSessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-                    rawSessions.push({
-                        employee: selectedEmployee,
-                        check_in: visitRecord ? visitRecord.check_in : nowPure,
-                        check_out: nowPure,
-                        minutes: sessionMinutes
-                    });
                     let sessions = unifySessions(rawSessions);
-
                     const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
-                    const remainingActive = activeVisitsList.filter(v => String(v.appointment_id) === String(id) && v.employee_name.toLowerCase() !== selectedEmployee.toLowerCase());
-
                     let earliestCheckIn = a.check_in_time;
-                    if (!earliestCheckIn && visitRecord) earliestCheckIn = visitRecord.check_in;
+                    if (!earliestCheckIn && apptVisits.length > 0) earliestCheckIn = apptVisits[0].check_in;
 
-                    let updatePayload = {
+                    const updatePayload = {
                         sessions: sessions,
                         total_labor_minutes: totalLabor,
-                        check_in_time: earliestCheckIn
+                        check_in_time: earliestCheckIn,
+                        check_out_time: nowPure,
+                        visit_duration_minutes: apptVisits.length > 0 ? Math.max(1, Math.round((Date.now() - parseTimestampToMs(apptVisits[0].check_in)) / 60000)) : 1,
+                        client_name: clientName
                     };
-
-                    // Si elegiste cerrar por completo la visita O ya no queda nadie más activo
-                    if (shouldCloseEntireVisit || remainingActive.length === 0) {
-                        // Si decides cerrar por completo y había otros activos, los barremos también de active_visits
-                        if (shouldCloseEntireVisit && otherActiveEmps.length > 0) {
-                            for (let otherV of otherActiveEmps) {
-                                const otherStartMs = parseTimestampToMs(otherV.check_in);
-                                const otherDiffSecs = Math.max(1, Math.round((Date.now() - otherStartMs) / 1000));
-                                const otherMins = Math.max(1, Math.round(otherDiffSecs / 60));
-
-                                rawSessions.push({
-                                    employee: otherV.employee_name,
-                                    check_in: otherV.check_in,
-                                    check_out: nowPure,
-                                    minutes: otherMins
-                                });
-                                await supabase.from('active_visits').delete().eq('id', otherV.id);
-                            }
-                            sessions = unifySessions(rawSessions);
-                            updatePayload.sessions = sessions;
-                            updatePayload.total_labor_minutes = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
-                        }
-
-                        updatePayload.check_out_time = nowPure;
-                        updatePayload.visit_duration_minutes = sessionMinutes;
-                        updatePayload.client_name = clientName;
-                    }
 
                     const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id);
 
