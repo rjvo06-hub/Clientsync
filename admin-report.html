@@ -197,7 +197,7 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
 
-        /* Cabecera compacta reorganizada */
+        /* Cabecera limpia y estilizada sin aspecto de botones */
         .employee-summary-header {
             display: flex;
             justify-content: space-between;
@@ -217,31 +217,34 @@
         .employee-info-right {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-size: 0.72rem;
         }
 
-        .time-inline-badge {
-            background: #f1f5f9;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-            color: #334155;
-            display: inline-flex;
-            gap: 4px;
+        /* Diseño minimalista de horarios (sin estilo de botones cuadrados) */
+        .time-clean-group {
+            display: flex;
             align-items: center;
+            gap: 4px;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .time-clean-group strong {
+            color: var(--text-main);
         }
 
         .badge {
             font-size: 0.62rem;
-            padding: 3px 6px;
+            padding: 3px 7px;
             border-radius: 4px;
             font-weight: 700;
             text-transform: uppercase;
             white-space: nowrap;
         }
 
-        /* Línea unificada para Bruto - Almuerzo = Neto */
+        /* Línea unificada para Bruto - Almuerzo = Neto Trabajado */
         .metrics-calc-line {
             display: flex;
             justify-content: space-between;
@@ -651,15 +654,16 @@
 
                     html += `
                         <div class="card-box">
-                            <!-- Línea 1: Nombre, Fecha, Inicio, Fin y Estatus -->
+                            <!-- Línea 1: Nombre, Fecha, Inicio, Fin y Estatus con diseño minimalista sin botones -->
                             <div class="employee-summary-header">
                                 <div class="employee-info-left">
                                     <strong style="font-size: 0.85rem; color: var(--text-main);">👤 ${item.employee}</strong>
                                     <div style="font-size: 0.68rem; color: var(--text-secondary);">📅 ${formatDate(item.date)}</div>
                                 </div>
                                 <div class="employee-info-right">
-                                    <span class="time-inline-badge">▶️ ${clockIn}</span>
-                                    <span class="time-inline-badge">⏹️ ${clockOut}</span>
+                                    <span class="time-clean-group">Inicio: <strong>${clockIn}</strong></span>
+                                    <span style="color: var(--border-card);">|</span>
+                                    <span class="time-clean-group">Fin: <strong>${clockOut}</strong></span>
                                     ${statusBadge}
                                 </div>
                             </div>
