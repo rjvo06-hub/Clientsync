@@ -197,6 +197,7 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
 
+        /* Cabecera compacta reorganizada */
         .employee-summary-header {
             display: flex;
             justify-content: space-between;
@@ -204,34 +205,43 @@
             border-bottom: 1px solid var(--border-subtle);
             padding-bottom: 8px;
             margin-bottom: 10px;
+            gap: 8px;
         }
 
-        .badge {
-            font-size: 0.62rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
-            margin-bottom: 8px;
-            background: #f8fafc;
-            padding: 10px;
-            border-radius: var(--radius-sm);
-            font-size: 0.74rem;
-        }
-
-        .metrics-grid div {
+        .employee-info-left {
             display: flex;
             flex-direction: column;
             gap: 1px;
         }
 
-        /* Nueva línea unificada para Bruto - Almuerzo = Neto */
+        .employee-info-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.72rem;
+        }
+
+        .time-inline-badge {
+            background: #f1f5f9;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #334155;
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .badge {
+            font-size: 0.62rem;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        /* Línea unificada para Bruto - Almuerzo = Neto */
         .metrics-calc-line {
             display: flex;
             justify-content: space-between;
@@ -626,7 +636,6 @@
                     } else {
                         clockOut = 'En curso';
                         if (log && log.clock_in_time) {
-                            // Si está en curso, podemos calcular el bruto transcurrido hasta ahora o dejarlo
                             grossMinutes = getFlatMinutesDifference(log.clock_in_time, `${nowLocalDate.getHours().toString().padStart(2, '0')}:${nowLocalDate.getMinutes().toString().padStart(2, '0')}`);
                             grossStr = formatHoursAndMinutes(grossMinutes);
                         }
@@ -642,20 +651,20 @@
 
                     html += `
                         <div class="card-box">
+                            <!-- Línea 1: Nombre, Fecha, Inicio, Fin y Estatus -->
                             <div class="employee-summary-header">
-                                <div>
+                                <div class="employee-info-left">
                                     <strong style="font-size: 0.85rem; color: var(--text-main);">👤 ${item.employee}</strong>
                                     <div style="font-size: 0.68rem; color: var(--text-secondary);">📅 ${formatDate(item.date)}</div>
                                 </div>
-                                ${statusBadge}
+                                <div class="employee-info-right">
+                                    <span class="time-inline-badge">▶️ ${clockIn}</span>
+                                    <span class="time-inline-badge">⏹️ ${clockOut}</span>
+                                    ${statusBadge}
+                                </div>
                             </div>
 
-                            <div class="metrics-grid">
-                                <div><span style="color:var(--text-secondary);">▶️ Inicio</span> <strong>${clockIn}</strong></div>
-                                <div><span style="color:var(--text-secondary);">⏹️ Fin</span> <strong>${clockOut}</strong></div>
-                            </div>
-
-                            <!-- Línea unificada: Bruto - Almuerzo = Neto Trabajado -->
+                            <!-- Línea 2: Bruto - Almuerzo = Neto Trabajado -->
                             <div class="metrics-calc-line">
                                 <div class="calc-left">
                                     <span style="color:var(--text-secondary); font-size:0.62rem; display:block;">BRUTO</span>
