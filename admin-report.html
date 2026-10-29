@@ -218,7 +218,7 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 6px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             background: #f8fafc;
             padding: 10px;
             border-radius: var(--radius-sm);
@@ -229,6 +229,32 @@
             display: flex;
             flex-direction: column;
             gap: 1px;
+        }
+
+        /* Nueva línea unificada para Bruto - Almuerzo = Neto */
+        .metrics-calc-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 0.74rem;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .metrics-calc-line .calc-left {
+            text-align: left;
+        }
+
+        .metrics-calc-line .calc-center {
+            text-align: center;
+            color: #d97706;
+        }
+
+        .metrics-calc-line .calc-right {
+            text-align: right;
         }
 
         details.accordion-visits {
@@ -536,7 +562,7 @@
 
             if (currentView === 'employees') {
                 // ==========================================
-                // VISTA 1: EMPLEADOS (Solo con fichaje/inicio de sesión)
+                // VISTA 1: EMPLEADOS
                 // ==========================================
                 const reportMap = new Map();
 
@@ -578,6 +604,7 @@
                     let clockOut = '--:--';
                     let grossMinutes = 0;
                     let pauseMinutes = 0;
+                    let grossStr = '--:--';
                     let netMinutesStr = '--:--';
 
                     if (log && log.clock_in_time) {
@@ -587,6 +614,7 @@
                     if (log && log.clock_out_time) {
                         clockOut = formatFlatTime(log.clock_out_time);
                         grossMinutes = getFlatMinutesDifference(log.clock_in_time, log.clock_out_time);
+                        grossStr = formatHoursAndMinutes(grossMinutes);
 
                         if (log.lunch_start_time && log.lunch_end_time) {
                             const rawPauseMins = getFlatMinutesDifference(log.lunch_start_time, log.lunch_end_time);
@@ -597,6 +625,11 @@
                         netMinutesStr = `<strong style="color:#16a34a;">${formatHoursAndMinutes(netMinutes)}</strong>`;
                     } else {
                         clockOut = 'En curso';
+                        if (log && log.clock_in_time) {
+                            // Si está en curso, podemos calcular el bruto transcurrido hasta ahora o dejarlo
+                            grossMinutes = getFlatMinutesDifference(log.clock_in_time, `${nowLocalDate.getHours().toString().padStart(2, '0')}:${nowLocalDate.getMinutes().toString().padStart(2, '0')}`);
+                            grossStr = formatHoursAndMinutes(grossMinutes);
+                        }
                         netMinutesStr = `<span style="color:var(--text-secondary);">--:--</span>`;
                     }
 
@@ -620,8 +653,22 @@
                             <div class="metrics-grid">
                                 <div><span style="color:var(--text-secondary);">▶️ Inicio</span> <strong>${clockIn}</strong></div>
                                 <div><span style="color:var(--text-secondary);">⏹️ Fin</span> <strong>${clockOut}</strong></div>
-                                <div><span style="color:var(--text-secondary);">☕ Almuerzo</span> <strong style="color:#d97706;">-${formatHoursAndMinutes(pauseMinutes)}</strong></div>
-                                <div><span style="color:var(--text-secondary);">⏱️ Neto Pagable</span> ${netMinutesStr}</div>
+                            </div>
+
+                            <!-- Línea unificada: Bruto - Almuerzo = Neto Trabajado -->
+                            <div class="metrics-calc-line">
+                                <div class="calc-left">
+                                    <span style="color:var(--text-secondary); font-size:0.62rem; display:block;">BRUTO</span>
+                                    <strong>${grossStr}</strong>
+                                </div>
+                                <div class="calc-center">
+                                    <span style="font-size:0.62rem; display:block;">ALMUERZO</span>
+                                    <span>- ${formatHoursAndMinutes(pauseMinutes)}</span>
+                                </div>
+                                <div class="calc-right">
+                                    <span style="color:var(--text-secondary); font-size:0.62rem; display:block;">NETO TRABAJADO</span>
+                                    ${netMinutesStr}
+                                </div>
                             </div>
                     `;
 
@@ -669,7 +716,7 @@
 
             } else {
                 // ==========================================
-                // VISTA 2: CLIENTES (Visitas y personal presente)
+                // VISTA 2: CLIENTES
                 // ==========================================
                 const filteredAppts = appts.filter(a => {
                     if (selectedEmp === 'ALL') return true;
@@ -790,13 +837,6 @@
             }
 
             reportResults.innerHTML = html;
-        }
-
-        function employeesListMatch(empLower, logs, selectedEmp) {
-            if (selectedEmp !== 'ALL') return selectedEmp;
-            const found = logs.find(l => l.employee_name.toLowerCase() === empLower);
-            if (found) return found.employee_name;
-            return empLower.charAt(0).toUpperCase() + empLower.slice(1);
         }
 
         btnSearch.addEventListener('click', loadReport);
