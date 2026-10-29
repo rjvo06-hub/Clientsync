@@ -15,7 +15,7 @@
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             background-color: #f4f6f9; 
             margin: 0; 
-            padding: 12px; 
+            padding: 16px; 
             color: #0f172a;
         }
 
@@ -25,7 +25,7 @@
             margin: 0 auto; 
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 16px;
             padding-bottom: 40px;
         }
 
@@ -34,14 +34,14 @@
             justify-content: space-between;
             align-items: center;
             background: #ffffff;
-            padding: 14px 18px;
-            border-radius: 20px;
+            padding: 16px 20px;
+            border-radius: 24px;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
         }
 
         .header h1 {
-            font-size: 1.05rem;
+            font-size: 1.15rem;
             font-weight: 800;
             margin: 0;
             color: #0f172a;
@@ -51,16 +51,16 @@
         .icon-btn {
             background: #f8fafc;
             border: 1px solid #cbd5e1;
-            padding: 6px 10px;
-            border-radius: 10px;
+            padding: 8px 12px;
+            border-radius: 12px;
             font-weight: 700;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             color: #334155;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
             transition: all 0.2s ease;
         }
         .icon-btn:hover { background: #f1f5f9; border-color: #0f172a; }
@@ -68,33 +68,35 @@
         .filter-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            padding: 18px 16px;
-            border-radius: 20px;
-            box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.04);
+            padding: 24px 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 16px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
+            min-width: 0;
             width: 100%;
         }
 
         label {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             font-weight: 700;
             color: #475569;
+            margin-bottom: 2px;
         }
 
         select, input {
             font-size: 0.85rem;
             width: 100%;
-            padding: 10px 10px;
+            padding: 10px 8px;
             border: 1px solid #cbd5e1;
-            border-radius: 10px;
+            border-radius: 12px;
             background: #f8fafc;
             outline: none;
             color: #0f172a;
@@ -108,37 +110,37 @@
             box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
 
-        .single-date-wrapper {
+        /* Grid simétrico con separadores transparentes laterales y uno central exacto */
+        .grid-with-spacers {
+            display: grid;
+            grid-template-columns: 8px minmax(0, 1fr) 12px minmax(0, 1fr) 8px;
             width: 100%;
-        }
-
-        /* DISEÑO MÓVIL OPTIMIZADO: Desde a la izquierda, separador transparente en centro, Hasta a la derecha */
-        .range-flex-row {
-            display: flex;
-            justify-content: space-between;
             align-items: center;
-            width: 100%;
         }
 
-        .range-field-box {
-            width: calc(50% - 6px); /* Garantiza que nunca rebase el contenedor y mantenga proporción simétrica */
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            min-width: 0;
+        .grid-with-spacers .col-1 { grid-column: 2; }
+        .grid-with-spacers .col-2 { grid-column: 4; }
+
+        /* Contenedor específico para fecha única simétrica */
+        .single-date-grid {
+            display: grid;
+            grid-template-columns: 8px minmax(0, 1fr) 8px;
+            width: 100%;
+            align-items: center;
         }
+        .single-date-grid .col-single { grid-column: 2; }
 
         .btn-query {
             background: #0f172a;
             color: white;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             font-weight: 700;
             width: 100%;
-            padding: 12px;
+            padding: 13px;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
-            margin-top: 2px;
+            margin-top: 4px;
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
             transition: opacity 0.2s, transform 0.1s;
         }
@@ -146,7 +148,7 @@
         .btn-query:active { transform: scale(0.98); }
 
         .advanced-range-toggle {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: #2563eb;
             font-weight: 700;
             cursor: pointer;
@@ -159,7 +161,7 @@
 
         #range-container {
             display: none;
-            padding-top: 10px;
+            padding-top: 12px;
             border-top: 1px dashed #e2e8f0;
             width: 100%;
             box-sizing: border-box;
@@ -168,23 +170,23 @@
         /* Pestañas de Navegación */
         .tabs-row {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             background: #ffffff;
-            padding: 6px;
-            border-radius: 16px;
+            padding: 8px;
+            border-radius: 20px;
             border: 1px solid #e2e8f0;
             box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
 
         .tab-btn {
             flex: 1;
-            padding: 10px 6px;
-            font-size: 0.75rem;
+            padding: 11px;
+            font-size: 0.78rem;
             font-weight: 700;
             border: 1px solid transparent;
             background: transparent;
             color: #64748b;
-            border-radius: 10px;
+            border-radius: 14px;
             cursor: pointer;
             text-align: center;
             transition: all 0.2s ease;
@@ -193,21 +195,21 @@
         .tab-btn.active {
             background: #0f172a;
             color: white;
-            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
         }
 
         .report-section {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
 
         .card-box {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            padding: 16px;
-            box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.04);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
         }
 
         .employee-summary-header {
@@ -215,9 +217,9 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #f1f5f9;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
-            gap: 6px;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+            gap: 8px;
         }
 
         .employee-info-left {
@@ -230,7 +232,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            font-size: 0.7rem;
+            font-size: 0.72rem;
             color: #64748b;
             white-space: nowrap;
             font-weight: 600;
@@ -239,16 +241,16 @@
         .employee-info-right {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.72rem;
+            gap: 8px;
+            font-size: 0.75rem;
             flex-wrap: nowrap;
         }
 
         .time-clean-group {
             display: flex;
             align-items: center;
-            gap: 2px;
-            font-size: 0.7rem;
+            gap: 3px;
+            font-size: 0.72rem;
             color: #64748b;
             font-weight: 600;
             white-space: nowrap;
@@ -259,9 +261,9 @@
         }
 
         .badge {
-            font-size: 0.62rem;
-            padding: 3px 6px;
-            border-radius: 6px;
+            font-size: 0.65rem;
+            padding: 4px 8px;
+            border-radius: 8px;
             font-weight: 700;
             text-transform: uppercase;
             white-space: nowrap;
@@ -273,10 +275,10 @@
             align-items: center;
             background: #f8fafc;
             border: 1px solid #f1f5f9;
-            padding: 10px 12px;
-            border-radius: 10px;
-            font-size: 0.74rem;
-            margin-bottom: 14px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 0.76rem;
+            margin-bottom: 16px;
             font-weight: 600;
         }
 
@@ -287,12 +289,12 @@
         details.accordion-visits {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 10px 12px;
+            border-radius: 14px;
+            padding: 12px 14px;
         }
 
         details.accordion-visits summary {
-            font-size: 0.73rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: #475569;
             text-transform: uppercase;
@@ -305,7 +307,7 @@
         details.accordion-visits summary::-webkit-details-marker { display: none; }
         details.accordion-visits summary::after {
             content: ' ▼';
-            font-size: 0.55rem;
+            font-size: 0.6rem;
             float: right;
             transition: transform 0.2s;
         }
@@ -314,18 +316,18 @@
         .visit-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            margin-top: 10px;
+            gap: 10px;
+            margin-top: 12px;
         }
 
         .visit-item {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 12px;
+            border-radius: 12px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
 
         .visit-header-row {
@@ -335,22 +337,22 @@
         }
 
         .visit-client-name {
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: #0f172a;
         }
 
         .visit-client-address {
-            font-size: 0.68rem;
+            font-size: 0.7rem;
             color: #64748b;
             margin-top: 2px;
         }
 
         .visit-time-badge {
-            font-size: 0.65rem;
+            font-size: 0.68rem;
             background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 6px;
+            padding: 3px 8px;
+            border-radius: 8px;
             font-weight: 700;
             color: #334155;
             border: 1px solid #e2e8f0;
@@ -359,18 +361,18 @@
         .team-details-list {
             display: flex;
             flex-direction: column;
-            gap: 3px;
-            margin: 4px 0;
+            gap: 4px;
+            margin: 6px 0;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            padding: 6px 8px;
-            border-radius: 8px;
+            padding: 8px 10px;
+            border-radius: 10px;
         }
 
         .team-detail-row {
             display: flex;
             justify-content: space-between;
-            font-size: 0.7rem;
+            font-size: 0.72rem;
             font-weight: 600;
             color: #1e293b;
         }
@@ -380,8 +382,8 @@
             justify-content: space-between;
             align-items: center;
             border-top: 1px solid #f1f5f9;
-            padding-top: 6px;
-            font-size: 0.72rem;
+            padding-top: 8px;
+            font-size: 0.74rem;
         }
 
         .time-pill { font-weight: 700; }
@@ -406,21 +408,23 @@
 
             <div class="form-group" id="single-date-group">
                 <label>📅 Fecha de Consulta:</label>
-                <div class="single-date-wrapper">
-                    <input type="date" id="filter-single-date">
+                <div class="single-date-grid">
+                    <div class="col-single">
+                        <input type="date" id="filter-single-date">
+                    </div>
                 </div>
             </div>
 
             <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 Consultar por rango (Semana / Mes)</button>
 
-            <!-- Contenedor con espacio central transparente y distribución simétrica Desde / Hasta -->
+            <!-- Contenedor con separadores transparentes simétricos -->
             <div id="range-container">
-                <div class="range-flex-row">
-                    <div class="range-field-box">
+                <div class="grid-with-spacers">
+                    <div class="form-group col-1">
                         <label>Desde:</label>
                         <input type="date" id="filter-start-date">
                     </div>
-                    <div class="range-field-box">
+                    <div class="form-group col-2">
                         <label>Hasta:</label>
                         <input type="date" id="filter-end-date">
                     </div>
@@ -437,7 +441,7 @@
         </div>
 
         <div id="report-results" class="report-section">
-            <div style="text-align: center; padding: 25px; color: #64748b; background: #ffffff; border-radius: 20px; font-size: 0.78rem; border: 1px solid #e2e8f0;">
+            <div style="text-align: center; padding: 30px; color: #64748b; background: #ffffff; border-radius: 24px; font-size: 0.8rem; border: 1px solid #e2e8f0;">
                 Selecciona la fecha y haz clic en "Consultar Registros".
             </div>
         </div>
@@ -456,7 +460,7 @@
         const reportResults = document.getElementById('report-results');
 
         let useRange = false;
-        let currentView = 'employees'; 
+        let currentView = 'employees'; // 'employees' o 'clients'
         let cachedData = { logs: [], appts: [], clientsMap: new Map() };
 
         window.switchView = function(view) {
@@ -580,7 +584,7 @@
             const clientsMap = cachedData.clientsMap;
 
             if (logs.length === 0 && appts.length === 0) {
-                reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 20px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No se encontraron registros en las fechas seleccionadas.</div>`;
+                reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No se encontraron registros en las fechas seleccionadas.</div>`;
                 return;
             }
 
@@ -611,7 +615,7 @@
                 });
 
                 if (reportMap.size === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 20px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No hay registros de asistencia de empleados para los criterios seleccionados.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No hay registros de asistencia de empleados para los criterios seleccionados.</div>`;
                     return;
                 }
 
@@ -695,8 +699,8 @@
 
                     if (dayAppts.length === 0) {
                         html += `
-                            <div style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">📍 Clientes Visitados por este Empleado:</div>
-                            <div style="font-size: 0.68rem; color: #64748b; font-style: italic; padding: 4px 0;">No hubo visitas registradas en esta fecha.</div>
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">📍 Clientes Visitados por este Empleado:</div>
+                            <div style="font-size: 0.7rem; color: #64748b; font-style: italic; padding: 4px 0;">No hubo visitas registradas en esta fecha.</div>
                         `;
                     } else {
                         html += `
@@ -744,7 +748,7 @@
                 });
 
                 if (filteredAppts.length === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 20px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No hay visitas a clientes registradas para los criterios seleccionados.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No hay visitas a clientes registradas para los criterios seleccionados.</div>`;
                     return;
                 }
 
