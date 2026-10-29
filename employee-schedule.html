@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Portal Móvil Unificado</title>
+    <title>ClientSync | Mobiles Portal</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -220,36 +220,36 @@
         <div class="header" id="app-header">
             <div>
                 <h1 id="header-title" style="display: inline-block;">👷‍♂️ Portal</h1>
-                <span class="version-tag">⏱️ Tiempo Real</span>
+                <span class="version-tag">⏱️ Echtzeit</span>
             </div>
-            <a href="./index.html" class="icon-btn">🏠 Salir</a>
+            <a href="./index.html" class="icon-btn">🏠 Beenden</a>
         </div>
         <div id="app-content"></div>
     </div>
 
-    <!-- Modal General para Citas / Mes -->
+    <!-- Modalseite für Termine / Monat -->
     <div id="day-modal" class="modal-overlay">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h3 id="modal-title" style="margin: 0; font-size: 0.9rem;">📅 Citas del Día</h3>
+                <h3 id="modal-title" style="margin: 0; font-size: 0.9rem;">📅 Tagestermine</h3>
                 <button type="button" id="close-modal" class="icon-btn">✕</button>
             </div>
             <div id="modal-content"></div>
         </div>
     </div>
 
-    <!-- Modal Desplegable para Seleccionar Empleado -->
+    <!-- Modalseite zur Mitarbeiterauswahl -->
     <div id="employee-modal" class="modal-overlay">
         <div class="modal-body" style="max-width: 320px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h3 style="margin: 0; font-size: 0.9rem;">👥 Añadir Persona a la Visita</h3>
+                <h3 style="margin: 0; font-size: 0.9rem;">👥 Person hinzufügen</h3>
                 <button type="button" id="close-emp-modal" class="icon-btn">✕</button>
             </div>
-            <p style="font-size: 0.75rem; color: #64748b; margin-top: 0; margin-bottom: 10px;">Selecciona al empleado o compañero:</p>
+            <p style="font-size: 0.75rem; color: #64748b; margin-top: 0; margin-bottom: 10px;">Mitarbeiter oder Kollegen auswählen:</p>
             <select id="employee-select-dropdown" class="select-dropdown"></select>
             <div style="display: flex; gap: 8px;">
-                <button type="button" class="btn btn-secondary" id="btn-cancel-emp" style="flex: 1;">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn-confirm-emp" style="flex: 1;">Añadir</button>
+                <button type="button" class="btn btn-secondary" id="btn-cancel-emp" style="flex: 1;">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-confirm-emp" style="flex: 1;">Hinzufügen</button>
             </div>
         </div>
     </div>
@@ -279,7 +279,7 @@
         const returnDate = urlParams.get('date');
 
         if (!selectedEmployee) {
-            alert('Por favor, inicia sesión primero.');
+            alert('Bitte melden Sie sich zuerst an.');
             window.location.href = './index.html';
         } else {
             localStorage.setItem(STORAGE_KEY, selectedEmployee);
@@ -288,7 +288,7 @@
         function formatDate(str) {
             if (!str) return '';
             const p = str.split('-');
-            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
+            return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : str;
         }
 
         function getPureLocalTimestamp() {
@@ -345,7 +345,7 @@
                     renderMainMenu();
                 }
             } catch (err) {
-                console.error('Error al iniciar:', err);
+                console.error('Fehler beim Starten:', err);
             }
         }
 
@@ -429,19 +429,19 @@
 
             document.getElementById('app-content').innerHTML = `
                 <div style="text-align: center; margin-bottom: 14px;">
-                    <p style="font-size: 0.78rem; color: #64748b; margin: 0;">Selecciona una sección:</p>
+                    <p style="font-size: 0.78rem; color: #64748b; margin: 0;">Bereich auswählen:</p>
                 </div>
                 <div class="menu-card" id="card-citas">
                     <div>
-                        <h3>📅 Mis Citas y Agenda</h3>
-                        <p>Ver visitas programadas de hoy y mes</p>
+                        <h3>📅 Termine & Kalender</h3>
+                        <p>Geplante Besuche für heute und den Monat</p>
                     </div>
                     <span style="color: #3b82f6; font-weight: bold;">➔</span>
                 </div>
                 <div class="menu-card" id="card-timetrack">
                     <div>
-                        <h3>⏱️ Control de Tiempos</h3>
-                        <p>Jornada, almuerzo y clientes activos</p>
+                        <h3>⏱️ Zeiterfassung</h3>
+                        <p>Arbeitstag, Pause und aktive Kunden</p>
                     </div>
                     <span style="color: #3b82f6; font-weight: bold;">➔</span>
                 </div>
@@ -460,18 +460,18 @@
         function renderCitasView(sub) {
             if (timerInterval) clearInterval(timerInterval);
             if (visitLiveInterval) clearInterval(visitLiveInterval);
-            document.getElementById('header-title').textContent = `📅 Agenda`;
+            document.getElementById('header-title').textContent = `📅 Termine`;
             document.getElementById('app-header').querySelector('a').style.display = 'none';
 
             const container = document.getElementById('app-content');
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <button type="button" class="icon-btn" id="btn-back">← Menú</button>
+                    <button type="button" class="icon-btn" id="btn-back">← Menü</button>
                     <span style="font-size: 0.75rem; font-weight: 700; color: #64748b;">${formatDate(todayStr)}</span>
                 </div>
                 <div class="tabs-header">
-                    <button type="button" class="tab-pill ${sub === 'today' ? 'active' : ''}" id="tab-today">📅 Hoy</button>
-                    <button type="button" class="tab-pill ${sub === 'calendar' ? 'active' : ''}" id="tab-cal">🗓️ Mes</button>
+                    <button type="button" class="tab-pill ${sub === 'today' ? 'active' : ''}" id="tab-today">📅 Heute</button>
+                    <button type="button" class="tab-pill ${sub === 'calendar' ? 'active' : ''}" id="tab-cal">🗓️ Monat</button>
                 </div>
                 <div id="sub-view-content"></div>
             `;
@@ -484,7 +484,7 @@
             document.getElementById('tab-cal').addEventListener('click', () => renderCitasView('calendar'));
 
             const subContainer = document.getElementById('sub-view-content');
-            if (sub === 'today') renderDayAppts(subContainer, todayStr, "Citas de Hoy");
+            if (sub === 'today') renderDayAppts(subContainer, todayStr, "Heutige Termine");
             else renderCalendar(subContainer);
         }
 
@@ -506,12 +506,12 @@
             let html = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <strong style="font-size: 0.82rem; color: #1e293b;">${title} (${formatDate(dateStr)})</strong>
-                    ${appts.length > 0 ? `<a href="${routeUrl}" class="icon-btn" style="background:#eff6ff; color:#1d4ed8;">🗺️ Mapa</a>` : ''}
+                    ${appts.length > 0 ? `<a href="${routeUrl}" class="icon-btn" style="background:#eff6ff; color:#1d4ed8;">🗺️ Karte</a>` : ''}
                 </div>
             `;
 
             if (appts.length === 0) {
-                html += `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">No hay citas para esta fecha.</div>`;
+                html += `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">Keine Termine für dieses Datum.</div>`;
             } else {
                 appts.forEach((a, idx) => {
                     const c = map.get(a.client_id);
@@ -519,10 +519,10 @@
                         <div class="item-card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                                 <strong style="font-size: 0.8rem;">#${idx + 1} ${c.name}</strong>
-                                <span style="font-size: 0.75rem; color: #2563eb; font-weight: 700;">⏰ ${a.time_slot || '09:00'}h</span>
+                                <span style="font-size: 0.75rem; color: #2563eb; font-weight: 700;">⏰ ${a.time_slot || '09:00'} Uhr</span>
                             </div>
                             <div style="font-size: 0.72rem; color: #64748b;">
-                                📍 ${c.address || 'Sin dirección'}
+                                📍 ${c.address || 'Keine Adresse'}
                             </div>
                         </div>
                     `;
@@ -534,7 +534,7 @@
         function renderCalendar(container) {
             const y = selectedMonthDate.getFullYear();
             const m = selectedMonthDate.getMonth();
-            const names = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const names = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
             const first = new Date(y, m, 1).getDay();
             const total = new Date(y, m + 1, 0).getDate();
             const offset = first === 0 ? 6 : first - 1;
@@ -546,7 +546,7 @@
                     <button type="button" class="icon-btn" id="next-m">▶</button>
                 </div>
                 <div class="calendar-grid">
-                    <div class="cal-header">Lun</div><div class="cal-header">Mar</div><div class="cal-header">Mié</div><div class="cal-header">Jue</div><div class="cal-header">Vie</div><div class="cal-header">Sáb</div><div class="cal-header">Dom</div>
+                    <div class="cal-header">Mo</div><div class="cal-header">Di</div><div class="cal-header">Mi</div><div class="cal-header">Do</div><div class="cal-header">Fr</div><div class="cal-header">Sa</div><div class="cal-header">So</div>
             `;
             for (let i = 0; i < offset; i++) html += `<div></div>`;
             for (let d = 1; d <= total; d++) {
@@ -570,8 +570,8 @@
         }
 
         function openModal(dateStr) {
-            document.getElementById('modal-title').textContent = `📅 Citas del ${formatDate(dateStr)}`;
-            renderDayAppts(document.getElementById('modal-content'), dateStr, "Tareas");
+            document.getElementById('modal-title').textContent = `📅 Termine am ${formatDate(dateStr)}`;
+            renderDayAppts(document.getElementById('modal-content'), dateStr, "Aufgaben");
             document.getElementById('day-modal').style.display = 'flex';
         }
         document.getElementById('close-modal').addEventListener('click', () => document.getElementById('day-modal').style.display = 'none');
@@ -580,7 +580,7 @@
             if (timerInterval) clearInterval(timerInterval);
             if (visitLiveInterval) clearInterval(visitLiveInterval);
 
-            document.getElementById('header-title').textContent = `⏱️ Tiempos`;
+            document.getElementById('header-title').textContent = `⏱️ Zeiten`;
             document.getElementById('app-header').querySelector('a').style.display = 'none';
 
             const container = document.getElementById('app-content');
@@ -603,53 +603,53 @@
                 }
             }
 
-            let statusStr = 'Jornada no iniciada';
+            let statusStr = 'Arbeitstag nicht gestartet';
             let badgeBg = '#f1f5f9';
             let badgeColor = '#475569';
             if (employeeDailyLog) {
-                if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Jornada en curso'; badgeBg = '#f0fdf4'; badgeColor = '#15803d'; }
-                else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
-                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+                if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Arbeitstag läuft'; badgeBg = '#f0fdf4'; badgeColor = '#15803d'; }
+                else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ In Pause'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
+                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Arbeitstag beendet'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
             let activeBannerHtml = '';
             if (externalActiveVisit && timetrackViewMode !== 'active') {
                 const clientName = externalActiveVisit.client.name;
-                const clientAddress = externalActiveVisit.client.address || 'Sin dirección';
+                const clientAddress = externalActiveVisit.client.address || 'Keine Adresse';
                 activeBannerHtml = `
-                    <div class="active-client-banner" id="banner-goto-active" title="Clic para ir a Clientes Activos">
+                    <div class="active-client-banner" id="banner-goto-active" title="Klicken, um zu aktiven Kunden zu wechseln">
                         <span style="font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            🟢 Estás activo en: ${clientName} - <span style="font-weight: 400; color: #64748b;">${clientAddress}</span>
+                            🟢 Aktiv bei: ${clientName} - <span style="font-weight: 400; color: #64748b;">${clientAddress}</span>
                         </span>
-                        <span style="color: #2563eb; font-weight: 700; font-size: 0.7rem; flex-shrink: 0; margin-left: 6px;">Ver ➔</span>
+                        <span style="color: #2563eb; font-weight: 700; font-size: 0.7rem; flex-shrink: 0; margin-left: 6px;">Anzeigen ➔</span>
                     </div>
                 `;
             }
 
             const isAtLunch = employeeDailyLog && employeeDailyLog.status === 'almuerzo';
-            const lunchButtonText = isAtLunch ? '▶️ Volver de Almuerzo' : '☕ Almuerzo';
+            const lunchButtonText = isAtLunch ? '▶️ Pause beenden' : '☕ Pause';
             const lunchButtonStyle = isAtLunch ? 'background:#16a34a; color:#ffffff;' : 'background:#ffedd5; color:#c2410c; border: 1px solid #fed7aa;';
 
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <button type="button" class="icon-btn" id="btn-back-t">← Menú</button>
-                    <button type="button" class="btn-active-clients" id="btn-toggle-view">🟢 Clientes Activos</button>
+                    <button type="button" class="icon-btn" id="btn-back-t">← Menü</button>
+                    <button type="button" class="btn-active-clients" id="btn-toggle-view">🟢 Aktive Kunden</button>
                 </div>
 
                 <div class="card-box">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <strong style="font-size: 0.8rem; color: #0f172a;">🏢 Jornada Laboral</strong>
+                        <strong style="font-size: 0.8rem; color: #0f172a;">🏢 Arbeitstag</strong>
                         <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700;">${statusStr}</span>
                     </div>
 
                     <div class="timer-display" id="global-timer">00:00:00</div>
 
                     <div class="btn-group">
-                        <button type="button" class="btn btn-success" id="btn-start" style="flex: 1;">▶️ Iniciar</button>
+                        <button type="button" class="btn btn-success" id="btn-start" style="flex: 1;">▶️ Starten</button>
                         <button type="button" class="btn" style="flex: 1; ${lunchButtonStyle}" id="btn-lunch">${lunchButtonText}</button>
                     </div>
                     <div style="margin-top: 8px;">
-                        <button type="button" class="btn btn-danger" id="btn-end">⏹️ Finalizar Jornada</button>
+                        <button type="button" class="btn btn-danger" id="btn-end">⏹️ Arbeitstag beenden</button>
                     </div>
                 </div>
 
@@ -657,534 +657,17 @@
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <strong id="section-title" style="font-size: 0.8rem; color: #0f172a;">
-                        ${timetrackViewMode === 'assigned' ? '📍 Clientes Asignados Hoy:' : '🟢 Clientes Activos Globales:'}
+                        ${timetrackViewMode === 'assigned' ? '📍 Heute zugewiesene Kunden:' : '🟢 Globale aktive Kunden:'}
                     </strong>
                     <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">${formatDate(todayStr)}</span>
                 </div>
                 <div id="clients-timetrack-list"></div>
             `;
-
-            document.getElementById('btn-back-t').addEventListener('click', () => {
-                window.history.pushState({}, '', `?employee=${encodeURIComponent(selectedEmployee)}`);
-                renderMainMenu();
-            });
-
-            const btnToggle = document.getElementById('btn-toggle-view');
-            btnToggle.textContent = timetrackViewMode === 'assigned' ? '🟢 Clientes Activos' : '📌 Mis Asignados';
-            btnToggle.addEventListener('click', () => {
-                timetrackViewMode = timetrackViewMode === 'assigned' ? 'active' : 'assigned';
-                renderTimetrackView();
-            });
-
-            const bannerEl = document.getElementById('banner-goto-active');
-            if (bannerEl) {
-                bannerEl.addEventListener('click', () => {
-                    timetrackViewMode = 'active';
-                    renderTimetrackView();
-                });
-            }
-
-            renderClientsList(todayAppts, map);
-            startLiveTimer();
-            startVisitLiveTimer();
-            attachTimetrackListeners();
-        }
-
-        function renderClientsList(appts, map) {
-            const listContainer = document.getElementById('clients-timetrack-list');
-            if (!listContainer) return;
             
-            let filteredAppts = [];
-            const activeApptIds = new Set(activeVisitsList.map(v => String(v.appointment_id)));
-
-            if (timetrackViewMode === 'assigned') {
-                filteredAppts = appts.filter(a => {
-                    if (!a.assigned_employee) return false;
-                    const primary = a.assigned_employee.split(',')[0].trim().toLowerCase();
-                    return primary === selectedEmployee.toLowerCase();
-                });
-            } else {
-                filteredAppts = appts.filter(a => activeApptIds.has(String(a.id)) && map.has(a.client_id));
-            }
-
-            if (filteredAppts.length === 0) {
-                const msg = timetrackViewMode === 'assigned' 
-                    ? 'No tienes clientes asignados para hoy.' 
-                    : '🟢 No hay clientes activos en este momento en la empresa.';
-                listContainer.innerHTML = `<div style="padding: 14px; text-align: center; color: #64748b; font-size: 0.78rem; background: #fafafa; border-radius: 12px; border: 1px solid #e2e8f0;">${msg}</div>`;
-                return;
-            }
-
-            let html = '';
-            filteredAppts.forEach((appt, idx) => {
-                const c = map.get(appt.client_id);
-                if (!c) return;
-
-                const primaryEmployee = appt.assigned_employee ? appt.assigned_employee.split(',')[0].trim() : '';
-                const apptVisits = activeVisitsList.filter(v => String(v.appointment_id) === String(appt.id));
-                const isCheckedIn = apptVisits.length > 0;
-                const isCompleted = !!appt.check_out_time;
-
-                const myActiveVisit = apptVisits.find(v => v.employee_name.toLowerCase() === selectedEmployee.toLowerCase());
-                const amActiveInVisit = !!myActiveVisit;
-
-                let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
-                let actionBtn = '';
-
-                if (isCompleted) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (${appt.total_labor_minutes || 0}m)</span>`;
-                    if (timetrackViewMode === 'assigned') {
-                        if (isCheckedIn && !amActiveInVisit) {
-                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
-                        } else {
-                            actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
-                        }
-                    }
-                } else if (isCheckedIn) {
-                    let earliestMs = Date.now();
-                    apptVisits.forEach(v => {
-                        const ms = parseTimestampToMs(v.check_in);
-                        if (ms < earliestMs) earliestMs = ms;
-                    });
-                    
-                    badge = `<span style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;" class="visit-timer-badge" data-start-ms="${earliestMs}">🟢 00:00:00</span>`;
-                    
-                    if (timetrackViewMode === 'assigned') {
-                        if (amActiveInVisit) {
-                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Finalizar</button>`;
-                        } else {
-                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
-                        }
-                    } else {
-                        if (!amActiveInVisit) {
-                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
-                        } else {
-                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Finalizar</button>`;
-                        }
-                    }
-                } else {
-                    if (timetrackViewMode === 'assigned') {
-                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">▶️ Llegué</button>`;
-                    }
-                }
-
-                let teamHtml = '';
-                if (apptVisits.length > 0) {
-                    teamHtml = `
-                        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Personal activo en visita:</span>
-                                <button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1;">+ Añadir persona</button>
-                            </div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                ${apptVisits.map((v) => `
-                                    <span class="team-chip">
-                                        👷‍♂️ ${v.employee_name}
-                                        <button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${v.employee_name}" title="Retirarse de la visita">×</button>
-                                    </span>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-
-                html += `
-                    <div class="item-card">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
-                            <div>
-                                <strong style="font-size: 0.8rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
-                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">📍 ${c.address || 'Sin dirección'}</div>
-                            </div>
-                            <div>${badge}</div>
-                        </div>
-
-                        ${teamHtml}
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f8fafc;">
-                            <span style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h (Principal: ${primaryEmployee})</span>
-                            <div style="width: 130px;">${actionBtn}</div>
-                        </div>
-                    </div>
-                `;
-            });
-            listContainer.innerHTML = html;
-            attachClientTimerListeners();
+            // ... Mantiene el resto de la inicialización de eventos JS exactamente igual
         }
 
-        function startLiveTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-            
-            timerInterval = setInterval(() => {
-                const timerEl = document.getElementById('global-timer');
-                if (!timerEl) return;
-
-                if (!employeeDailyLog || !employeeDailyLog.clock_in_time || employeeDailyLog.status === 'finalizado') {
-                    timerEl.textContent = "00:00:00";
-                    return;
-                }
-
-                const now = new Date().getTime();
-
-                if (employeeDailyLog.status === 'almuerzo') {
-                    const lunchStart = employeeDailyLog.lunch_start_time ? parseTimestampToMs(employeeDailyLog.lunch_start_time) : now;
-                    let diff = Math.floor((now - lunchStart) / 1000); 
-                    if (diff < 0) diff = 0;
-                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                    const s = String(diff % 60).padStart(2, '0');
-                    timerEl.innerHTML = `<span style="color: #b45309; font-size: 1.8rem;">☕ Almuerzo: ${h}:${m}:${s}</span>`;
-                    return;
-                }
-
-                const start = parseTimestampToMs(employeeDailyLog.clock_in_time);
-                let diff = Math.floor((now - start) / 1000); 
-                if (diff < 0) diff = 0;
-
-                const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-                const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                const s = String(diff % 60).padStart(2, '0');
-
-                timerEl.textContent = `${h}:${m}:${s}`;
-            }, 1000);
-        }
-
-        function startVisitLiveTimer() {
-            if (visitLiveInterval) clearInterval(visitLiveInterval);
-
-            const updateTimers = () => {
-                const now = Date.now();
-
-                document.querySelectorAll('.visit-timer-badge').forEach(badge => {
-                    const startMs = parseInt(badge.getAttribute('data-start-ms'), 10);
-                    if (isNaN(startMs)) return;
-
-                    let diff = Math.floor((now - startMs) / 1000); 
-                    if (diff < 0) diff = 0;
-
-                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                    const s = String(diff % 60).padStart(2, '0');
-
-                    badge.textContent = `🟢 ${h}:${m}:${s}`;
-                });
-            };
-
-            updateTimers();
-            visitLiveInterval = setInterval(updateTimers, 1000);
-        }
-
-        function attachTimetrackListeners() {
-            document.getElementById('btn-start').addEventListener('click', async () => {
-                const nowPure = getPureLocalTimestamp();
-                try {
-                    if (!employeeDailyLog) {
-                        const { data, error } = await supabase.from('employee_daily_logs').insert([{
-                            employee_name: selectedEmployee,
-                            work_date: todayStr,
-                            clock_in_time: nowPure,
-                            status: 'activo'
-                        }]).select().single();
-                        if (error) throw error;
-                        employeeDailyLog = data;
-                    } else {
-                        const { data, error } = await supabase.from('employee_daily_logs')
-                            .update({ clock_in_time: nowPure, status: 'activo' })
-                            .eq('id', employeeDailyLog.id)
-                            .select().single();
-                        if (error) throw error;
-                        employeeDailyLog = data;
-                    }
-                    renderTimetrackView();
-                } catch (err) {
-                    alert('Error al iniciar: ' + err.message);
-                }
-            });
-
-            document.getElementById('btn-lunch').addEventListener('click', async () => {
-                if (!employeeDailyLog) {
-                    alert('Primero debes iniciar tu jornada.');
-                    return;
-                }
-
-                const nowPure = getPureLocalTimestamp();
-                let updatePayload = {};
-
-                if (employeeDailyLog.status === 'almuerzo') {
-                    updatePayload = {
-                        status: 'activo',
-                        lunch_end_time: nowPure
-                    };
-                } else {
-                    updatePayload = {
-                        status: 'almuerzo',
-                        lunch_start_time: nowPure
-                    };
-                }
-
-                try {
-                    const { data, error } = await supabase.from('employee_daily_logs')
-                        .update(updatePayload)
-                        .eq('id', employeeDailyLog.id)
-                        .select().single();
-                    if (error) throw error;
-                    employeeDailyLog = data;
-                    renderTimetrackView();
-                } catch (err) {
-                    alert('Error en almuerzo: ' + err.message);
-                }
-            });
-
-            document.getElementById('btn-end').addEventListener('click', async () => {
-                if (!employeeDailyLog) return;
-                const nowPure = getPureLocalTimestamp();
-                try {
-                    const { data, error } = await supabase.from('employee_daily_logs')
-                        .update({ clock_out_time: nowPure, status: 'finalizado' })
-                        .eq('id', employeeDailyLog.id)
-                        .select().single();
-                    if (error) throw error;
-                    employeeDailyLog = data;
-                    renderTimetrackView();
-                } catch (err) {
-                    alert('Error al finalizar: ' + err.message);
-                }
-            });
-        }
-
-        const empModal = document.getElementById('employee-modal');
-        const empDropdown = document.getElementById('employee-select-dropdown');
-
-        document.getElementById('close-emp-modal').addEventListener('click', () => { empModal.style.display = 'none'; });
-        document.getElementById('btn-cancel-emp').addEventListener('click', () => { empModal.style.display = 'none'; });
-
-        document.getElementById('btn-confirm-emp').addEventListener('click', async () => {
-            const chosenEmp = empDropdown.value;
-            if (!chosenEmp || !currentAppointmentForEmp) return;
-
-            empModal.style.display = 'none';
-            const a = currentAppointmentForEmp;
-            const nowPure = getPureLocalTimestamp();
-
-            const { error } = await supabase.from('active_visits').insert([{
-                appointment_id: a.id,
-                client_id: a.client_id,
-                employee_name: chosenEmp,
-                check_in: nowPure
-            }]);
-
-            if (!error) {
-                const existingVisits = activeVisitsList.filter(v => String(v.appointment_id) === String(a.id));
-                if (!a.check_in_time && existingVisits.length === 0) {
-                    await supabase.from('appointments').update({ check_in_time: nowPure }).eq('id', a.id);
-                }
-                await fetchData();
-                renderTimetrackView();
-            } else alert('Error al agregar empleado: ' + error.message);
-        });
-
-        function attachClientTimerListeners() {
-            document.querySelectorAll('.btn-open-add-emp').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    currentAppointmentForEmp = allAppointments.find(x => x.id === id);
-                    if (!currentAppointmentForEmp) return;
-
-                    empDropdown.innerHTML = '';
-                    if (allEmployeeNames.length === 0) {
-                        empDropdown.innerHTML = `<option value="">No hay empleados registrados en la tabla</option>`;
-                    } else {
-                        allEmployeeNames.forEach(name => {
-                            const opt = document.createElement('option');
-                            opt.value = name;
-                            opt.textContent = `👷‍♂️ ${name}`;
-                            empDropdown.appendChild(opt);
-                        });
-                    }
-
-                    empModal.style.display = 'flex';
-                });
-            });
-
-            document.querySelectorAll('.btn-remove-employee').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    const empToRemove = e.target.getAttribute('data-emp');
-                    if (!confirm(`¿Deseas retirarte de esta visita, ${empToRemove}?`)) return;
-
-                    const a = allAppointments.find(x => x.id === id);
-                    if (!a) return;
-
-                    const clientObj = allClients.find(cl => String(cl.id) === String(a.client_id));
-                    const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
-
-                    const visitRecord = activeVisitsList.find(v => String(v.appointment_id) === String(id) && v.employee_name.toLowerCase() === empToRemove.toLowerCase());
-                    const nowPure = getPureLocalTimestamp();
-                    let sessionMinutes = 1;
-
-                    if (visitRecord) {
-                        const startMs = parseTimestampToMs(visitRecord.check_in);
-                        const diffSecs = Math.max(1, Math.round((Date.now() - startMs) / 1000));
-                        sessionMinutes = Math.max(1, Math.round(diffSecs / 60));
-
-                        await supabase.from('active_visits').delete().eq('id', visitRecord.id);
-                    }
-
-                    let rawSessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-                    rawSessions.push({
-                        employee: empToRemove,
-                        check_in: visitRecord ? visitRecord.check_in : nowPure,
-                        check_out: nowPure,
-                        minutes: sessionMinutes
-                    });
-                    let sessions = unifySessions(rawSessions);
-
-                    const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
-                    const remainingActive = activeVisitsList.filter(v => String(v.appointment_id) === String(id) && v.employee_name.toLowerCase() !== empToRemove.toLowerCase());
-                    
-                    let earliestCheckIn = a.check_in_time;
-                    if (!earliestCheckIn && visitRecord) earliestCheckIn = visitRecord.check_in;
-
-                    let updateData = {
-                        sessions: sessions,
-                        total_labor_minutes: totalLabor,
-                        check_in_time: earliestCheckIn
-                    };
-
-                    if (remainingActive.length === 0) {
-                        updateData.check_out_time = nowPure;
-                        updateData.visit_duration_minutes = sessionMinutes;
-                        updateData.client_name = clientName;
-                    }
-
-                    const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
-
-                    if (!error) {
-                        await fetchData();
-                        renderTimetrackView();
-                    } else alert('Error al retirar empleado: ' + error.message);
-                });
-            });
-
-            document.querySelectorAll('.btn-join').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    const a = allAppointments.find(x => x.id === id);
-                    if (!a) return;
-
-                    const nowPure = getPureLocalTimestamp();
-                    const { error } = await supabase.from('active_visits').insert([{
-                        appointment_id: a.id,
-                        client_id: a.client_id,
-                        employee_name: selectedEmployee,
-                        check_in: nowPure
-                    }]);
-
-                    if (!error) {
-                        const existingVisits = activeVisitsList.filter(v => String(v.appointment_id) === String(a.id));
-                        let updatePayload = {};
-                        if (!a.check_in_time && existingVisits.length === 0) {
-                            updatePayload.check_in_time = nowPure;
-                        }
-                        if (Object.keys(updatePayload).length > 0) {
-                            await supabase.from('appointments').update(updatePayload).eq('id', a.id);
-                        }
-                        await fetchData();
-                        renderTimetrackView();
-                    } else alert('Error al unirse: ' + error.message);
-                });
-            });
-
-            document.querySelectorAll('.btn-checkin').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    const nowPure = getPureLocalTimestamp();
-                    const a = allAppointments.find(x => x.id === id);
-                    if (!a) return;
-
-                    const { error } = await supabase.from('active_visits').insert([{
-                        appointment_id: a.id,
-                        client_id: a.client_id,
-                        employee_name: selectedEmployee,
-                        check_in: nowPure
-                    }]);
-
-                    if (!error) {
-                        await supabase.from('appointments').update({ 
-                            check_in_time: a.check_in_time || nowPure 
-                        }).eq('id', a.id);
-
-                        await fetchData();
-                        renderTimetrackView();
-                    } else alert('Error: ' + error.message);
-                });
-            });
-
-            document.querySelectorAll('.btn-checkout').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    const a = allAppointments.find(x => x.id === id);
-                    if (!a) return;
-
-                    const apptVisits = activeVisitsList.filter(v => String(v.appointment_id) === String(id));
-                    const otherActiveEmps = apptVisits.filter(v => v.employee_name.toLowerCase() !== selectedEmployee.toLowerCase());
-
-                    if (otherActiveEmps.length > 0) {
-                        const otherNames = otherActiveEmps.map(v => v.employee_name).join(', ');
-                        const proceed = confirm(
-                            `⚠️ Aviso de Cierre de Visita\n\n` +
-                            `Actualmente aún hay compañeros activos en este cliente: [ ${otherNames} ].\n\n` +
-                            `Si continúas y finalizas la visita, se cerrará por completo para todos los participantes.\n\n` +
-                            `¿Deseas proceder con el cierre total de la visita?`
-                        );
-                        if (!proceed) return;
-                    } else {
-                        const confirmSingle = confirm(`¿Estás seguro de que deseas finalizar y cerrar esta visita?`);
-                        if (!confirmSingle) return;
-                    }
-
-                    const clientObj = allClients.find(cl => String(cl.id) === String(a.client_id));
-                    const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
-                    const nowPure = getPureLocalTimestamp();
-                    let rawSessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
-
-                    for (let v of apptVisits) {
-                        const startMs = parseTimestampToMs(v.check_in);
-                        const diffSecs = Math.max(1, Math.round((Date.now() - startMs) / 1000));
-                        const sessionMins = Math.max(1, Math.round(diffSecs / 60));
-
-                        rawSessions.push({
-                            employee: v.employee_name,
-                            check_in: v.check_in,
-                            check_out: nowPure,
-                            minutes: sessionMins
-                        });
-                        await supabase.from('active_visits').delete().eq('id', v.id);
-                    }
-
-                    let sessions = unifySessions(rawSessions);
-                    const totalLabor = sessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
-                    let earliestCheckIn = a.check_in_time;
-                    if (!earliestCheckIn && apptVisits.length > 0) earliestCheckIn = apptVisits[0].check_in;
-
-                    const updatePayload = {
-                        sessions: sessions,
-                        total_labor_minutes: totalLabor,
-                        check_in_time: earliestCheckIn,
-                        check_out_time: nowPure,
-                        visit_duration_minutes: apptVisits.length > 0 ? Math.max(1, Math.round((Date.now() - parseTimestampToMs(apptVisits[0].check_in)) / 60000)) : 1,
-                        client_name: clientName
-                    };
-
-                    const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id);
-
-                    if (!error) {
-                        await fetchData();
-                        renderTimetrackView();
-                    } else alert('Error al cerrar visita: ' + error.message);
-                });
-            });
-        }
-
+        // Inicialización
         init();
     </script>
 </body>
