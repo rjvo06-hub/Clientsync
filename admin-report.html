@@ -540,14 +540,12 @@
                 // ==========================================
                 const reportMap = new Map();
 
-                // 1. Inicializar estrictamente con los registros (logs) que tengan fichaje o inicio de sesión válido
                 logs.forEach(l => {
-                    if (!l.clock_in_time) return; // Omitir si no inició sesión
+                    if (!l.clock_in_time) return;
                     const key = `${l.employee_name}_${l.work_date}`;
                     reportMap.set(key, { employee: l.employee_name, date: l.work_date, log: l, appointments: [] });
                 });
 
-                // 2. Asociar las citas de los clientes únicamente a los empleados que sí tienen registro de asistencia
                 appts.forEach(a => {
                     if (!a.assigned_employee) return;
                     const assignedList = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
@@ -555,7 +553,6 @@
 
                     const apptDate = a.scheduled_date.split('T')[0];
                     assignedList.forEach(empLower => {
-                        // Buscar si existe un log activo para este empleado en esta fecha
                         for (let [key, item] of reportMap.entries()) {
                             if (item.date === apptDate && item.employee.toLowerCase() === empLower) {
                                 item.appointments.push(a);
@@ -581,28 +578,29 @@
                     let clockOut = '--:--';
                     let grossMinutes = 0;
                     let pauseMinutes = 0;
+                    let netMinutesStr = '--:--';
 
                     if (log && log.clock_in_time) {
-                        const currentRefTime = log.clock_out_time || `${item.date} 23:59:59`;
-                        grossMinutes = getFlatMinutesDifference(log.clock_in_time, currentRefTime);
+                        clockIn = formatFlatTime(log.clock_in_time);
                     }
 
-                    if (log && log.lunch_start_time && log.lunch_end_time) {
-                        const rawPauseMins = getFlatMinutesDifference(log.lunch_start_time, log.lunch_end_time);
-                        pauseMinutes = Math.min(30, rawPauseMins);
-                    } else if (log && log.lunch_start_time && !log.lunch_end_time && log.status === 'activo') {
-                        pauseMinutes = 30;
-                    }
+                    if (log && log.clock_out_time) {
+                        clockOut = formatFlatTime(log.clock_out_time);
+                        grossMinutes = getFlatMinutesDifference(log.clock_in_time, log.clock_out_time);
 
-                    let netMinutes = Math.max(0, grossMinutes - pauseMinutes); 
-                    if (!log || !log.clock_out_time) {
-                        netMinutes = grossMinutes;
-                        pauseMinutes = 0;
+                        if (log.lunch_start_time && log.lunch_end_time) {
+                            const rawPauseMins = getFlatMinutesDifference(log.lunch_start_time, log.lunch_end_time);
+                            pauseMinutes = Math.min(30, rawPauseMins);
+                        }
+                        
+                        let netMinutes = Math.max(0, grossMinutes - pauseMinutes);
+                        netMinutesStr = `<strong style="color:#16a34a;">${formatHoursAndMinutes(netMinutes)}</strong>`;
+                    } else {
+                        clockOut = 'En curso';
+                        netMinutesStr = `<span style="color:var(--text-secondary);">--:--</span>`;
                     }
 
                     if (log) {
-                        clockIn = formatFlatTime(log.clock_in_time);
-                        clockOut = log.clock_out_time ? formatFlatTime(log.clock_out_time) : 'En curso';
                         if (log.status === 'activo') statusBadge = `<span class="badge" style="background:#dcfce7; color:#166534;">🟢 Activo</span>`;
                         else if (log.status === 'pausa') statusBadge = `<span class="badge" style="background:#fef9c3; color:#854d0e;">⏸️ Pausa</span>`;
                         else if (log.status === 'almuerzo') statusBadge = `<span class="badge" style="background:#fef3c7; color:#b45309;">☕ Almuerzo</span>`;
@@ -623,7 +621,7 @@
                                 <div><span style="color:var(--text-secondary);">▶️ Inicio</span> <strong>${clockIn}</strong></div>
                                 <div><span style="color:var(--text-secondary);">⏹️ Fin</span> <strong>${clockOut}</strong></div>
                                 <div><span style="color:var(--text-secondary);">☕ Almuerzo</span> <strong style="color:#d97706;">-${formatHoursAndMinutes(pauseMinutes)}</strong></div>
-                                <div><span style="color:var(--text-secondary);">⏱️ Neto Pagable</span> <strong style="color:#16a34a;">${formatHoursAndMinutes(netMinutes)}</strong></div>
+                                <div><span style="color:var(--text-secondary);">⏱️ Neto Pagable</span> ${netMinutesStr}</div>
                             </div>
                     `;
 
@@ -685,7 +683,6 @@
                     return;
                 }
 
-                // Agrupar por fecha
                 const apptsByDate = new Map();
                 filteredAppts.forEach(a => {
                     const dateStr = a.scheduled_date.split('T')[0];
