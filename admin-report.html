@@ -4,141 +4,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClientSync | Auditoría de Jornadas</title>
+    <link rel="stylesheet" href="./css/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-body: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-secondary: #64748b;
-            --border-subtle: #f1f5f9;
-            --border-card: #e2e8f0;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --radius-lg: 14px;
-            --radius-sm: 8px;
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f4f6f9; 
+            margin: 0; 
+            padding: 16px; 
+            color: #0f172a;
         }
 
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            margin: 0;
-            padding: 8px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .container {
+        .container { 
             width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            box-sizing: border-box;
-            padding-bottom: 30px;
+            max-width: 420px; 
+            margin: 0 auto; 
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-bottom: 40px;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--card-bg);
-            padding: 12px 16px;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--border-card);
-            margin-bottom: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            background: #ffffff;
+            padding: 16px 20px;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
         }
 
         .header h1 {
-            font-size: 0.95rem;
-            font-weight: 700;
+            font-size: 1.15rem;
+            font-weight: 800;
             margin: 0;
-            color: var(--text-main);
+            color: #0f172a;
+            letter-spacing: -0.03em;
         }
 
         .icon-btn {
             background: #f8fafc;
-            border: 1px solid var(--border-card);
-            padding: 6px 10px;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #334155;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            transition: all 0.2s ease;
         }
-        .icon-btn:hover { background: #f1f5f9; color: var(--text-main); }
+        .icon-btn:hover { background: #f1f5f9; border-color: #0f172a; }
 
         .filter-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-card);
-            padding: 14px;
-            border-radius: var(--radius-lg);
-            margin-bottom: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 24px 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
             display: flex;
             flex-direction: column;
-            gap: 10px;
-        }
-
-        .filter-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            gap: 16px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 3px;
-        }
-
-        .form-group.full {
-            grid-column: span 2;
+            gap: 6px;
         }
 
         label {
-            font-size: 0.68rem;
+            font-size: 0.78rem;
             font-weight: 700;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            color: #475569;
+            margin-bottom: 2px;
         }
 
         select, input {
-            font-size: 13px;
-            padding: 8px 10px;
-            border: 1px solid var(--border-card);
-            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
             background: #f8fafc;
             outline: none;
-            color: var(--text-main);
+            color: #0f172a;
             font-weight: 600;
-            width: 100%;
-            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+        select:focus, input:focus {
+            border-color: #0f172a;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
 
         .btn-query {
-            background: var(--primary);
+            background: #0f172a;
             color: white;
-            font-size: 0.8rem;
+            font-size: 0.88rem;
             font-weight: 700;
-            padding: 9px;
-            border: none;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
             width: 100%;
-            transition: background 0.15s;
+            padding: 13px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 4px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+            transition: opacity 0.2s, transform 0.1s;
         }
-        .btn-query:hover { background: var(--primary-hover); }
+        .btn-query:hover { opacity: 0.95; }
+        .btn-query:active { transform: scale(0.98); }
 
         .advanced-range-toggle {
-            font-size: 0.72rem;
-            color: var(--primary);
+            font-size: 0.78rem;
+            color: #2563eb;
             font-weight: 700;
             cursor: pointer;
             background: none;
@@ -148,86 +136,93 @@
             width: fit-content;
         }
 
+        /* CORRECCIÓN DEFINITIVA DE RANGOS: Grid estricto a 2 columnas sin solapamientos */
         #range-container {
             display: none;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            padding-top: 6px;
-            border-top: 1px dashed var(--border-card);
+            gap: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #e2e8f0;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* Pestañas de Navegación */
         .tabs-row {
             display: flex;
-            gap: 6px;
-            margin-bottom: 10px;
+            gap: 8px;
+            background: #ffffff;
+            padding: 8px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
 
         .tab-btn {
             flex: 1;
-            padding: 8px;
-            font-size: 0.75rem;
+            padding: 11px;
+            font-size: 0.78rem;
             font-weight: 700;
-            border: 1px solid var(--border-card);
-            background: var(--card-bg);
-            color: var(--text-secondary);
-            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            background: transparent;
+            color: #64748b;
+            border-radius: 14px;
             cursor: pointer;
             text-align: center;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
 
         .tab-btn.active {
-            background: var(--primary);
+            background: #0f172a;
             color: white;
-            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
         }
 
         .report-section {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 14px;
         }
 
         .card-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-card);
-            border-radius: var(--radius-lg);
-            padding: 14px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
         }
 
         .employee-summary-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-subtle);
-            padding-bottom: 8px;
-            margin-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
             gap: 8px;
         }
 
         .employee-info-left {
             display: flex;
             flex-direction: column;
-            gap: 1px;
+            gap: 2px;
         }
 
-        /* CORRECCIÓN: Forzar que el icono y la fecha vayan en línea horizontal estricta */
         .date-line-inline {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            font-size: 0.68rem;
-            color: var(--text-secondary);
+            font-size: 0.72rem;
+            color: #64748b;
             white-space: nowrap;
+            font-weight: 600;
         }
 
         .employee-info-right {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             flex-wrap: nowrap;
         }
 
@@ -235,20 +230,20 @@
             display: flex;
             align-items: center;
             gap: 3px;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
+            font-size: 0.72rem;
+            color: #64748b;
             font-weight: 600;
             white-space: nowrap;
         }
 
         .time-clean-group strong {
-            color: var(--text-main);
+            color: #0f172a;
         }
 
         .badge {
-            font-size: 0.62rem;
-            padding: 3px 6px;
-            border-radius: 4px;
+            font-size: 0.65rem;
+            padding: 4px 8px;
+            border-radius: 8px;
             font-weight: 700;
             text-transform: uppercase;
             white-space: nowrap;
@@ -258,74 +253,61 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #f1f5f9;
-            padding: 8px 10px;
-            border-radius: var(--radius-sm);
-            font-size: 0.74rem;
-            margin-bottom: 12px;
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 0.76rem;
+            margin-bottom: 16px;
             font-weight: 600;
         }
 
-        .metrics-calc-line .calc-left {
-            text-align: left;
-        }
-
-        .metrics-calc-line .calc-center {
-            text-align: center;
-            color: #d97706;
-        }
-
-        .metrics-calc-line .calc-right {
-            text-align: right;
-        }
+        .metrics-calc-line .calc-left { text-align: left; }
+        .metrics-calc-line .calc-center { text-align: center; color: #d97706; }
+        .metrics-calc-line .calc-right { text-align: right; }
 
         details.accordion-visits {
             background: #f8fafc;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px 14px;
         }
 
         details.accordion-visits summary {
-            font-size: 0.74rem;
+            font-size: 0.75rem;
             font-weight: 700;
-            color: var(--text-secondary);
+            color: #475569;
             text-transform: uppercase;
             cursor: pointer;
             outline: none;
             list-style: none;
+            letter-spacing: 0.03em;
         }
 
-        details.accordion-visits summary::-webkit-details-marker {
-            display: none;
-        }
-
+        details.accordion-visits summary::-webkit-details-marker { display: none; }
         details.accordion-visits summary::after {
             content: ' ▼';
             font-size: 0.6rem;
             float: right;
             transition: transform 0.2s;
         }
-
-        details.accordion-visits[open] summary::after {
-            transform: rotate(180deg);
-        }
+        details.accordion-visits[open] summary::after { transform: rotate(180deg); }
 
         .visit-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            margin-top: 8px;
+            gap: 10px;
+            margin-top: 12px;
         }
 
         .visit-item {
             background: #ffffff;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
 
         .visit-header-row {
@@ -335,40 +317,42 @@
         }
 
         .visit-client-name {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            color: var(--text-main);
+            color: #0f172a;
         }
 
         .visit-client-address {
-            font-size: 0.65rem;
-            color: var(--text-secondary);
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-top: 2px;
         }
 
         .visit-time-badge {
-            font-size: 0.65rem;
-            background: #e2e8f0;
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-weight: 600;
+            font-size: 0.68rem;
+            background: #f1f5f9;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-weight: 700;
             color: #334155;
+            border: 1px solid #e2e8f0;
         }
 
         .team-details-list {
             display: flex;
             flex-direction: column;
-            gap: 2px;
-            margin: 4px 0;
-            background: #ffffff;
-            border: 1px solid var(--border-card);
-            padding: 6px 8px;
-            border-radius: 6px;
+            gap: 4px;
+            margin: 6px 0;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            border-radius: 10px;
         }
 
         .team-detail-row {
             display: flex;
             justify-content: space-between;
-            font-size: 0.7rem;
+            font-size: 0.72rem;
             font-weight: 600;
             color: #1e293b;
         }
@@ -377,14 +361,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top: 1px solid var(--border-card);
-            padding-top: 6px;
-            font-size: 0.72rem;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 8px;
+            font-size: 0.74rem;
         }
 
-        .time-pill {
-            font-weight: 700;
-        }
+        .time-pill { font-weight: 700; }
     </style>
 </head>
 <body>
@@ -397,21 +379,21 @@
 
         <!-- Filtros -->
         <div class="filter-card">
-            <div class="filter-row">
-                <div class="form-group full">
-                    <label>Empleado (Filtro Rápido):</label>
-                    <select id="filter-employee">
-                        <option value="ALL">Todos los empleados</option>
-                    </select>
-                </div>
-                <div class="form-group full" id="single-date-group">
-                    <label>📅 Fecha de Consulta:</label>
-                    <input type="date" id="filter-single-date">
-                </div>
+            <div class="form-group">
+                <label>Empleado (Filtro Rápido):</label>
+                <select id="filter-employee">
+                    <option value="ALL">Todos los empleados</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="single-date-group">
+                <label>📅 Fecha de Consulta:</label>
+                <input type="date" id="filter-single-date">
             </div>
 
             <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 Consultar por rango (Semana / Mes)</button>
 
+            <!-- Contenedor con grid seguro de 2 columnas -->
             <div id="range-container">
                 <div class="form-group">
                     <label>Desde:</label>
@@ -433,7 +415,7 @@
         </div>
 
         <div id="report-results" class="report-section">
-            <div style="text-align: center; padding: 30px; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.8rem;">
+            <div style="text-align: center; padding: 30px; color: #64748b; background: #ffffff; border-radius: 24px; font-size: 0.8rem; border: 1px solid #e2e8f0;">
                 Selecciona la fecha y haz clic en "Consultar Registros".
             </div>
         </div>
@@ -538,7 +520,7 @@
                 endDate = endDateInput.value;
             }
 
-            reportResults.innerHTML = `<div style="text-align: center; padding: 25px; color: var(--text-secondary); font-size: 0.8rem;">Cargando registros...</div>`;
+            reportResults.innerHTML = `<div style="text-align: center; padding: 25px; color: #64748b; font-size: 0.8rem;">Cargando registros...</div>`;
 
             try {
                 let logsQuery = supabase.from('employee_daily_logs').select('*').gte('work_date', startDate).lte('work_date', endDate).order('work_date', { ascending: false });
@@ -576,7 +558,7 @@
             const clientsMap = cachedData.clientsMap;
 
             if (logs.length === 0 && appts.length === 0) {
-                reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.78rem;">No se encontraron registros en las fechas seleccionadas.</div>`;
+                reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No se encontraron registros en las fechas seleccionadas.</div>`;
                 return;
             }
 
@@ -610,7 +592,7 @@
                 });
 
                 if (reportMap.size === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.78rem;">No hay registros de asistencia de empleados para los criterios seleccionados.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No hay registros de asistencia de empleados para los criterios seleccionados.</div>`;
                     return;
                 }
 
@@ -651,7 +633,7 @@
                             grossMinutes = getFlatMinutesDifference(log.clock_in_time, `${nowLocalDate.getHours().toString().padStart(2, '0')}:${nowLocalDate.getMinutes().toString().padStart(2, '0')}`);
                             grossStr = formatHoursAndMinutes(grossMinutes);
                         }
-                        netMinutesStr = `<span style="color:var(--text-secondary);">--:--</span>`;
+                        netMinutesStr = `<span style="color:#64748b;">--:--</span>`;
                     }
 
                     if (log) {
@@ -663,24 +645,22 @@
 
                     html += `
                         <div class="card-box">
-                            <!-- Línea 1: Nombre, Fecha horizontal, Inicio, Fin y Estatus corregidos -->
                             <div class="employee-summary-header">
                                 <div class="employee-info-left">
-                                    <strong style="font-size: 0.85rem; color: var(--text-main);">👤 ${item.employee}</strong>
+                                    <strong style="font-size: 0.85rem; color: #0f172a;">👤 ${item.employee}</strong>
                                     <div class="date-line-inline">📅 ${formatDate(item.date)}</div>
                                 </div>
                                 <div class="employee-info-right">
                                     <span class="time-clean-group">Inicio: <strong>${clockIn}</strong></span>
-                                    <span style="color: var(--border-card);">|</span>
+                                    <span style="color: #e2e8f0;">|</span>
                                     <span class="time-clean-group">Fin: <strong>${clockOut}</strong></span>
                                     ${statusBadge}
                                 </div>
                             </div>
 
-                            <!-- Línea 2: Bruto - Almuerzo = Neto Trabajado -->
                             <div class="metrics-calc-line">
                                 <div class="calc-left">
-                                    <span style="color:var(--text-secondary); font-size:0.62rem; display:block;">BRUTO</span>
+                                    <span style="color:#64748b; font-size:0.62rem; display:block;">BRUTO</span>
                                     <strong>${grossStr}</strong>
                                 </div>
                                 <div class="calc-center">
@@ -688,7 +668,7 @@
                                     <span>- ${formatHoursAndMinutes(pauseMinutes)}</span>
                                 </div>
                                 <div class="calc-right">
-                                    <span style="color:var(--text-secondary); font-size:0.62rem; display:block;">NETO TRABAJADO</span>
+                                    <span style="color:#64748b; font-size:0.62rem; display:block;">NETO TRABAJADO</span>
                                     ${netMinutesStr}
                                 </div>
                             </div>
@@ -696,8 +676,8 @@
 
                     if (dayAppts.length === 0) {
                         html += `
-                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px;">📍 Clientes Visitados por este Empleado:</div>
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); font-style: italic; padding: 4px 0;">No hubo visitas registradas en esta fecha.</div>
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">📍 Clientes Visitados por este Empleado:</div>
+                            <div style="font-size: 0.7rem; color: #64748b; font-style: italic; padding: 4px 0;">No hubo visitas registradas en esta fecha.</div>
                         `;
                     } else {
                         html += `
@@ -722,10 +702,10 @@
                                     </div>
                                     <div class="visit-footer-row">
                                         <div>
-                                            <span style="color:var(--text-secondary);">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
+                                            <span style="color:#64748b;">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
                                         </div>
                                         <div style="text-align: right;">
-                                            <div>Duración: <span class="time-pill" style="color:var(--primary);">${formatHoursAndMinutes(realDurationMins)}</span></div>
+                                            <div>Duración: <span class="time-pill" style="color:#2563eb;">${formatHoursAndMinutes(realDurationMins)}</span></div>
                                         </div>
                                     </div>
                                 </div>
@@ -748,7 +728,7 @@
                 });
 
                 if (filteredAppts.length === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); background: white; border-radius: var(--radius-lg); font-size: 0.78rem;">No hay visitas a clientes registradas para los criterios seleccionados.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No hay visitas a clientes registradas para los criterios seleccionados.</div>`;
                     return;
                 }
 
@@ -768,8 +748,8 @@
                         <div class="card-box">
                             <div class="employee-summary-header">
                                 <div>
-                                    <strong style="font-size: 0.85rem; color: var(--text-main);">📅 Fecha: ${formatDate(dateStr)}</strong>
-                                    <div style="font-size: 0.68rem; color: var(--text-secondary);">${dayVisits.length} visita(s) registrada(s)</div>
+                                    <strong style="font-size: 0.85rem; color: #0f172a;">📅 Fecha: ${formatDate(dateStr)}</strong>
+                                    <div style="font-size: 0.68rem; color: #64748b;">${dayVisits.length} visita(s) registrada(s)</div>
                                 </div>
                             </div>
                             <div class="visit-list">
@@ -807,7 +787,7 @@
                                 teamDetailsHtml += `
                                     <div class="team-detail-row">
                                         <span>👤 ${empName}</span>
-                                        <span style="color: var(--primary);">${formatHoursAndMinutes(sMins)}</span>
+                                        <span style="color: #2563eb;">${formatHoursAndMinutes(sMins)}</span>
                                     </div>
                                 `;
                             });
@@ -818,7 +798,7 @@
                                 teamDetailsHtml += `
                                     <div class="team-detail-row">
                                         <span>👤 ${emp}</span>
-                                        <span style="color: var(--primary);">${formatHoursAndMinutes(fallbackMins)}</span>
+                                        <span style="color: #2563eb;">${formatHoursAndMinutes(fallbackMins)}</span>
                                     </div>
                                 `;
                             });
@@ -837,16 +817,16 @@
                                 </div>
 
                                 <div>
-                                    <div style="font-size:0.65rem; color:var(--text-secondary); font-weight:700; margin-top: 4px;">Personal presente y tiempo individual:</div>
+                                    <div style="font-size:0.65rem; color:#64748b; font-weight:700; margin-top: 4px;">Personal presente y tiempo individual:</div>
                                     <div class="team-details-list">${teamDetailsHtml}</div>
                                 </div>
 
                                 <div class="visit-footer-row">
                                     <div>
-                                        <span style="color:var(--text-secondary);">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
+                                        <span style="color:#64748b;">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div>Duración de visita: <span class="time-pill" style="color:var(--primary);">${formatHoursAndMinutes(realDurationMins)}</span></div>
+                                        <div>Duración de visita: <span class="time-pill" style="color:#2563eb;">${formatHoursAndMinutes(realDurationMins)}</span></div>
                                         <div>Labor total (${teamCount} emp): <span class="time-pill" style="color:#16a34a;">${formatHoursAndMinutes(totalLaborMins)}</span></div>
                                     </div>
                                 </div>
