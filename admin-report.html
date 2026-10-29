@@ -80,7 +80,6 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            min-width: 0;
             width: 100%;
         }
 
@@ -110,25 +109,27 @@
             box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
 
-        /* Grid simétrico con separadores transparentes laterales y uno central exacto */
-        .grid-with-spacers {
-            display: grid;
-            grid-template-columns: 8px minmax(0, 1fr) 12px minmax(0, 1fr) 8px;
+        /* Contenedor de Fecha Única con márgenes laterales idénticos */
+        .single-date-wrapper {
             width: 100%;
-            align-items: center;
+            padding: 0 2px;
         }
 
-        .grid-with-spacers .col-1 { grid-column: 2; }
-        .grid-with-spacers .col-2 { grid-column: 4; }
-
-        /* Contenedor específico para fecha única simétrica */
-        .single-date-grid {
-            display: grid;
-            grid-template-columns: 8px minmax(0, 1fr) 8px;
-            width: 100%;
+        /* Estructura de Rango con separación central transparente exacta y alineación Izquierda/Derecha */
+        .range-flex-row {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
+            width: 100%;
+            padding: 0 2px;
         }
-        .single-date-grid .col-single { grid-column: 2; }
+
+        .range-field-box {
+            width: 48%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
 
         .btn-query {
             background: #0f172a;
@@ -408,23 +409,21 @@
 
             <div class="form-group" id="single-date-group">
                 <label>📅 Fecha de Consulta:</label>
-                <div class="single-date-grid">
-                    <div class="col-single">
-                        <input type="date" id="filter-single-date">
-                    </div>
+                <div class="single-date-wrapper">
+                    <input type="date" id="filter-single-date">
                 </div>
             </div>
 
             <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 Consultar por rango (Semana / Mes)</button>
 
-            <!-- Contenedor con separadores transparentes simétricos -->
+            <!-- Contenedor con separación central transparente y justificado simétrico -->
             <div id="range-container">
-                <div class="grid-with-spacers">
-                    <div class="form-group col-1">
+                <div class="range-flex-row">
+                    <div class="range-field-box">
                         <label>Desde:</label>
                         <input type="date" id="filter-start-date">
                     </div>
-                    <div class="form-group col-2">
+                    <div class="range-field-box">
                         <label>Hasta:</label>
                         <input type="date" id="filter-end-date">
                     </div>
@@ -460,7 +459,7 @@
         const reportResults = document.getElementById('report-results');
 
         let useRange = false;
-        let currentView = 'employees'; // 'employees' o 'clients'
+        let currentView = 'employees'; 
         let cachedData = { logs: [], appts: [], clientsMap: new Map() };
 
         window.switchView = function(view) {
