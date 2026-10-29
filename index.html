@@ -7,142 +7,136 @@
     <link rel="stylesheet" href="./css/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-body: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-secondary: #64748b;
-            --border-subtle: #e2e8f0;
-            --radius-xl: 16px;
-            --radius-md: 10px;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            margin: 0;
-            padding: 12px;
-            -webkit-font-smoothing: antialiased;
+        body { 
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f4f6f9; 
+            margin: 0; 
+            padding: 16px; 
+            color: #0f172a;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 90vh;
         }
 
-        .container {
+        .container { 
             width: 100%;
-            max-width: 420px;
-            margin: 0 auto;
+            max-width: 420px; 
+            margin: 0 auto; 
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            box-sizing: border-box;
+            gap: 16px;
         }
 
-        /* Header Minimalista */
         .app-header {
             text-align: center;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .app-header h1 {
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 800;
-            margin: 0 0 4px 0;
-            letter-spacing: -0.3px;
+            letter-spacing: -0.03em;
+            margin: 0 0 6px 0;
             color: #0f172a;
         }
 
         .badge-brand {
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            background: #f1f5f9;
+            font-size: 0.68rem;
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #dcfce7;
             padding: 3px 10px;
-            border-radius: 20px;
-            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            display: inline-block;
         }
 
-        /* Tarjeta de Login */
         .login-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-subtle);
-            padding: 24px;
-            border-radius: var(--radius-xl);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 24px 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
         }
 
         .form-group {
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
 
         label {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 700;
             color: #475569;
             margin-bottom: 6px;
         }
 
         select, input {
-            font-size: 15px;
+            font-size: 0.9rem;
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #cbd5e0;
-            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
             background: #f8fafc;
             outline: none;
-            color: #1e293b;
+            color: #0f172a;
             font-weight: 600;
-            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+        select:focus, input:focus {
+            border-color: #0f172a;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
 
         .btn-login {
-            background: #2563eb;
+            background: #0f172a;
             color: white;
-            font-size: 0.9rem;
-            font-weight: bold;
+            font-size: 0.88rem;
+            font-weight: 700;
             width: 100%;
-            padding: 11px;
+            padding: 13px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             margin-top: 6px;
-            transition: background 0.2s;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+            transition: opacity 0.2s, transform 0.1s;
         }
-        .btn-login:hover {
-            background: #1d4ed8;
-        }
+        .btn-login:hover { opacity: 0.95; }
+        .btn-login:active { transform: scale(0.98); }
 
         /* Menú Principal (Oculto hasta hacer login) */
         #main-menu-container {
             display: none;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
 
-        /* Sección de navegación */
         .nav-section-title {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 800;
             color: #64748b;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 4px 0 2px 4px;
+            letter-spacing: 0.05em;
+            margin: 6px 0 4px 4px;
         }
 
         .nav-buttons {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            background: var(--card-bg);
-            padding: 12px;
-            border-radius: var(--radius-xl);
-            border: 1px solid var(--border-subtle);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            gap: 10px;
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05);
         }
 
         .nav-buttons a {
@@ -150,12 +144,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            padding: 14px 8px;
-            border-radius: var(--radius-md);
+            gap: 6px;
+            padding: 16px 10px;
+            border-radius: 14px;
             font-weight: 700;
             text-decoration: none;
-            color: var(--text-secondary);
+            color: #334155;
             font-size: 0.78rem;
             box-sizing: border-box;
             transition: all 0.2s ease;
@@ -165,24 +159,25 @@
         }
 
         .nav-buttons a:hover {
-            background: #eff6ff;
-            color: #2563eb;
-            border-color: #bfdbfe;
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
         }
 
         .nav-buttons a span {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
         }
 
         .user-welcome-bar {
-            background: var(--card-bg);
-            border: 1px solid var(--border-subtle);
-            padding: 12px 16px;
-            border-radius: var(--radius-xl);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 14px 18px;
+            border-radius: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
         }
     </style>
 </head>
@@ -197,7 +192,7 @@
 
         <!-- SECCIÓN 1: PANTALLA DE LOGIN -->
         <div id="login-section" class="login-card">
-            <h2 style="font-size: 1.05rem; margin-top: 0; color: #1e293b; margin-bottom: 14px; text-align: center;">🔐 Iniciar Sesión</h2>
+            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 16px; text-align: center; font-weight: 800;">🔐 Iniciar Sesión</h2>
             
             <form id="login-form">
                 <div class="form-group">
@@ -221,20 +216,20 @@
             <div class="user-welcome-bar">
                 <div>
                     <span style="font-size: 0.7rem; color: #64748b; display: block; font-weight: 600;">Bienvenido(a),</span>
-                    <strong id="logged-user-name" style="font-size: 0.95rem; color: #1e293b;">...</strong>
+                    <strong id="logged-user-name" style="font-size: 0.92rem; color: #0f172a;">...</strong>
                 </div>
-                <button type="button" id="btn-logout" style="background: #fee2e2; color: #991b1b; border: none; padding: 6px 10px; border-radius: 8px; font-size: 0.72rem; font-weight: bold; cursor: pointer;">🚪 Cerrar Sesión</button>
+                <button type="button" id="btn-logout" style="background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 6px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: background 0.2s;">🚪 Salir</button>
             </div>
 
             <!-- Portal de Empleado (Visible para todos) -->
             <div>
                 <div class="nav-section-title">Portal de Trabajo</div>
                 <nav class="nav-buttons" style="grid-template-columns: 1fr;">
-                    <a href="#" id="link-employee-portal" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; flex-direction: row; justify-content: flex-start; padding: 12px 16px; gap: 12px;">
+                    <a href="#" id="link-employee-portal" style="background: #f8fafc; color: #0f172a; border-color: #e2e8f0; flex-direction: row; justify-content: flex-start; padding: 14px 18px; gap: 14px;">
                         <span style="font-size: 1.3rem;">👷‍♂️</span>
                         <div style="text-align: left;">
-                            <div style="font-size: 0.88rem; font-weight: 800;">Mi Portal de Citas y Ruta</div>
-                            <div style="font-size: 0.7rem; color: #3b82f6; font-weight: 600;">Gestiona tus visitas y tiempos diarios</div>
+                            <div style="font-size: 0.85rem; font-weight: 800;">Mi Portal de Citas y Ruta</div>
+                            <div style="font-size: 0.7rem; color: #64748b; font-weight: 500;">Gestiona tus visitas y tiempos diarios</div>
                         </div>
                     </a>
                 </nav>
@@ -249,8 +244,8 @@
                     <a href="./admin-assignments.html"><span>🛠️</span> Administrador</a>
                     <a href="./employee-builder.html"><span>👨‍🔧</span> Empleados</a>
                     <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Reporte Jornadas</a>
-                    <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #c084fc;"><span>📄</span> Reporte PDF</a>
-                    <a href="#" id="link-client-map" style="grid-column: span 2; flex-direction: row; justify-content: center; gap: 8px; background: #f8fafc;"><span>🗺️</span> Mapa General de Clientes</a>
+                    <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> Reporte PDF</a>
+                    <a href="./client-map.html" id="link-client-map" style="grid-column: span 2; flex-direction: row; justify-content: center; gap: 8px; background: #f8fafc;"><span>🗺️</span> Mapa General de Clientes</a>
                 </nav>
             </div>
         </div>
