@@ -137,7 +137,6 @@
         .btn:active { opacity: 0.8; }
         .btn-primary { background: #2563eb; color: white; }
         .btn-success { background: #16a34a; color: white; }
-        .btn-warning { background: #d97706; color: white; }
         .btn-danger { background: #dc2626; color: white; }
         .btn-secondary { background: #e2e8f0; color: #334155; }
         .btn-group { display: flex; gap: 8px; margin-top: 10px; }
@@ -407,7 +406,7 @@
                 <div class="menu-card" id="card-timetrack">
                     <div>
                         <h3>⏱️ Control de Tiempos</h3>
-                        <p>Jornada, pausas, almuerzo y clientes activos</p>
+                        <p>Jornada, almuerzo y clientes activos</p>
                     </div>
                     <span style="color: #3b82f6; font-weight: bold;">➔</span>
                 </div>
@@ -574,7 +573,6 @@
             let badgeColor = '#475569';
             if (employeeDailyLog) {
                 if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Jornada en curso'; badgeBg = '#dcfce7'; badgeColor = '#166534'; }
-                else if (employeeDailyLog.status === 'pausa') { statusStr = '⏸️ En pausa momentánea'; badgeBg = '#fef9c3'; badgeColor = '#854d0e'; }
                 else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
                 else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
@@ -593,6 +591,11 @@
                 `;
             }
 
+            // Textos dinámicos para el botón de almuerzo según el estado
+            const isAtLunch = employeeDailyLog && employeeDailyLog.status === 'almuerzo';
+            const lunchButtonText = isAtLunch ? '▶️ Volver de Almuerzo' : '☕ Almuerzo';
+            const lunchButtonStyle = isAtLunch ? 'background:#16a34a; color:#white;' : 'background:#fed7aa; color:#9a3412;';
+
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <button type="button" class="icon-btn" id="btn-back-t">← Menú</button>
@@ -607,13 +610,13 @@
 
                     <div class="timer-display" id="global-timer">00:00:00</div>
 
+                    <!-- Botones reestructurados (Sin pausa, con Iniciar, Almuerzo y Finalizar) -->
                     <div class="btn-group">
-                        <button type="button" class="btn btn-success" id="btn-start">▶️ Iniciar</button>
-                        <button type="button" class="btn btn-warning" id="btn-pause">⏸️ Pausa</button>
+                        <button type="button" class="btn btn-success" id="btn-start" style="flex: 1;">▶️ Iniciar</button>
+                        <button type="button" class="btn" style="flex: 1; ${lunchButtonStyle}" id="btn-lunch">${lunchButtonText}</button>
                     </div>
-                    <div class="btn-group" style="margin-top: 6px;">
-                        <button type="button" class="btn btn-secondary" style="background:#fed7aa; color:#9a3412;" id="btn-lunch">☕ Almuerzo</button>
-                        <button type="button" class="btn btn-danger" id="btn-end">⏹️ Finalizar</button>
+                    <div style="margin-top: 6px;">
+                        <button type="button" class="btn btn-danger" id="btn-end">⏹️ Finalizar Jornada</button>
                     </div>
                 </div>
 
@@ -789,17 +792,6 @@
 
                 const now = new Date().getTime();
 
-                if (employeeDailyLog.status === 'pausa') {
-                    const pauseStart = employeeDailyLog.updated_at ? parseTimestampToMs(employeeDailyLog.updated_at) : now;
-                    let diff = Math.floor((now - pauseStart) / 1000); 
-                    if (diff < 0) diff = 0;
-                    const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-                    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                    const s = String(diff % 60).padStart(2, '0');
-                    timerEl.innerHTML = `<span style="color: #d97706; font-size: 1.1rem;">⏸️ Pausa: ${h}:${m}:${s}</span>`;
-                    return;
-                }
-
                 if (employeeDailyLog.status === 'almuerzo') {
                     const lunchStart = employeeDailyLog.lunch_start_time ? parseTimestampToMs(employeeDailyLog.lunch_start_time) : now;
                     let diff = Math.floor((now - lunchStart) / 1000); 
@@ -872,26 +864,6 @@
                     renderTimetrackView();
                 } catch (err) {
                     alert('Error al iniciar: ' + err.message);
-                }
-            });
-
-            document.getElementById('btn-pause').addEventListener('click', async () => {
-                if (!employeeDailyLog) {
-                    alert('Primero debes iniciar tu jornada.');
-                    return;
-                }
-                const nextStatus = employeeDailyLog.status === 'pausa' ? 'activo' : 'pausa';
-                
-                try {
-                    const { data, error } = await supabase.from('employee_daily_logs')
-                        .update({ status: nextStatus })
-                        .eq('id', employeeDailyLog.id)
-                        .select().single();
-                    if (error) throw error;
-                    employeeDailyLog = data;
-                    renderTimetrackView();
-                } catch (err) {
-                    alert('Error al pausar: ' + err.message);
                 }
             });
 
@@ -1114,7 +1086,6 @@
                 });
             });
 
-            // VALIDACIÓN FORMAL AL DAR A FINALIZAR
             document.querySelectorAll('.btn-checkout').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
@@ -1124,7 +1095,6 @@
                     const apptVisits = activeVisitsList.filter(v => String(v.appointment_id) === String(id));
                     const otherActiveEmps = apptVisits.filter(v => v.employee_name.toLowerCase() !== selectedEmployee.toLowerCase());
 
-                    // Mensaje formal de advertencia si hay compañeros activos
                     if (otherActiveEmps.length > 0) {
                         const otherNames = otherActiveEmps.map(v => v.employee_name).join(', ');
                         const proceed = confirm(
@@ -1133,7 +1103,7 @@
                             `Si continúas y finalizas la visita, se cerrará por completo para todos los participantes.\n\n` +
                             `¿Deseas proceder con el cierre total de la visita?`
                         );
-                        if (!proceed) return; // Si cancela, se detiene la acción y no lo saca ni finaliza nada
+                        if (!proceed) return;
                     } else {
                         const confirmSingle = confirm(`¿Estás seguro de que deseas finalizar y cerrar esta visita?`);
                         if (!confirmSingle) return;
@@ -1144,7 +1114,6 @@
                     const nowPure = getPureLocalTimestamp();
                     let rawSessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
 
-                    // Cerramos a todos los que estaban activos en esta visita
                     for (let v of apptVisits) {
                         const startMs = parseTimestampToMs(v.check_in);
                         const diffSecs = Math.max(1, Math.round((Date.now() - startMs) / 1000));
