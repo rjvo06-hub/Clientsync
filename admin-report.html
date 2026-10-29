@@ -80,6 +80,8 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            min-width: 0;
+            width: 100%;
         }
 
         label {
@@ -90,9 +92,9 @@
         }
 
         select, input {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             width: 100%;
-            padding: 12px;
+            padding: 10px 8px;
             border: 1px solid #cbd5e1;
             border-radius: 12px;
             background: #f8fafc;
@@ -100,12 +102,33 @@
             color: #0f172a;
             font-weight: 600;
             transition: all 0.2s ease;
+            box-sizing: border-box;
         }
         select:focus, input:focus {
             border-color: #0f172a;
             background: #ffffff;
             box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
+
+        /* Contenedores Grid con separadores transparentes en los laterales y centro */
+        .grid-with-spacers {
+            display: grid;
+            grid-template-columns: 8px minmax(0, 1fr) 8px minmax(0, 1fr) 8px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .grid-with-spacers .col-1 { grid-column: 2; }
+        .grid-with-spacers .col-2 { grid-column: 4; }
+
+        /* Contenedor específico para fecha única usando la misma estructura simétrica */
+        .single-date-grid {
+            display: grid;
+            grid-template-columns: 8px minmax(0, 1fr) 8px;
+            width: 100%;
+            align-items: center;
+        }
+        .single-date-grid .col-single { grid-column: 2; }
 
         .btn-query {
             background: #0f172a;
@@ -136,11 +159,8 @@
             width: fit-content;
         }
 
-        /* CORRECCIÓN DEFINITIVA DE RANGOS: Grid estricto a 2 columnas sin solapamientos */
         #range-container {
             display: none;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
             padding-top: 12px;
             border-top: 1px dashed #e2e8f0;
             width: 100%;
@@ -388,20 +408,26 @@
 
             <div class="form-group" id="single-date-group">
                 <label>📅 Fecha de Consulta:</label>
-                <input type="date" id="filter-single-date">
+                <div class="single-date-grid">
+                    <div class="col-single">
+                        <input type="date" id="filter-single-date">
+                    </div>
+                </div>
             </div>
 
             <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 Consultar por rango (Semana / Mes)</button>
 
-            <!-- Contenedor con grid seguro de 2 columnas -->
+            <!-- Contenedor con separadores transparentes -->
             <div id="range-container">
-                <div class="form-group">
-                    <label>Desde:</label>
-                    <input type="date" id="filter-start-date">
-                </div>
-                <div class="form-group">
-                    <label>Hasta:</label>
-                    <input type="date" id="filter-end-date">
+                <div class="grid-with-spacers">
+                    <div class="form-group col-1">
+                        <label>Desde:</label>
+                        <input type="date" id="filter-start-date">
+                    </div>
+                    <div class="form-group col-2">
+                        <label>Hasta:</label>
+                        <input type="date" id="filter-end-date">
+                    </div>
                 </div>
             </div>
 
@@ -453,7 +479,7 @@
         btnToggleRange.addEventListener('click', () => {
             useRange = !useRange;
             if (useRange) {
-                rangeContainer.style.display = 'grid';
+                rangeContainer.style.display = 'block';
                 btnToggleRange.textContent = '📅 Ocultar rango y usar día único';
             } else {
                 rangeContainer.style.display = 'none';
@@ -565,9 +591,6 @@
             let html = '';
 
             if (currentView === 'employees') {
-                // ==========================================
-                // VISTA 1: EMPLEADOS
-                // ==========================================
                 const reportMap = new Map();
 
                 logs.forEach(l => {
@@ -717,9 +740,6 @@
                 });
 
             } else {
-                // ==========================================
-                // VISTA 2: CLIENTES
-                // ==========================================
                 const filteredAppts = appts.filter(a => {
                     if (selectedEmp === 'ALL') return true;
                     if (!a.assigned_employee) return false;
