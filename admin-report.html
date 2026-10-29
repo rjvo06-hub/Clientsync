@@ -197,7 +197,6 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
 
-        /* Cabecera limpia y estilizada sin aspecto de botones */
         .employee-summary-header {
             display: flex;
             justify-content: space-between;
@@ -214,21 +213,32 @@
             gap: 1px;
         }
 
+        /* CORRECCIÓN: Forzar que el icono y la fecha vayan en línea horizontal estricta */
+        .date-line-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
         .employee-info-right {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             font-size: 0.72rem;
+            flex-wrap: nowrap;
         }
 
-        /* Diseño minimalista de horarios (sin estilo de botones cuadrados) */
         .time-clean-group {
             display: flex;
             align-items: center;
-            gap: 4px;
-            font-size: 0.72rem;
+            gap: 3px;
+            font-size: 0.7rem;
             color: var(--text-secondary);
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .time-clean-group strong {
@@ -237,14 +247,13 @@
 
         .badge {
             font-size: 0.62rem;
-            padding: 3px 7px;
+            padding: 3px 6px;
             border-radius: 4px;
             font-weight: 700;
             text-transform: uppercase;
             white-space: nowrap;
         }
 
-        /* Línea unificada para Bruto - Almuerzo = Neto Trabajado */
         .metrics-calc-line {
             display: flex;
             justify-content: space-between;
@@ -654,11 +663,11 @@
 
                     html += `
                         <div class="card-box">
-                            <!-- Línea 1: Nombre, Fecha, Inicio, Fin y Estatus con diseño minimalista sin botones -->
+                            <!-- Línea 1: Nombre, Fecha horizontal, Inicio, Fin y Estatus corregidos -->
                             <div class="employee-summary-header">
                                 <div class="employee-info-left">
                                     <strong style="font-size: 0.85rem; color: var(--text-main);">👤 ${item.employee}</strong>
-                                    <div style="font-size: 0.68rem; color: var(--text-secondary);">📅 ${formatDate(item.date)}</div>
+                                    <div class="date-line-inline">📅 ${formatDate(item.date)}</div>
                                 </div>
                                 <div class="employee-info-right">
                                     <span class="time-clean-group">Inicio: <strong>${clockIn}</strong></span>
