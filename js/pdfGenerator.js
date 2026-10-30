@@ -1,6 +1,6 @@
 /**
  * js/pdfGenerator.js
- * Módulo independiente para la generación del PDF de reporte de horas.
+ * Módulo independiente para la generación e impresión del reporte en PDF.
  */
 
 function formatDateGerman(str) {
@@ -38,10 +38,12 @@ export function generateEmployeePDF(logsData, employeeName = 'Mitarbeiter') {
     let workDaysCount = 0;
     let totalVacationDays = 0;
 
-    // Generar las filas de la tabla
     let tableRowsHtml = '';
 
-    logsData.forEach(log => {
+    // Ordenar los registros por fecha ascendente para el reporte
+    const sortedLogs = [...logsData].sort((a, b) => new Date(a.work_date) - new Date(b.work_date));
+
+    sortedLogs.forEach(log => {
         const dateFormatted = formatDateGerman(log.work_date);
         let timeText = '';
         let durationText = '';
@@ -81,28 +83,28 @@ export function generateEmployeePDF(logsData, employeeName = 'Mitarbeiter') {
 
         tableRowsHtml += `
             <tr>
-                <td style="padding: 3px 0;">${dateFormatted}</td>
-                <td style="padding: 3px 0;">${timeText}</td>
-                <td style="padding: 3px 0; text-align: right; padding-right: 25px;">${durationText}</td>
+                <td style="padding: 4px 0; width: 25%;">${dateFormatted}</td>
+                <td style="padding: 4px 0; width: 50%;">${timeText}</td>
+                <td style="padding: 4px 0; width: 25%; text-align: right; padding-right: 30px;">${durationText}</td>
             </tr>
         `;
     });
 
-    // Plantilla HTML flotante exacta a la imagen
+    // Crear contenedor temporal con el diseño exacto de la imagen
     const templateContainer = document.createElement('div');
-    templateContainer.style.padding = '30px';
+    templateContainer.style.padding = '40px 30px';
     templateContainer.style.fontFamily = 'Arial, sans-serif';
-    templateContainer.style.fontSize = '12px';
+    templateContainer.style.fontSize = '13px';
     templateContainer.style.color = '#000000';
     templateContainer.style.backgroundColor = '#ffffff';
 
     templateContainer.innerHTML = `
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
             <thead>
                 <tr>
-                    <th style="text-align: left; font-weight: normal; width: 25%; padding-bottom: 10px;">Datum</th>
-                    <th style="text-align: left; font-weight: normal; width: 50%; padding-bottom: 10px;">Arbeitszeiten</th>
-                    <th style="text-align: right; font-weight: normal; width: 25%; padding-bottom: 10px; padding-right: 25px;">Arbeitsdauer</th>
+                    <th style="text-align: left; font-weight: normal; width: 25%; padding-bottom: 15px;">Datum</th>
+                    <th style="text-align: left; font-weight: normal; width: 50%; padding-bottom: 15px;">Arbeitszeiten</th>
+                    <th style="text-align: right; font-weight: normal; width: 25%; padding-bottom: 15px; padding-right: 30px;">Arbeitsdauer</th>
                 </tr>
             </thead>
             <tbody>
@@ -110,17 +112,16 @@ export function generateEmployeePDF(logsData, employeeName = 'Mitarbeiter') {
             </tbody>
         </table>
 
-        <div style="float: right; width: 200px; margin-top: 15px; font-size: 12px; line-height: 1.5; color: #000000;">
-            <div style="margin-bottom: 2px;">Abgerechnet</div>
-            <div style="margin-bottom: 12px;">${totalHours.toString().replace('.', ',')} h, ${workDaysCount} Tage</div>
-            <div style="margin-bottom: 2px;">Urlaub,</div>
-            <div style="margin-bottom: 12px;">verbleiben 77,5</div>
+        <div style="float: right; width: 220px; margin-top: 20px; font-size: 13px; line-height: 1.6; color: #000000;">
+            <div>Abgerechnet</div>
+            <div style="margin-bottom: 14px;">${totalHours.toString().replace('.', ',')} h, ${workDaysCount} Tage</div>
+            <div>Urlaub,</div>
+            <div style="margin-bottom: 14px;">verbleiben 77,5</div>
             <div>Überstunden</div>
         </div>
         <div style="clear: both;"></div>
     `;
 
-    // Opciones de configuración para html2pdf.js
     const options = {
         margin:       [10, 10, 10, 10],
         filename:     `Arbeitszeit_${employeeName.replace(/\s+/g, '_')}.pdf`,
@@ -129,6 +130,5 @@ export function generateEmployeePDF(logsData, employeeName = 'Mitarbeiter') {
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // Generar y descargar el PDF
     html2pdf().set(options).from(templateContainer).save();
 }
