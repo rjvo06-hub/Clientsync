@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Librería externa para generación de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -48,6 +52,12 @@
             letter-spacing: -0.03em;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .icon-btn {
             background: #f8fafc;
             border: 1px solid #cbd5e1;
@@ -64,6 +74,8 @@
             transition: all 0.2s ease;
         }
         .icon-btn:hover { background: #f1f5f9; border-color: #0f172a; }
+        .icon-btn.btn-pdf { background: #dc2626; color: #ffffff; border-color: #dc2626; }
+        .icon-btn.btn-pdf:hover { background: #b91c1c; border-color: #b91c1c; }
 
         .filter-card {
             background: #ffffff;
@@ -405,7 +417,10 @@
     <div class="container">
         <div class="header">
             <h1>📊 Arbeitszeit-Audit</h1>
-            <a href="./index.html" class="icon-btn">← Menü</a>
+            <div class="header-actions">
+                <button type="button" class="icon-btn btn-pdf" id="btn-export-pdf">📄 PDF Generieren</button>
+                <a href="./index.html" class="icon-btn">← Menü</a>
+            </div>
         </div>
 
         <!-- Filter -->
@@ -459,6 +474,8 @@
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
+        // Importación de la función del archivo secundario
+        import { generateEmployeePDF } from './js/pdfGenerator.js';
 
         const employeeSelect = document.getElementById('filter-employee');
         const singleDateInput = document.getElementById('filter-single-date');
@@ -466,6 +483,7 @@
         const endDateInput = document.getElementById('filter-end-date');
         const btnSearch = document.getElementById('btn-search');
         const btnToggleRange = document.getElementById('btn-toggle-range');
+        const btnExportPdf = document.getElementById('btn-export-pdf');
         const rangeContainer = document.getElementById('range-container');
         const reportResults = document.getElementById('report-results');
 
@@ -837,7 +855,6 @@
                             });
                         }
 
-                        // Berechnung des Pausenabzugs
                         let lunchDiscountMins = a.lunch_deduction_minutes || 0;
                         let lunchCount = deductionsList.length;
 
@@ -898,6 +915,12 @@
         }
 
         btnSearch.addEventListener('click', loadReport);
+
+        // Disparo de generación del PDF consumiendo el módulo externo
+        btnExportPdf.addEventListener('click', () => {
+            const selectedEmployee = employeeSelect.value;
+            generateEmployeePDF(cachedData.logs, selectedEmployee);
+        });
 
         window.addEventListener('DOMContentLoaded', init);
     </script>
