@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Control de Citas y Empleados</title>
+    <title>ClientSync | Termin- & Mitarbeiterverwaltung</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
@@ -37,27 +37,27 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">🛠️ Control de Citas y Asignaciones</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">🏠 Inicio</a>
+            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">🛠️ Termin- & Zuweisungsverwaltung</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">🏠 Startseite</a>
         </div>
 
         <div class="tab-buttons">
-            <button type="button" class="tab-btn active" data-tab="day">📅 Día (Hoy)</button>
-            <button type="button" class="tab-btn" data-tab="month">🗓️ Mes</button>
-            <button type="button" class="tab-btn" data-tab="search">🔍 Buscar Cliente</button>
+            <button type="button" class="tab-btn active" data-tab="day">📅 Tag (Heute)</button>
+            <button type="button" class="tab-btn" data-tab="month">🗓️ Monat</button>
+            <button type="button" class="tab-btn" data-tab="search">🔍 Kunde suchen</button>
         </div>
 
         <div id="view-content">
-            <p style="text-align: center; color: #718096;">Cargando información...</p>
+            <p style="text-align: center; color: #718096;">Informationen werden geladen...</p>
         </div>
     </div>
 
-    <!-- Modal Día -->
+    <!-- Modal Tag -->
     <div id="day-modal" class="custom-modal">
         <div class="custom-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 id="modal-day-title" style="margin: 0; font-size: 1.05rem; color: #2d3748;">📅 Citas del Día</h3>
-                <button type="button" id="close-day-modal" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Cerrar</button>
+                <h3 id="modal-day-title" style="margin: 0; font-size: 1.05rem; color: #2d3748;">📅 Tagestermine</h3>
+                <button type="button" id="close-day-modal" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Schließen</button>
             </div>
             <div id="modal-day-body"></div>
         </div>
@@ -78,7 +78,7 @@
         function formatDateToDDMMYYYY(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
-            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
+            return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dateStr;
         }
 
         async function initAdminPanel() {
@@ -94,7 +94,7 @@
                 allEmployees = employees || [];
                 renderCurrentView();
             } catch (err) {
-                console.error('Error al cargar datos:', err);
+                console.error('Fehler beim Laden der Daten:', err);
             }
         }
 
@@ -109,7 +109,7 @@
 
         function renderCurrentView() {
             const container = document.getElementById('view-content');
-            if (currentTab === 'day') renderDayViewContainer(container, todayStrSystem, "Citas para Hoy");
+            if (currentTab === 'day') renderDayViewContainer(container, todayStrSystem, "Termine für Heute");
             else if (currentTab === 'month') renderMonthView(container);
             else if (currentTab === 'search') renderSearchView(container);
         }
@@ -121,7 +121,7 @@
             });
 
             if (dayAppts.length === 0) {
-                container.innerHTML = `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;"><strong>No hay citas programadas para el ${dateStr}.</strong></div>`;
+                container.innerHTML = `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;"><strong>Keine geplanten Termine für den ${formatDateToDDMMYYYY(dateStr)}.</strong></div>`;
                 return;
             }
 
@@ -143,7 +143,7 @@
         function renderMonthView(container) {
             const year = selectedMonthDate.getFullYear();
             const month = selectedMonthDate.getMonth();
-            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
             const firstDayIndex = new Date(year, month, 1).getDay();
             const totalDays = new Date(year, month + 1, 0).getDate();
@@ -156,7 +156,7 @@
                     <button type="button" id="next-month" style="padding: 6px 10px; font-weight: bold; cursor: pointer;">▶</button>
                 </div>
                 <div class="calendar-grid">
-                    <div class="cal-header">Lun</div><div class="cal-header">Mar</div><div class="cal-header">Mié</div><div class="cal-header">Jue</div><div class="cal-header">Vie</div><div class="cal-header">Sáb</div><div class="cal-header">Dom</div>
+                    <div class="cal-header">Mo</div><div class="cal-header">Di</div><div class="cal-header">Mi</div><div class="cal-header">Do</div><div class="cal-header">Fr</div><div class="cal-header">Sa</div><div class="cal-header">So</div>
             `;
 
             for (let i = 0; i < offset; i++) calendarHtml += `<div class="cal-day" style="background: transparent; border: none;"></div>`;
@@ -169,7 +169,7 @@
                 else if (count > 2 && count <= 4) classes += ' status-yellow';
                 else if (count >= 4) classes += ' status-red';
 
-                calendarHtml += `<div class="${classes}" data-date="${dateStr}"><span>${day}</span>${count > 0 ? `<span class="badge-count">${count} cit</span>` : ''}</div>`;
+                calendarHtml += `<div class="${classes}" data-date="${dateStr}"><span>${day}</span>${count > 0 ? `<span class="badge-count">${count} Ter.</span>` : ''}</div>`;
             }
             calendarHtml += `</div>`;
             container.innerHTML = calendarHtml;
@@ -183,8 +183,8 @@
         }
 
         function openDayModal(dateStr) {
-            document.getElementById('modal-day-title').textContent = `📅 Citas del ${formatDateToDDMMYYYY(dateStr)}`;
-            renderDayViewContainer(document.getElementById('modal-day-body'), dateStr, "Citas programadas");
+            document.getElementById('modal-day-title').textContent = `📅 Termine am ${formatDateToDDMMYYYY(dateStr)}`;
+            renderDayViewContainer(document.getElementById('modal-day-body'), dateStr, "Geplante Termine");
             document.getElementById('day-modal').style.display = 'flex';
         }
 
@@ -193,8 +193,8 @@
         function renderSearchView(container) {
             container.innerHTML = `
                 <div style="position: relative; margin-bottom: 20px;">
-                    <label style="font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px;">🔍 Buscar Cliente:</label>
-                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Nombre o calle..." autocomplete="off" style="width: 100%; padding: 12px;">
+                    <label style="font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px;">🔍 Kunde suchen:</label>
+                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Name oder Straße..." autocomplete="off" style="width: 100%; padding: 12px;">
                     <div id="client-results-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e0; display: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 6px;"></div>
                 </div>
                 <div id="selected-client-result-area"></div>
@@ -218,7 +218,7 @@
                         searchInput.value = client.name;
                         dropdown.style.display = 'none';
                         const appts = allAppointments.filter(a => a.client_id === client.id);
-                        document.getElementById('selected-client-result-area').innerHTML = appts.length > 0 ? appts.map(a => buildAppointmentCardHtml(client, a)).join('') : '<div style="padding: 15px; text-align: center; color: #c05621;">Sin citas programadas.</div>';
+                        document.getElementById('selected-client-result-area').innerHTML = appts.length > 0 ? appts.map(a => buildAppointmentCardHtml(client, a)).join('') : '<div style="padding: 15px; text-align: center; color: #c05621;">Keine geplanten Termine.</div>';
                         attachEventListeners();
                     });
                     dropdown.appendChild(item);
@@ -230,7 +230,7 @@
         function buildAppointmentCardHtml(client, appt) {
             const dateStr = appt.scheduled_date || '';
             const timeStr = appt.time_slot || '09:00';
-            const dateStrFormatted = dateStr ? `${formatDateToDDMMYYYY(dateStr.split('T')[0])} a las ${timeStr}h` : 'Pendiente';
+            const dateStrFormatted = dateStr ? `${formatDateToDDMMYYYY(dateStr.split('T')[0])} um ${timeStr} Uhr` : 'Ausstehend';
             
             const currentEmpsRaw = appt.assigned_employee || '';
             const assignedList = currentEmpsRaw.split(',').map(e => e.trim()).filter(Boolean);
@@ -238,7 +238,7 @@
             let employeesCheckboxesHtml = `<div style="max-height: 130px; overflow-y: auto; border: 1px solid #cbd5e0; padding: 8px; border-radius: 6px; background: white;">`;
             
             if (allEmployees.length === 0) {
-                employeesCheckboxesHtml += `<span style="font-size: 0.75rem; color: #718096;">No hay empleados registrados.</span>`;
+                employeesCheckboxesHtml += `<span style="font-size: 0.75rem; color: #718096;">Keine Mitarbeiter registriert.</span>`;
             } else {
                 allEmployees.forEach(emp => {
                     const isChecked = assignedList.includes(emp.name) ? 'checked' : '';
@@ -257,15 +257,15 @@
                     <div class="client-row-content">
                         <div style="flex: 2; min-width: 200px;">
                             <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
-                            <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Sin dir'}</span><br>
+                            <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Keine Adresse'}</span><br>
                             <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}</span>
                         </div>
                         <div style="flex: 1.5; min-width: 180px;">
-                            <label style="font-size: 0.75rem; color: #2d3748; display: block; margin-bottom: 3px; font-weight: bold;">👥 Técnicos Asignados (Varios):</label>
+                            <label style="font-size: 0.75rem; color: #2d3748; display: block; margin-bottom: 3px; font-weight: bold;">👥 Zugewiesene Techniker (Mehrere):</label>
                             ${employeesCheckboxesHtml}
                         </div>
                         <div style="display: flex; align-items: flex-end;">
-                            <button type="button" class="goto-reschedule-btn" data-client-id="${client.id}" data-appt-id="${appt.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Modificar</button>
+                            <button type="button" class="goto-reschedule-btn" data-client-id="${client.id}" data-appt-id="${appt.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Bearbeiten</button>
                         </div>
                     </div>
                 </div>
