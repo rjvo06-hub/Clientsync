@@ -1,6 +1,6 @@
 /**
  * js/pdfGenerator.js
- * Módulo independiente para la generación e impresión del reporte en PDF.
+ * Módulo independiente para la generación, vista previa e impresión del reporte en PDF.
  */
 
 // Formatear la fecha a DD.MM.YYYY
@@ -39,9 +39,8 @@ function applyCustomRounding(hours) {
     if (!hours || isNaN(hours) || hours <= 0) return '';
     
     const integerPart = Math.floor(hours);
-    const decimalPart = hours - integerPart; // Valor entre 0.0 y 0.999...
+    const decimalPart = hours - integerPart;
     
-    // Obtenemos el primer decimal (0 a 9)
     const firstDecimal = Math.floor(decimalPart * 10);
     
     let roundedValue = integerPart;
@@ -51,9 +50,7 @@ function applyCustomRounding(hours) {
         roundedValue = integerPart + 1;
     }
 
-    // Formatear a máximo 2 decimales y sustituir punto por coma
-    const formatted = roundedValue.toFixed(2).replace(/\.00$/, '').replace('.', ',');
-    return formatted;
+    return roundedValue.toFixed(2).replace(/\.00$/, '').replace('.', ',');
 }
 
 export function generateEmployeePDF(logsData, employeeName = 'Mitarbeiter') {
@@ -143,10 +140,10 @@ export function generateEmployeePDF(logsData, employeeName = 'Mitarbeiter') {
         <!-- Tabla de Datos -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
             <thead>
-                <tr style="border-bottom: 1.5 solid #cbd5e1; background-color: #f8fafc;">
-                    <th style="text-align: left; font-weight: 700; width: 25%; padding: 8px 4px; color: #475569; font-size: 11px; uppercase;">Datum</th>
-                    <th style="text-align: left; font-weight: 700; width: 50%; padding: 8px 4px; color: #475569; font-size: 11px; uppercase;">Arbeitszeiten</th>
-                    <th style="text-align: right; font-weight: 700; width: 25%; padding: 8px 4px; padding-right: 20px; color: #475569; font-size: 11px; uppercase;">Arbeitsdauer</th>
+                <tr style="border-bottom: 1.5px solid #cbd5e1; background-color: #f8fafc;">
+                    <th style="text-align: left; font-weight: 700; width: 25%; padding: 8px 4px; color: #475569; font-size: 11px;">DATUM</th>
+                    <th style="text-align: left; font-weight: 700; width: 50%; padding: 8px 4px; color: #475569; font-size: 11px;">ARBEITSZEITEN</th>
+                    <th style="text-align: right; font-weight: 700; width: 25%; padding: 8px 4px; padding-right: 20px; color: #475569; font-size: 11px;">ARBEITSDAUER</th>
                 </tr>
             </thead>
             <tbody>
@@ -167,13 +164,61 @@ export function generateEmployeePDF(logsData, employeeName = 'Mitarbeiter') {
         <div style="clear: both;"></div>
     `;
 
+    const fileName = `Arbeitszeit_${employeeName.replace(/\s+/g, '_')}.pdf`;
+
     const options = {
         margin:       [12, 12, 12, 12],
-        filename:     `Arbeitszeit_${employeeName.replace(/\s+/g, '_')}.pdf`,
+        filename:     fileName,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(options).from(templateContainer).save();
+    // Generación del Blob para Vista Previa
+    html2pdf().set(options).from(templateContainer).toPdf().output('blob').then((pdfBlob) => {
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        openPdfPreviewModal(blobUrl, fileName);
+    });
+}
+
+/**
+ * Crea e inserta dinámicamente una ventana modal interactiva con el visor PDF.
+ */
+function openPdfPreviewModal(blobUrl, fileName) {
+    const existingModal = document.getElementById('pdf-preview-modal');
+    if (existingModal) existingModal.remove();
+
+    const modalHtml = `
+        <div id="pdf-preview-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 20px; box-sizing: border-box; backdrop-filter: blur(4px);">
+            <div style="background: #ffffff; width: 100%; max-width: 900px; height: 90vh; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+                
+                <!-- Cabecera del Modal -->
+                <div style="padding: 16px 24px; background: #0f172a; color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                        <span>👁️ Vista Previa del Reporte PDF</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <a id="btn-modal-download" href="${blobUrl}" download="${fileName}" style="background: #2563eb; color: #ffffff; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s;">
+                            📥 Descargar PDF
+                        </a>
+                        <button id="btn-modal-close" type="button" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+                    </div>
+                </div>
+
+                <!-- Visor iframe -->
+                <iframe src="${blobUrl}" style="width: 100%; height: 100%; border: none; background: #525659;"></iframe>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Eventos para cerrar el modal y liberar memoria del Blob
+    const closeModal = () => {
+        const modal = document.getElementById('pdf-preview-modal');
+        if (modal) modal.remove();
+        URL.revokeObjectURL(blobUrl);
+    };
+
+    document.getElementById('btn-modal-close').addEventListener('click', closeModal);
 }
