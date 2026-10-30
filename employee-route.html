@@ -5,53 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClientSync | Tagesroute & Karte</title>
     <link rel="stylesheet" href="./css/main.css">
+    
+    <!-- Tipografía Oficial Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
-        * { box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f1f5f9; 
-            margin: 0; 
-            padding: 8px; 
-        }
-        .container { 
-            max-width: 100%; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 12px; 
-            border-radius: 12px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-            border: 1px solid #e2e8f0;
-        }
-        
-        .controls-bar {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            background: #f8fafc;
-            border: 1px solid #cbd5e0;
-            padding: 8px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
-        .controls-bar input {
-            font-size: 13px;
-            padding: 6px 8px;
-            border: 1px solid #cbd5e0;
-            border-radius: 6px;
-            background: white;
-            outline: none;
-            color: #1e293b;
-            font-weight: 600;
-            width: 100%;
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
         }
 
+        body { 
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #f4f6f9; 
+            margin: 0; 
+            padding: 16px; 
+            color: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container { 
+            width: 100%;
+            max-width: 520px; 
+            margin: 0 auto; 
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Header e Identidad */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 4px;
+        }
+
+        .app-header h1 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-back {
+            background: #ffffff;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }
+
+        .btn-back:hover {
+            background: #f8fafc;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+
+        /* Barra de Controles */
+        .controls-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 14px 16px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+        }
+
+        .controls-card label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .controls-card input[type="date"] {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.88rem;
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            background: #f8fafc;
+            outline: none;
+            color: #0f172a;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .controls-card input[type="date"]:focus {
+            border-color: #0f172a;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
+        }
+
+        /* Contenedor del Mapa */
         .map-wrapper {
             position: relative;
             width: 100%;
-            height: 420px;
-            border-radius: 10px;
-            border: 1px solid #cbd5e0;
+            height: 480px;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
             overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05);
         }
 
         #daily-map {
@@ -59,19 +132,28 @@
             height: 100%;
         }
 
+        /* Panel Flotante de Detalles de Tramo */
         #route-info-panel {
             position: absolute;
-            top: 12px;
-            left: 12px;
+            top: 14px;
+            left: 14px;
+            right: 14px;
             z-index: 10;
-            background: #ffffff;
-            color: #1e293b;
-            padding: 12px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            width: 250px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            color: #0f172a;
+            padding: 14px 16px;
+            border-radius: 18px;
+            box-shadow: 0 12px 28px -5px rgba(15, 23, 42, 0.15);
+            max-width: 280px;
             display: none;
-            border: 1px solid #cbd5e0;
+            border: 1px solid #e2e8f0;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         #route-svg-overlay {
@@ -83,52 +165,64 @@
             z-index: 5;
             pointer-events: none;
         }
+
+        /* Estilos del Infowindow de Google Maps sobreescritos para integrarse */
+        .gm-style .gm-style-iw-c {
+            padding: 0 !important;
+            border-radius: 16px !important;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15) !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        .gm-style .gm-style-iw-d {
+            overflow: hidden !important;
+            padding: 0 !important;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Cabecera -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 style="margin: 0; font-size: 1rem; color: #1e293b; font-weight: 800;">🗺️ Tagesroute</h1>
-            <a href="#" id="back-link" style="padding: 4px 8px; background: #e2e8f0; color: #475569; text-decoration: none; border-radius: 6px; font-size: 0.72rem; font-weight: 600;">← Zurück</a>
+        <!-- Encabezado -->
+        <header class="app-header">
+            <h1>🗺️ Tagesroute</h1>
+            <a href="#" id="back-link" class="btn-back">← Zurück</a>
+        </header>
+
+        <!-- Selección de Fecha -->
+        <div class="controls-card">
+            <label for="route-date-input">📅 Datum auswählen</label>
+            <input type="date" id="route-date-input">
         </div>
 
-        <!-- Barra de Controles: Selector de fecha -->
-        <div class="controls-bar">
-            <div style="flex: 1;">
-                <label style="display: block; font-size: 0.65rem; color: #64748b; font-weight: 700; margin-bottom: 2px;">📅 Datum auswählen:</label>
-                <input type="date" id="route-date-input">
-            </div>
-        </div>
-
-        <!-- Contenedor del Mapa Interactivo -->
+        <!-- Mapa Interactivo -->
         <div class="map-wrapper">
             <div id="daily-map"></div>
             
             <svg id="route-svg-overlay">
                 <defs>
                     <marker id="arrow-dark" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b"/>
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f172a"/>
                     </marker>
                 </defs>
-                <line id="connector-line" x1="0" y1="0" x2="0" y2="0" stroke="#1e293b" stroke-width="2.5" stroke-dasharray="3" marker-end="url(#arrow-dark)" />
+                <line id="connector-line" x1="0" y1="0" x2="0" y2="0" stroke="#0f172a" stroke-width="2.5" stroke-dasharray="4" marker-end="url(#arrow-dark)" />
             </svg>
 
+            <!-- Panel Informativo de Tramo -->
             <div id="route-info-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <span id="segment-color-dot" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
-                        <strong style="color: #0284c7; font-size: 0.78rem; font-weight: 700;">Streckendetails</strong>
+                        <strong style="color: #0f172a; font-size: 0.82rem; font-weight: 800;">Streckendetails</strong>
                     </div>
-                    <button type="button" id="close-panel-btn" style="background: transparent; border: none; color: #64748b; font-size: 0.85rem; cursor: pointer; font-weight: bold; padding: 0 4px;">✕</button>
+                    <button type="button" id="close-panel-btn" style="background: #f1f5f9; border: none; color: #64748b; font-size: 0.8rem; cursor: pointer; font-weight: 800; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
-                <div id="panel-content-body" style="font-size: 0.72rem; color: #334155; line-height: 1.4;"></div>
+                <div id="panel-content-body" style="font-size: 0.75rem; color: #334155; line-height: 1.5;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Google Maps JS API con librería geometry -->
+    <!-- Google Maps JS API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ&libraries=geometry" async defer></script>
 
     <script type="module">
@@ -162,7 +256,6 @@
 
         dateInput.value = preselectedDate;
 
-        // Configurar el enlace "Volver" para que devuelva al empleado exactamente a la misma vista y fecha
         let backUrl = `./employee-schedule.html?employee=${encodeURIComponent(currentEmployee)}`;
         if (viewMode === 'calendar') {
             backUrl += `&date=${preselectedDate}&view=calendar`;
@@ -208,7 +301,7 @@
             mapOverlay.onRemove = function() {};
             mapOverlay.setMap(map);
 
-            infoWindow = new google.maps.InfoWindow({ maxWidth: 220 });
+            infoWindow = new google.maps.InfoWindow({ maxWidth: 240 });
 
             map.addListener('click', () => {
                 if (infoWindow) infoWindow.close();
@@ -220,9 +313,7 @@
             map.addListener('zoom_changed', updateConnectorLinePosition);
             map.addListener('idle', updateConnectorLinePosition);
 
-            closePanelBtn.addEventListener('click', () => {
-                hideRouteInfoPanel();
-            });
+            closePanelBtn.addEventListener('click', hideRouteInfoPanel);
         }
 
         function hideRouteInfoPanel() {
@@ -276,15 +367,7 @@
                 const iwContainer = document.querySelector('.gm-style-iw-c');
                 if (iwContainer) {
                     iwContainer.style.background = '#ffffff';
-                    iwContainer.style.padding = '4px';
-                    iwContainer.style.borderRadius = '8px';
-                    iwContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                }
-                const iwOuter = document.querySelector('.gm-style-iw-d');
-                if (iwOuter) {
-                    iwOuter.style.overflow = 'hidden';
-                    iwOuter.style.padding = '0';
-                    iwOuter.style.maxHeight = 'none';
+                    iwContainer.style.padding = '0';
                 }
                 const closeBtn = document.querySelector('.gm-ui-hover-effect');
                 if (closeBtn) closeBtn.style.display = 'none';
@@ -312,11 +395,7 @@
                 if (!currentEmployee) return clientsMap.has(appt.client_id);
 
                 const assignedList = appt.assigned_employee.split(',').map(e => e.trim().toLowerCase());
-                if (!assignedList.includes(currentEmployee.toLowerCase())) {
-                    return false;
-                }
-
-                return clientsMap.has(appt.client_id);
+                return assignedList.includes(currentEmployee.toLowerCase()) && clientsMap.has(appt.client_id);
             });
 
             markers.forEach(m => m.setMap(null));
@@ -347,11 +426,7 @@
                 return;
             }
 
-            validStops.sort((a, b) => {
-                const timeA = a.appt.time_slot || '00:00';
-                const timeB = b.appt.time_slot || '00:00';
-                return timeA.localeCompare(timeB);
-            });
+            validStops.sort((a, b) => (a.appt.time_slot || '00:00').localeCompare(b.appt.time_slot || '00:00'));
 
             const bounds = new google.maps.LatLngBounds();
 
@@ -364,21 +439,23 @@
                     label: {
                         text: String(index + 1),
                         color: "white",
-                        fontWeight: "bold"
+                        fontWeight: "800",
+                        fontSize: "12px"
                     },
                     title: `Stopp #${index + 1}: ${stop.client.name}`
                 });
 
                 const clientPhone = stop.client.phone || 'Nicht registriert';
                 
+                // Diseño de tarjeta interna del marcador estilizada
                 const windowContent = `
-                    <div style="font-family: -apple-system, sans-serif; background: #ffffff; color: #1e293b; padding: 8px; border-radius: 8px; width: 200px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 6px;">
-                            <span style="color: #0284c7; font-size: 0.78rem; font-weight: 700;">#${index + 1} ${stop.client.name}</span>
-                            <span style="color: #1e293b; font-size: 0.75rem; font-weight: bold;">⏰ ${stop.appt.time_slot || '09:00'} Uhr</span>
+                    <div style="font-family: 'Plus Jakarta Sans', sans-serif; background: #ffffff; color: #0f172a; padding: 12px; border-radius: 16px; width: 210px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px;">
+                            <span style="color: #0f172a; font-size: 0.82rem; font-weight: 800;">#${index + 1} ${stop.client.name}</span>
+                            <span style="color: #15803d; background: #f0fdf4; border: 1px solid #dcfce7; padding: 2px 6px; border-radius: 6px; font-size: 0.7rem; font-weight: 700;">⏰ ${stop.appt.time_slot || '09:00'}</span>
                         </div>
-                        <p style="margin: 0 0 3px 0; font-size: 0.68rem; color: #64748b;">📍 ${stop.client.address || 'Keine Adresse'}</p>
-                        <p style="margin: 0; font-size: 0.68rem; color: #64748b;">📞 ${clientPhone}</p>
+                        <p style="margin: 0 0 4px 0; font-size: 0.72rem; color: #475569; font-weight: 500;">📍 ${stop.client.address || 'Keine Adresse'}</p>
+                        <p style="margin: 0; font-size: 0.72rem; color: #64748b; font-weight: 500;">📞 ${clientPhone}</p>
                     </div>
                 `;
 
@@ -463,18 +540,18 @@
 
                             segmentColorDot.style.background = segmentColor;
                             panelBody.innerHTML = `
-                                <div style="margin-bottom: 4px;">
-                                    <span style="color: #0284c7; font-weight: 700;">Von (#${i+1}):</span> <strong>${originStop.client.name}</strong><br>
-                                    <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${originStop.client.address || 'Keine Adresse'}</span>
-                                </div>
                                 <div style="margin-bottom: 6px;">
-                                    <span style="color: #dc2626; font-weight: 700;">Nach (#${i+2}):</span> <strong>${destStop.client.name}</strong><br>
-                                    <span style="color: #64748b; font-size: 0.65rem; padding-left: 10px;">${destStop.client.address || 'Keine Adresse'}</span>
+                                    <span style="color: #2563eb; font-weight: 800;">Von (#${i+1}):</span> <strong>${originStop.client.name}</strong><br>
+                                    <span style="color: #64748b; font-size: 0.7rem;">${originStop.client.address || 'Keine Adresse'}</span>
                                 </div>
-                                <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem;">
-                                    <span style="color: #475569;">📏 <strong>${distanceText}</strong></span>
-                                    <span style="color: #475569; text-align: center;">⏱️ <strong>${durationText}</strong></span>
-                                    <a href="${mapsNavUrl}" target="_blank" style="background: #2563eb; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.68rem; display: inline-flex; align-items: center; gap: 2px;">🧭 Navigieren</a>
+                                <div style="margin-bottom: 8px;">
+                                    <span style="color: #dc2626; font-weight: 800;">Nach (#${i+2}):</span> <strong>${destStop.client.name}</strong><br>
+                                    <span style="color: #64748b; font-size: 0.7rem;">${destStop.client.address || 'Keine Adresse'}</span>
+                                </div>
+                                <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem;">
+                                    <span style="color: #334155;">📏 <strong>${distanceText}</strong></span>
+                                    <span style="color: #334155;">⏱️ <strong>${durationText}</strong></span>
+                                    <a href="${mapsNavUrl}" target="_blank" style="background: #0f172a; color: white; padding: 5px 10px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.7rem; box-shadow: 0 2px 6px rgba(15,23,42,0.15);">🧭 Navigieren</a>
                                 </div>
                             `;
 
