@@ -71,9 +71,11 @@
             </div>
 
             <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;">
+                <!-- Campo de PLZ con menú desplegable -->
+                <div style="flex: 1; position: relative;">
                     <label>Postleitzahl (PLZ):</label>
-                    <input type="text" id="client-postal" placeholder="z. B. 85521">
+                    <input type="text" id="client-postal" placeholder="z. B. 85521 oder Ottobrunn" autocomplete="off">
+                    <div id="postal-results-dropdown" class="client-results-dropdown"></div>
                 </div>
                 <div style="flex: 1;">
                     <label>Telefon:</label>
@@ -178,7 +180,7 @@
             }
         }
 
-        // Búsqueda Inteligente Global en Clientes y Códigos Postales
+        // Búsqueda Inteligente Global en Clientes y Códigos Postales (Buscador Superior)
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
@@ -204,7 +206,7 @@
                     );
                 });
 
-                // 2. Filtrar en la tabla CÓDIGOS POSTALES (por nombre de lugar, código o nombre de ciudad)
+                // 2. Filtrar en la tabla CÓDIGOS POSTALES
                 const matchedPostalCodes = allPostalCodes.filter(p => {
                     const code = String(p.code || p.postal_code || p.plz || '').toLowerCase();
                     const name = (p.name || p.city || p.location || p.ort || '').toLowerCase();
@@ -215,10 +217,8 @@
                 });
 
                 dropdown.innerHTML = '';
-
                 let hasResults = false;
 
-                // Renderizar Clientes encontrados
                 if (matchedClients.length > 0) {
                     hasResults = true;
                     const header = document.createElement('div');
@@ -247,7 +247,6 @@
                     });
                 }
 
-                // Renderizar Códigos Postales / Localidades encontradas
                 if (matchedPostalCodes.length > 0) {
                     hasResults = true;
                     const header = document.createElement('div');
@@ -267,7 +266,6 @@
                         `;
 
                         item.addEventListener('click', () => {
-                            // Al hacer clic en un CP, rellenamos los datos de dirección y coordenadas
                             document.getElementById('client-postal').value = codeStr;
                             if (nameStr) document.getElementById('client-address').value = nameStr;
                             if (postal.latitude) document.getElementById('client-lat').value = postal.latitude;
@@ -275,8 +273,6 @@
 
                             dropdown.style.display = 'none';
                             searchInput.value = `${codeStr} - ${nameStr}`;
-                            
-                            // Enfocar en el campo de Nombre del Cliente para completar el registro
                             document.getElementById('client-name').focus();
                         });
 
@@ -295,6 +291,63 @@
             document.addEventListener('click', (e) => {
                 if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
                     dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // Búsqueda específica directa en el campo de Postleitzahl (PLZ)
+        const postalInput = document.getElementById('client-postal');
+        const postalDropdown = document.getElementById('postal-results-dropdown');
+
+        if (postalInput && postalDropdown) {
+            postalInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+
+                if (query.length === 0) {
+                    postalDropdown.style.display = 'none';
+                    return;
+                }
+
+                const searchTerms = query.split(' ').filter(term => term.length > 0);
+
+                const matchedPostal = allPostalCodes.filter(p => {
+                    const code = String(p.code || p.postal_code || p.plz || '').toLowerCase();
+                    const name = (p.name || p.city || p.location || p.ort || '').toLowerCase();
+
+                    return searchTerms.every(term => code.includes(term) || name.includes(term));
+                });
+
+                postalDropdown.innerHTML = '';
+
+                if (matchedPostal.length > 0) {
+                    matchedPostal.forEach(p => {
+                        const codeStr = p.code || p.postal_code || p.plz || '';
+                        const nameStr = p.name || p.city || p.location || p.ort || '';
+
+                        const item = document.createElement('div');
+                        item.className = 'client-result-item';
+                        item.innerHTML = `<strong style="color: #2e7d32;">${codeStr}</strong> - ${nameStr}`;
+
+                        item.addEventListener('click', () => {
+                            postalInput.value = codeStr;
+
+                            if (p.latitude) document.getElementById('client-lat').value = p.latitude;
+                            if (p.longitude) document.getElementById('client-lng').value = p.longitude;
+
+                            postalDropdown.style.display = 'none';
+                        });
+
+                        postalDropdown.appendChild(item);
+                    });
+                    postalDropdown.style.display = 'block';
+                } else {
+                    postalDropdown.style.display = 'none';
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!postalInput.contains(e.target) && !postalDropdown.contains(e.target)) {
+                    postalDropdown.style.display = 'none';
                 }
             });
         }
