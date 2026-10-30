@@ -52,6 +52,12 @@
             letter-spacing: -0.03em;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .icon-btn {
             background: #f8fafc;
             border: 1px solid #cbd5e1;
@@ -68,6 +74,8 @@
             transition: all 0.2s ease;
         }
         .icon-btn:hover { background: #f1f5f9; border-color: #0f172a; }
+        .icon-btn.btn-pdf { background: #dc2626; color: #ffffff; border-color: #dc2626; }
+        .icon-btn.btn-pdf:hover { background: #b91c1c; border-color: #b91c1c; }
 
         .filter-card {
             background: #ffffff;
@@ -198,30 +206,6 @@
             color: white;
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
         }
-
-        /* Alineación dinámica para el botón PDF */
-        .pdf-action-row {
-            display: flex;
-            width: 100%;
-            justify-content: flex-start; /* Se ajusta con JS */
-            margin-top: -4px;
-        }
-
-        .btn-pdf {
-            background: #dc2626;
-            color: #ffffff;
-            border: 1px solid #dc2626;
-            padding: 9px 14px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.78rem;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-        }
-        .btn-pdf:hover { background: #b91c1c; border-color: #b91c1c; }
 
         .report-section {
             display: flex;
@@ -433,7 +417,10 @@
     <div class="container">
         <div class="header">
             <h1>📊 Arbeitszeit-Audit</h1>
-            <a href="./index.html" class="icon-btn">← Menü</a>
+            <div class="header-actions">
+                <button type="button" class="icon-btn btn-pdf" id="btn-export-pdf">📄 PDF Generieren</button>
+                <a href="./index.html" class="icon-btn">← Menü</a>
+            </div>
         </div>
 
         <!-- Filter -->
@@ -478,11 +465,6 @@
             <button type="button" class="tab-btn" id="tab-clients" onclick="switchView('clients')">🏢 Ansicht nach Kunden</button>
         </div>
 
-        <!-- Contenedor alineado según la vista seleccionada -->
-        <div class="pdf-action-row" id="pdf-button-wrapper">
-            <button type="button" class="btn-pdf" id="btn-export-pdf">📄 PDF Generieren</button>
-        </div>
-
         <div id="report-results" class="report-section">
             <div style="text-align: center; padding: 30px; color: #64748b; background: #ffffff; border-radius: 24px; font-size: 0.8rem; border: 1px solid #e2e8f0;">
                 Wählen Sie das Datum aus und klicken Sie auf "Datensätze abfragen".
@@ -492,10 +474,8 @@
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
-        // Módulo de empleados (Izquierda)
+        // Importación de la función del archivo secundario
         import { generateEmployeePDF } from './js/pdfGenerator.js';
-        // Módulo de clientes (Derecha)
-        import { generateClientPDF } from './js/pdfGeneratorClient.js';
 
         const employeeSelect = document.getElementById('filter-employee');
         const singleDateInput = document.getElementById('filter-single-date');
@@ -504,7 +484,6 @@
         const btnSearch = document.getElementById('btn-search');
         const btnToggleRange = document.getElementById('btn-toggle-range');
         const btnExportPdf = document.getElementById('btn-export-pdf');
-        const pdfButtonWrapper = document.getElementById('pdf-button-wrapper');
         const rangeContainer = document.getElementById('range-container');
         const reportResults = document.getElementById('report-results');
 
@@ -512,18 +491,10 @@
         let currentView = 'employees';
         let cachedData = { logs: [], appts: [], clientsMap: new Map() };
 
-        // Cambiar vista y alternar posición del botón PDF
         window.switchView = function(view) {
             currentView = view;
             document.getElementById('tab-employees').classList.toggle('active', view === 'employees');
             document.getElementById('tab-clients').classList.toggle('active', view === 'clients');
-
-            if (view === 'employees') {
-                pdfButtonWrapper.style.justifyContent = 'flex-start'; // Lado Izquierdo
-            } else {
-                pdfButtonWrapper.style.justifyContent = 'flex-end';   // Lado Derecho
-            }
-
             renderCurrentView();
         };
 
@@ -945,14 +916,10 @@
 
         btnSearch.addEventListener('click', loadReport);
 
-        // Listener dinámico del botón según vista activa
+        // Disparo de generación del PDF consumiendo el módulo externo
         btnExportPdf.addEventListener('click', () => {
             const selectedEmployee = employeeSelect.value;
-            if (currentView === 'employees') {
-                generateEmployeePDF(cachedData.logs, selectedEmployee);
-            } else {
-                generateClientPDF(cachedData.appts, cachedData.clientsMap, selectedEmployee);
-            }
+            generateEmployeePDF(cachedData.logs, selectedEmployee);
         });
 
         window.addEventListener('DOMContentLoaded', init);
