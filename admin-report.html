@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Carga de html2pdf.js necesaria para generar los reportes -->
+    <!-- Librería externa para generación de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
@@ -474,8 +474,8 @@
 
         <!-- Reiter / Tabs -->
         <div class="tabs-row">
-            <button type="button" class="tab-btn active" id="tab-employees">👥 Ansicht nach Mitarbeitern</button>
-            <button type="button" class="tab-btn" id="tab-clients">🏢 Ansicht nach Kunden</button>
+            <button type="button" class="tab-btn active" id="tab-employees" onclick="switchView('employees')">👥 Ansicht nach Mitarbeitern</button>
+            <button type="button" class="tab-btn" id="tab-clients" onclick="switchView('clients')">🏢 Ansicht nach Kunden</button>
         </div>
 
         <!-- Fila contenedora del botón de PDF (oculta por defecto) -->
@@ -505,17 +505,15 @@
         const pdfButtonWrapper = document.getElementById('pdf-button-wrapper');
         const rangeContainer = document.getElementById('range-container');
         const reportResults = document.getElementById('report-results');
-        const tabEmployees = document.getElementById('tab-employees');
-        const tabClients = document.getElementById('tab-clients');
 
         let useRange = false;
         let currentView = 'employees';
         let cachedData = { logs: [], appts: [], clientsMap: new Map() };
 
-        function switchView(view) {
+        window.switchView = function(view) {
             currentView = view;
-            tabEmployees.classList.toggle('active', view === 'employees');
-            tabClients.classList.toggle('active', view === 'clients');
+            document.getElementById('tab-employees').classList.toggle('active', view === 'employees');
+            document.getElementById('tab-clients').classList.toggle('active', view === 'clients');
 
             if (view === 'employees') {
                 pdfButtonWrapper.style.justifyContent = 'flex-start'; // Lado Izquierdo
@@ -524,10 +522,7 @@
             }
 
             renderCurrentView();
-        }
-
-        tabEmployees.addEventListener('click', () => switchView('employees'));
-        tabClients.addEventListener('click', () => switchView('clients'));
+        };
 
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
@@ -583,17 +578,17 @@
 
         async function init() {
             try {
+                // Recuperar lista de empleados sin alterar la estructura original
                 const { data: employees, error: empErr } = await supabase.from('employees').select('name').order('name');
-                if (empErr) console.error('Error obteniendo empleados:', empErr);
-                
-                if (employees && employees.length > 0) {
+                if (empErr) {
+                    console.error('Error cargando empleados:', empErr);
+                } else if (employees) {
+                    employeeSelect.innerHTML = '<option value="ALL">Alle Mitarbeiter</option>';
                     employees.forEach(e => {
-                        const opt = document.createElement('option');
-                        opt.value = e.name;
-                        opt.textContent = e.name;
-                        employeeSelect.appendChild(opt);
+                        employeeSelect.innerHTML += `<option value="${e.name}">${e.name}</option>`;
                     });
                 }
+                loadReport();
             } catch (err) {
                 console.error('Fehler beim Initialisieren der Filter:', err);
             }
@@ -637,7 +632,7 @@
             } catch (err) {
                 console.error('Fehler beim Generieren des Berichts:', err);
                 reportResults.innerHTML = `<div style="padding: 15px; color: #dc2626; text-align: center; font-size: 0.75rem;">Fehler beim Laden der Daten: ${err.message}</div>`;
-                pdfButtonWrapper.style.display = 'none'; // Ocultar si ocurre error
+                pdfButtonWrapper.style.display = 'none';
             }
         }
 
@@ -649,7 +644,7 @@
 
             if (logs.length === 0 && appts.length === 0) {
                 reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Datensätze für die ausgewählten Daten gefunden.</div>`;
-                pdfButtonWrapper.style.display = 'none'; // Ocultar si no hay registros
+                pdfButtonWrapper.style.display = 'none';
                 return;
             }
 
@@ -682,7 +677,7 @@
 
                 if (reportMap.size === 0) {
                     reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Zeiterfassungsdaten für die ausgewählten Kriterien vorhanden.</div>`;
-                    pdfButtonWrapper.style.display = 'none'; // Ocultar si no hay datos de horas
+                    pdfButtonWrapper.style.display = 'none';
                     return;
                 }
 
@@ -817,7 +812,7 @@
 
                 if (filteredAppts.length === 0) {
                     reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Kundenbesuche für die ausgewählten Kriterien registriert.</div>`;
-                    pdfButtonWrapper.style.display = 'none'; // Ocultar si no hay citas
+                    pdfButtonWrapper.style.display = 'none';
                     return;
                 }
 
@@ -955,7 +950,6 @@
 
             reportResults.innerHTML = html;
 
-            // Mostrar el botón de PDF solo si hay datos válidos tras consultar
             if (hasDataToShow) {
                 pdfButtonWrapper.style.display = 'flex';
             } else {
