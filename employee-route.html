@@ -31,7 +31,7 @@
 
         .container { 
             width: 100%;
-            max-width: 520px; 
+            max-width: 580px; 
             margin: 0 auto; 
             display: flex;
             flex-direction: column;
@@ -119,7 +119,7 @@
         .map-wrapper {
             position: relative;
             width: 100%;
-            height: 480px;
+            height: 520px;
             border-radius: 24px;
             border: 1px solid #e2e8f0;
             overflow: hidden;
@@ -166,7 +166,7 @@
             pointer-events: none;
         }
 
-        /* Estilos del Infowindow de Google Maps sobreescritos para integrarse */
+        /* Estilos del InfoWindow de Google Maps sobreescritos para evitar recorte y mejorar UI */
         .gm-style .gm-style-iw-c {
             padding: 0 !important;
             border-radius: 16px !important;
@@ -295,13 +295,21 @@
                 streetViewControl: false
             });
 
+            // Margen de seguridad superior para evitar que los emergentes se corten con botones superiores
+            map.setOptions({
+                padding: { top: 75, right: 10, bottom: 10, left: 10 }
+            });
+
             mapOverlay = new google.maps.OverlayView();
             mapOverlay.onAdd = function() {};
             mapOverlay.draw = function() {};
             mapOverlay.onRemove = function() {};
             mapOverlay.setMap(map);
 
-            infoWindow = new google.maps.InfoWindow({ maxWidth: 240 });
+            infoWindow = new google.maps.InfoWindow({ 
+                maxWidth: 240,
+                pixelOffset: new google.maps.Size(0, -5)
+            });
 
             map.addListener('click', () => {
                 if (infoWindow) infoWindow.close();
@@ -447,7 +455,6 @@
 
                 const clientPhone = stop.client.phone || 'Nicht registriert';
                 
-                // Diseño de tarjeta interna del marcador estilizada
                 const windowContent = `
                     <div style="font-family: 'Plus Jakarta Sans', sans-serif; background: #ffffff; color: #0f172a; padding: 12px; border-radius: 16px; width: 210px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px;">
@@ -462,6 +469,10 @@
                 marker.addListener('click', (e) => {
                     e.stop();
                     hideRouteInfoPanel();
+                    
+                    // Centrar mapa suavemente al hacer clic para asegurar visibilidad total de la tarjeta
+                    map.panTo(marker.getPosition());
+
                     infoWindow.setContent(windowContent);
                     infoWindow.open(map, marker);
                     setupInfoWindowStyles();
