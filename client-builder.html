@@ -71,7 +71,7 @@
             </div>
 
             <div style="display: flex; gap: 10px;">
-                <!-- Campo de PLZ con menú desplegable -->
+                <!-- Campo de PLZ con desplegable de autocompletado -->
                 <div style="flex: 1; position: relative;">
                     <label>Postleitzahl (PLZ):</label>
                     <input type="text" id="client-postal" placeholder="z. B. 85521 oder Ottobrunn" autocomplete="off">
@@ -158,11 +158,14 @@
                     if (mapLng) document.getElementById('client-lng').value = mapLng;
                 }
 
-                // Carga en paralelo de Clientes y Códigos Postales
-                const [{ data: clientsData }, { data: postalData }] = await Promise.all([
+                // Carga en paralelo desde las tablas reales: 'clients' y 'german_postal_codes'
+                const [{ data: clientsData, error: errClients }, { data: postalData, error: errPostal }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
-                    supabase.from('postal_codes').select('*')
+                    supabase.from('german_postal_codes').select('*')
                 ]);
+
+                if (errClients) console.error('Error cargando clientes:', errClients);
+                if (errPostal) console.error('Error cargando CPs:', errPostal);
 
                 allClients = clientsData || [];
                 allPostalCodes = postalData || [];
@@ -180,7 +183,7 @@
             }
         }
 
-        // Búsqueda Inteligente Global en Clientes y Códigos Postales (Buscador Superior)
+        // 1. Buscador global (Clientes y CPs)
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
@@ -195,7 +198,7 @@
 
                 const searchTerms = query.split(' ').filter(term => term.length > 0);
 
-                // 1. Filtrar en la tabla CLIENTES
+                // Filtrar en la tabla CLIENTES
                 const matchedClients = allClients.filter(c => {
                     const name = (c.name || '').toLowerCase();
                     const address = (c.address || '').toLowerCase();
@@ -206,13 +209,13 @@
                     );
                 });
 
-                // 2. Filtrar en la tabla CÓDIGOS POSTALES
+                // Filtrar en la tabla GERMAN_POSTAL_CODES (postal_code y city_name)
                 const matchedPostalCodes = allPostalCodes.filter(p => {
-                    const code = String(p.code || p.postal_code || p.plz || '').toLowerCase();
-                    const name = (p.name || p.city || p.location || p.ort || '').toLowerCase();
+                    const code = String(p.postal_code || '').toLowerCase();
+                    const city = (p.city_name || '').toLowerCase();
 
                     return searchTerms.every(term => 
-                        code.includes(term) || name.includes(term)
+                        code.includes(term) || city.includes(term)
                     );
                 });
 
@@ -255,24 +258,21 @@
                     dropdown.appendChild(header);
 
                     matchedPostalCodes.forEach(postal => {
-                        const codeStr = postal.code || postal.postal_code || postal.plz || '';
-                        const nameStr = postal.name || postal.city || postal.location || postal.ort || '';
+                        const codeStr = postal.postal_code || '';
+                        const cityStr = postal.city_name || '';
                         
                         const item = document.createElement('div');
                         item.className = 'client-result-item';
                         item.innerHTML = `
-                            <strong style="color: #2e7d32;">📮 PLZ: ${codeStr} - ${nameStr}</strong><br>
+                            <strong style="color: #2e7d32;">📮 PLZ: ${codeStr} - ${cityStr}</strong><br>
                             <span style="font-size:0.75rem; color:#666;">Klicken zum Ausfüllen der Adressdaten</span>
                         `;
 
                         item.addEventListener('click', () => {
                             document.getElementById('client-postal').value = codeStr;
-                            if (nameStr) document.getElementById('client-address').value = nameStr;
-                            if (postal.latitude) document.getElementById('client-lat').value = postal.latitude;
-                            if (postal.longitude) document.getElementById('client-lng').value = postal.longitude;
-
+                            
                             dropdown.style.display = 'none';
-                            searchInput.value = `${codeStr} - ${nameStr}`;
+                            searchInput.value = `${codeStr} - ${cityStr}`;
                             document.getElementById('client-name').focus();
                         });
 
@@ -295,7 +295,7 @@
             });
         }
 
-        // Búsqueda específica directa en el campo de Postleitzahl (PLZ)
+        // 2. Buscador en tiempo real dentro del campo de Postleitzahl (PLZ)
         const postalInput = document.getElementById('client-postal');
         const postalDropdown = document.getElementById('postal-results-dropdown');
 
@@ -311,29 +311,25 @@
                 const searchTerms = query.split(' ').filter(term => term.length > 0);
 
                 const matchedPostal = allPostalCodes.filter(p => {
-                    const code = String(p.code || p.postal_code || p.plz || '').toLowerCase();
-                    const name = (p.name || p.city || p.location || p.ort || '').toLowerCase();
+                    const code = String(p.postal_code || '').toLowerCase();
+                    const city = (p.city_name || '').toLowerCase();
 
-                    return searchTerms.every(term => code.includes(term) || name.includes(term));
+                    return searchTerms.every(term => code.includes(term) || city.includes(term));
                 });
 
                 postalDropdown.innerHTML = '';
 
                 if (matchedPostal.length > 0) {
                     matchedPostal.forEach(p => {
-                        const codeStr = p.code || p.postal_code || p.plz || '';
-                        const nameStr = p.name || p.city || p.location || p.ort || '';
+                        const codeStr = p.postal_code || '';
+                        const cityStr = p.city_name || '';
 
                         const item = document.createElement('div');
                         item.className = 'client-result-item';
-                        item.innerHTML = `<strong style="color: #2e7d32;">${codeStr}</strong> - ${nameStr}`;
+                        item.innerHTML = `<strong style="color: #2e7d32;">${codeStr}</strong> - ${cityStr}`;
 
                         item.addEventListener('click', () => {
                             postalInput.value = codeStr;
-
-                            if (p.latitude) document.getElementById('client-lat').value = p.latitude;
-                            if (p.longitude) document.getElementById('client-lng').value = p.longitude;
-
                             postalDropdown.style.display = 'none';
                         });
 
@@ -365,7 +361,7 @@
             if (nameEl) nameEl.value = client.name || '';
             if (addrEl) addrEl.value = client.address || '';
             if (postEl) postEl.value = client.postal_code || '';
-            if (phoneEl) phoneEl.value = client.phone || client.telefono || '';
+            if (phoneEl) phoneEl.value = client.phone || '';
             if (latEl) latEl.value = client.latitude || '';
             if (lngEl) lngEl.value = client.longitude || '';
         }
