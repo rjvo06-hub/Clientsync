@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Iniciar Sesión</title>
+    <title>ClientSync | Anmelden</title>
     <link rel="stylesheet" href="./css/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -192,22 +192,22 @@
 
         <!-- SECCIÓN 1: PANTALLA DE LOGIN -->
         <div id="login-section" class="login-card">
-            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 16px; text-align: center; font-weight: 800;">🔐 Iniciar Sesión</h2>
+            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 16px; text-align: center; font-weight: 800;">🔐 Anmelden</h2>
             
             <form id="login-form">
                 <div class="form-group">
-                    <label>Selecciona tu Usuario:</label>
+                    <label>Benutzer auswählen:</label>
                     <select id="login-employee" required>
-                        <option value="">-- Elige quién eres --</option>
+                        <option value="">-- Wer bist du? --</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Contraseña:</label>
+                    <label>Passwort:</label>
                     <input type="password" id="login-password" placeholder="••••••••" required>
                 </div>
 
-                <button type="submit" class="btn-login" id="btn-submit-login">Entrar al Sistema</button>
+                <button type="submit" class="btn-login" id="btn-submit-login">Anmelden</button>
             </form>
         </div>
 
@@ -215,21 +215,21 @@
         <div id="main-menu-container">
             <div class="user-welcome-bar">
                 <div>
-                    <span style="font-size: 0.7rem; color: #64748b; display: block; font-weight: 600;">Bienvenido(a),</span>
+                    <span style="font-size: 0.7rem; color: #64748b; display: block; font-weight: 600;">Willkommen,</span>
                     <strong id="logged-user-name" style="font-size: 0.92rem; color: #0f172a;">...</strong>
                 </div>
-                <button type="button" id="btn-logout" style="background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 6px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: background 0.2s;">🚪 Salir</button>
+                <button type="button" id="btn-logout" style="background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 6px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: background 0.2s;">🚪 Abmelden</button>
             </div>
 
             <!-- Portal de Empleado (Visible para todos) -->
             <div>
-                <div class="nav-section-title">Portal de Trabajo</div>
+                <div class="nav-section-title">Arbeitsportal</div>
                 <nav class="nav-buttons" style="grid-template-columns: 1fr;">
                     <a href="#" id="link-employee-portal" style="background: #f8fafc; color: #0f172a; border-color: #e2e8f0; flex-direction: row; justify-content: flex-start; padding: 14px 18px; gap: 14px;">
                         <span style="font-size: 1.3rem;">👷‍♂️</span>
                         <div style="text-align: left;">
-                            <div style="font-size: 0.85rem; font-weight: 800;">Mi Portal de Citas y Ruta</div>
-                            <div style="font-size: 0.7rem; color: #64748b; font-weight: 500;">Gestiona tus visitas y tiempos diarios</div>
+                            <div style="font-size: 0.85rem; font-weight: 800;">Mein Termine- & Routenportal</div>
+                            <div style="font-size: 0.7rem; color: #64748b; font-weight: 500;">Verwalten Sie Ihre täglichen Besuche und Zeiten</div>
                         </div>
                     </a>
                 </nav>
@@ -237,14 +237,14 @@
 
             <!-- Panel de Administración (Visible solo para administradores) -->
             <div id="admin-section-container" style="display: none;">
-                <div class="nav-section-title">Panel de Administración</div>
+                <div class="nav-section-title">Admin-Bereich</div>
                 <nav class="nav-buttons">
-                    <a href="./client-builder.html"><span>🏢</span> Clientes</a>
-                    <a href="./appointment-builder.html"><span>📅</span> Agendar Citas</a>
-                    <a href="./admin-assignments.html"><span>🛠️</span> Administrador</a>
-                    <a href="./employee-builder.html"><span>👨‍🔧</span> Empleados</a>
-                    <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Reporte Jornadas</a>
-                    <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> Reporte PDF</a>
+                    <a href="./client-builder.html"><span>🏢</span> Kunden</a>
+                    <a href="./appointment-builder.html"><span>📅</span> Termine planen</a>
+                    <a href="./admin-assignments.html"><span>🛠️</span> Administration</a>
+                    <a href="./employee-builder.html"><span>👨‍🔧</span> Mitarbeiter</a>
+                    <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Arbeitsbericht</a>
+                    <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> PDF-Bericht</a>
                 </nav>
             </div>
         </div>
@@ -298,7 +298,7 @@
             const employeeObj = employeesList.find(e => e.name === selectedName);
 
             if (!employeeObj) {
-                alert('Por favor selecciona un usuario válido.');
+                alert('Bitte wählen Sie einen gültigen Benutzer aus.');
                 return;
             }
 
@@ -306,7 +306,7 @@
             const dbPassword = employeeObj.password ? String(employeeObj.password).trim() : '';
 
             if (dbPassword !== '' && dbPassword !== enteredPassword) {
-                alert('Contraseña incorrecta. Inténtalo de nuevo.');
+                alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
                 passwordInput.value = '';
                 return;
             }
