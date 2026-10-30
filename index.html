@@ -235,12 +235,19 @@
                 </nav>
             </div>
 
-            <!-- Panel de Administración (Visible solo para administradores) -->
-            <div id="admin-section-container" style="display: none;">
-                <div class="nav-section-title">Admin-Bereich</div>
+            <!-- Nivel 2: Visión de Clientes y Planificación de Citas -->
+            <div id="admin-section-level2" style="display: none;">
+                <div class="nav-section-title">Verwaltung</div>
                 <nav class="nav-buttons">
                     <a href="./client-builder.html"><span>🏢</span> Kunden</a>
                     <a href="./appointment-builder.html"><span>📅</span> Termine planen</a>
+                </nav>
+            </div>
+
+            <!-- Nivel 3: Panel de Administración General -->
+            <div id="admin-section-container" style="display: none;">
+                <div class="nav-section-title">Admin-Bereich</div>
+                <nav class="nav-buttons">
                     <a href="./admin-assignments.html"><span>🛠️</span> Administration</a>
                     <a href="./employee-builder.html"><span>👨‍🔧</span> Mitarbeiter</a>
                     <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Arbeitsbericht</a>
@@ -267,6 +274,7 @@
         const btnLogout = document.getElementById('btn-logout');
 
         const linkTeam = document.getElementById('link-employee-portal');
+        const adminSectionLevel2 = document.getElementById('admin-section-level2');
         const adminSectionContainer = document.getElementById('admin-section-container');
         const pdfLink = document.getElementById('navAdminPdf');
 
@@ -326,10 +334,18 @@
             // Actualizar enlaces dinámicos con el empleado
             linkTeam.href = `./employee-schedule.html?employee=${encodeURIComponent(empName)}`;
 
-            // Validar nivel de usuario para mostrar u ocultar la sección de administración
+            // Validar niveles de acceso
             const userLevel = Number(localStorage.getItem(LEVEL_KEY)) || 1;
             const accesoAdmin = localStorage.getItem('usuario_acceso');
 
+            // Nivel 2 o superior (o accesoAdmin = 1): Ve Kunden y Termine planen
+            if (userLevel >= 2 || Number(accesoAdmin) === 1) {
+                adminSectionLevel2.style.display = 'block';
+            } else {
+                adminSectionLevel2.style.display = 'none';
+            }
+
+            // Nivel 3 o superior (o accesoAdmin = 1): Ve el resto de herramientas de administración
             if (userLevel >= 3 || Number(accesoAdmin) === 1) {
                 adminSectionContainer.style.display = 'block';
                 if (pdfLink) pdfLink.style.display = 'flex';
