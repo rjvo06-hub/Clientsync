@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClientSync | Gestión y Creación de Clientes</title>
+    <title>ClientSync | Kundenverwaltung & -erstellung</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
@@ -38,61 +38,61 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 id="view-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">👤 Gestión de Clientes</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Volver al Mapa</a>
+            <h1 id="view-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">👤 Kundenverwaltung</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Zurück zur Karte</a>
         </div>
 
-        <!-- Selector de Modo -->
+        <!-- Modus-Auswahl -->
         <div class="mode-selector">
-            <div id="btn-mode-edit" class="mode-btn active" onclick="setMode('edit')">🔍 Consultar / Modificar</div>
-            <div id="btn-mode-create" class="mode-btn" onclick="setMode('create')">➕ Crear Nuevo Cliente</div>
+            <div id="btn-mode-edit" class="mode-btn active" onclick="setMode('edit')">🔍 Suchen / Bearbeiten</div>
+            <div id="btn-mode-create" class="mode-btn" onclick="setMode('create')">➕ Neuen Kunden erstellen</div>
         </div>
 
         <form id="client-form">
             <input type="hidden" id="client-id">
 
-            <!-- Buscador -->
+            <!-- Suchfeld -->
             <div id="search-section" class="client-search-container">
-                <label>Buscar Cliente Existente (por nombre, dirección o CP):</label>
-                <input type="text" id="client-search-input" placeholder="Escribe parte del nombre, dirección o CP..." autocomplete="off">
+                <label>Bestehenden Kunden suchen (Name, Adresse oder PLZ):</label>
+                <input type="text" id="client-search-input" placeholder="Teil des Namens, der Adresse oder PLZ eingeben..." autocomplete="off">
                 <div id="client-results-dropdown" class="client-results-dropdown"></div>
             </div>
 
-            <!-- Campos del Cliente -->
+            <!-- Kundenfelder -->
             <div>
-                <label>Nombre del Cliente:</label>
-                <input type="text" id="client-name" placeholder="Nombre completo" required>
+                <label>Kundenname:</label>
+                <input type="text" id="client-name" placeholder="Vollständiger Name" required>
             </div>
 
             <div>
-                <label>Dirección (Calle y Número):</label>
-                <input type="text" id="client-address" placeholder="Ej. Haidgraben 89" required>
+                <label>Adresse (Straße und Hausnummer):</label>
+                <input type="text" id="client-address" placeholder="z. B. Haidgraben 89" required>
             </div>
 
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
-                    <label>Código Postal (CP):</label>
-                    <input type="text" id="client-postal" placeholder="Ej. 85521">
+                    <label>Postleitzahl (PLZ):</label>
+                    <input type="text" id="client-postal" placeholder="z. B. 85521">
                 </div>
                 <div style="flex: 1;">
-                    <label>Teléfono:</label>
-                    <input type="text" id="client-phone" placeholder="Ej. +49 89 ...">
+                    <label>Telefon:</label>
+                    <input type="text" id="client-phone" placeholder="z. B. +49 89 ...">
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
-                    <label>Latitud:</label>
-                    <input type="text" id="client-lat" placeholder="Ej. 48.0585">
+                    <label>Breitengrad (Lat):</label>
+                    <input type="text" id="client-lat" placeholder="z. B. 48.0585">
                 </div>
                 <div style="flex: 1;">
-                    <label>Longitud:</label>
-                    <input type="text" id="client-lng" placeholder="Ej. 11.6525">
+                    <label>Längengrad (Lng):</label>
+                    <input type="text" id="client-lng" placeholder="z. B. 11.6525">
                 </div>
             </div>
 
             <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 15px; width: 100%;">
-                💾 Guardar Cambios
+                💾 Änderungen speichern
             </button>
         </form>
     </div>
@@ -117,12 +117,12 @@
 
             if (mode === 'edit') {
                 if (searchSection) searchSection.style.display = 'block';
-                if (viewTitle) viewTitle.textContent = '🔍 Consultar y Modificar Cliente';
-                if (saveBtn) saveBtn.textContent = '💾 Actualizar Cliente';
+                if (viewTitle) viewTitle.textContent = '🔍 Kunde suchen und bearbeiten';
+                if (saveBtn) saveBtn.textContent = '💾 Kunde aktualisieren';
             } else {
                 if (searchSection) searchSection.style.display = 'none';
-                if (viewTitle) viewTitle.textContent = '➕ Registrar Nuevo Cliente';
-                if (saveBtn) saveBtn.textContent = '✨ Crear Cliente';
+                if (viewTitle) viewTitle.textContent = '➕ Neuen Kunden registrieren';
+                if (saveBtn) saveBtn.textContent = '✨ Kunde erstellen';
                 if (searchInput) searchInput.value = '';
             }
         }
@@ -143,7 +143,7 @@
                 const mapLat = urlParams.get('latitude');
                 const mapLng = urlParams.get('longitude');
 
-                // Si venimos del puente geográfico con los datos ya listos:
+                // Si venimos de la vista de mapa con datos previos
                 if (mapAddress || mapLat || mapLng) {
                     window.setMode('create');
                     clearForm();
@@ -154,7 +154,7 @@
                     if (mapLng) document.getElementById('client-lng').value = mapLng;
                 }
 
-                // Carga de clientes para modo consulta/edición
+                // Carga de clientes para el buscador
                 const { data, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
                 if (!error && data) {
                     allClients = data;
@@ -206,17 +206,17 @@
                     filtered.forEach(client => {
                         const item = document.createElement('div');
                         item.className = 'client-result-item';
-                        item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
+                        item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || 'Keine Adresse'}, PLZ: ${client.postal_code || 'N/A'}</span>`;
                         item.addEventListener('click', () => {
                             fillClientData(client);
                             dropdown.style.display = 'none';
-                            searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
+                            searchInput.value = `${client.name} - ${client.address || 'Keine Adresse'}`;
                         });
                         dropdown.appendChild(item);
                     });
                     dropdown.style.display = 'block';
                 } else {
-                    dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">No se encontró ningún cliente</div>`;
+                    dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">Kein Kunde gefunden</div>`;
                     dropdown.style.display = 'block';
                 }
             });
@@ -263,7 +263,7 @@
 
                 const saveBtn = document.getElementById('save-client-btn');
                 if (saveBtn) {
-                    saveBtn.textContent = 'Guardando...';
+                    saveBtn.textContent = 'Speichern...';
                     saveBtn.disabled = true;
                 }
 
@@ -274,7 +274,6 @@
                     const { error } = await supabase.from('clients').update(payload).eq('id', clientId);
                     errorResult = error;
                 } else {
-                    // Al insertar, solicitamos que nos devuelva el registro creado para obtener su ID
                     const { data, error } = await supabase.from('clients').insert([payload]).select();
                     errorResult = error;
                     if (data && data.length > 0) {
@@ -283,22 +282,21 @@
                 }
 
                 if (errorResult) {
-                    alert('Error al guardar: ' + errorResult.message);
+                    alert('Fehler beim Speichern: ' + errorResult.message);
                     if (saveBtn) {
-                        saveBtn.textContent = currentMode === 'edit' ? '💾 Actualizar Cliente' : '✨ Crear Cliente';
+                        saveBtn.textContent = currentMode === 'edit' ? '💾 Kunde aktualisieren' : '✨ Kunde erstellen';
                         saveBtn.disabled = false;
                     }
                 } else {
                     if (currentMode === 'create') {
-                        // Preguntamos al usuario si desea programar una cita para este nuevo cliente
-                        const wantAppointment = confirm('¡Cliente creado correctamente!\n\n¿Deseas programar una nueva cita para este cliente ahora?');
+                        const wantAppointment = confirm('Kunde erfolgreich erstellt!\n\nMöchten Sie jetzt einen neuen Termin für diesen Kunden planen?');
                         if (wantAppointment && createdClientId) {
                             window.location.href = `./appointment-builder.html?client_id=${createdClientId}&action=new`;
                         } else {
                             window.location.href = './index.html';
                         }
                     } else {
-                        alert('¡Cliente actualizado correctamente!');
+                        alert('Kunde erfolgreich aktualisiert!');
                         window.location.href = './index.html';
                     }
                 }
