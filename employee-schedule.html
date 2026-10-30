@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Portal Móvil Unificado</title>
+    <title>ClientSync | Mobiles Portal</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -45,18 +45,18 @@
         <div class="header" id="app-header">
             <div>
                 <h1 id="header-title" style="display: inline-block;">👷‍♂️ Portal</h1>
-                <span class="version-tag">⏱️ Tiempo Real</span>
+                <span class="version-tag">⏱️ Echtzeit</span>
             </div>
-            <a href="./index.html" class="icon-btn">🏠 Salir</a>
+            <a href="./index.html" class="icon-btn">🏠 Beenden</a>
         </div>
         <div id="app-content"></div>
     </div>
 
-    <!-- Modales -->
+    <!-- Modals -->
     <div id="day-modal" class="modal-overlay">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h3 id="modal-title" style="margin: 0; font-size: 0.9rem;">📅 Citas del Día</h3>
+                <h3 id="modal-title" style="margin: 0; font-size: 0.9rem;">📅 Tagestermine</h3>
                 <button type="button" id="close-modal" class="icon-btn">✕</button>
             </div>
             <div id="modal-content"></div>
@@ -66,14 +66,14 @@
     <div id="employee-modal" class="modal-overlay">
         <div class="modal-body" style="max-width: 320px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <h3 style="margin: 0; font-size: 0.9rem;">👥 Añadir Persona a la Visita</h3>
+                <h3 style="margin: 0; font-size: 0.9rem;">👥 Person zum Besuch hinzufügen</h3>
                 <button type="button" id="close-emp-modal" class="icon-btn">✕</button>
             </div>
-            <p style="font-size: 0.75rem; color: #64748b; margin-top: 0; margin-bottom: 10px;">Selecciona al empleado:</p>
+            <p style="font-size: 0.75rem; color: #64748b; margin-top: 0; margin-bottom: 10px;">Mitarbeiter auswählen:</p>
             <select id="employee-select-dropdown" class="select-dropdown"></select>
             <div style="display: flex; gap: 8px;">
-                <button type="button" class="btn btn-secondary" id="btn-cancel-emp" style="flex: 1;">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn-confirm-emp" style="flex: 1;">Añadir</button>
+                <button type="button" class="btn btn-secondary" id="btn-cancel-emp" style="flex: 1;">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-confirm-emp" style="flex: 1;">Hinzufügen</button>
             </div>
         </div>
     </div>
@@ -103,7 +103,7 @@
         const returnDate = urlParams.get('date');
 
         if (!selectedEmployee) {
-            alert('Por favor, inicia sesión primero.');
+            alert('Bitte melden Sie sich zuerst an.');
             window.location.href = './index.html';
         } else {
             localStorage.setItem(STORAGE_KEY, selectedEmployee);
@@ -112,7 +112,7 @@
         function formatDate(str) {
             if (!str) return '';
             const p = str.split('-');
-            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
+            return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : str;
         }
 
         function getPureLocalTimestamp() {
@@ -168,7 +168,7 @@
                 else if (currentView === 'calendar') renderCitasView('calendar');
                 else if (currentView === 'timetrack') renderTimetrackView();
                 else renderMainMenu();
-            } catch (err) { console.error('Error al iniciar:', err); }
+            } catch (err) { console.error('Fehler beim Starten:', err); }
         }
 
         async function fetchData() {
@@ -230,19 +230,19 @@
 
             document.getElementById('app-content').innerHTML = `
                 <div style="text-align: center; margin-bottom: 14px;">
-                    <p style="font-size: 0.78rem; color: #64748b; margin: 0;">Selecciona una sección:</p>
+                    <p style="font-size: 0.78rem; color: #64748b; margin: 0;">Wählen Sie einen Bereich:</p>
                 </div>
                 <div class="menu-card" id="card-citas">
                     <div>
-                        <h3>📅 Mis Citas y Agenda</h3>
-                        <p>Ver visitas programadas de hoy y mes</p>
+                        <h3>📅 Meine Termine & Agenda</h3>
+                        <p>Geplante Besuche für heute und diesen Monat anzeigen</p>
                     </div>
                     <span style="color: #3b82f6; font-weight: bold;">➔</span>
                 </div>
                 <div class="menu-card" id="card-timetrack">
                     <div>
-                        <h3>⏱️ Control de Tiempos</h3>
-                        <p>Jornada, almuerzo y clientes activos</p>
+                        <h3>⏱️ Zeiterfassung</h3>
+                        <p>Arbeitstag, Pause und aktive Kunden</p>
                     </div>
                     <span style="color: #3b82f6; font-weight: bold;">➔</span>
                 </div>
@@ -267,12 +267,12 @@
             const container = document.getElementById('app-content');
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <button type="button" class="icon-btn" id="btn-back">← Menú</button>
+                    <button type="button" class="icon-btn" id="btn-back">← Menü</button>
                     <span style="font-size: 0.75rem; font-weight: 700; color: #64748b;">${formatDate(todayStr)}</span>
                 </div>
                 <div class="tabs-header">
-                    <button type="button" class="tab-pill ${sub === 'today' ? 'active' : ''}" id="tab-today">📅 Hoy</button>
-                    <button type="button" class="tab-pill ${sub === 'calendar' ? 'active' : ''}" id="tab-cal">🗓️ Mes</button>
+                    <button type="button" class="tab-pill ${sub === 'today' ? 'active' : ''}" id="tab-today">📅 Heute</button>
+                    <button type="button" class="tab-pill ${sub === 'calendar' ? 'active' : ''}" id="tab-cal">🗓️ Monat</button>
                 </div>
                 <div id="sub-view-content"></div>
             `;
@@ -285,7 +285,7 @@
             document.getElementById('tab-cal').addEventListener('click', () => renderCitasView('calendar'));
 
             const subContainer = document.getElementById('sub-view-content');
-            if (sub === 'today') renderDayAppts(subContainer, todayStr, "Citas de Hoy");
+            if (sub === 'today') renderDayAppts(subContainer, todayStr, "Heutige Termine");
             else renderCalendar(subContainer);
         }
 
@@ -307,12 +307,12 @@
             let html = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <strong style="font-size: 0.82rem; color: #1e293b;">${title} (${formatDate(dateStr)})</strong>
-                    ${appts.length > 0 ? `<a href="${routeUrl}" class="icon-btn" style="background:#eff6ff; color:#1d4ed8;">🗺️ Mapa</a>` : ''}
+                    ${appts.length > 0 ? `<a href="${routeUrl}" class="icon-btn" style="background:#eff6ff; color:#1d4ed8;">🗺️ Karte</a>` : ''}
                 </div>
             `;
 
             if (appts.length === 0) {
-                html += `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">No hay citas para esta fecha.</div>`;
+                html += `<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.78rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">Keine Termine für dieses Datum.</div>`;
             } else {
                 appts.forEach((a, idx) => {
                     const c = map.get(a.client_id);
@@ -320,9 +320,9 @@
                         <div class="item-card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                                 <strong style="font-size: 0.8rem;">#${idx + 1} ${c.name}</strong>
-                                <span style="font-size: 0.75rem; color: #2563eb; font-weight: 700;">⏰ ${a.time_slot || '09:00'}h</span>
+                                <span style="font-size: 0.75rem; color: #2563eb; font-weight: 700;">⏰ ${a.time_slot || '09:00'} Uhr</span>
                             </div>
-                            <div style="font-size: 0.72rem; color: #64748b;">📍 ${c.address || 'Sin dirección'}</div>
+                            <div style="font-size: 0.72rem; color: #64748b;">📍 ${c.address || 'Keine Adresse'}</div>
                         </div>
                     `;
                 });
@@ -333,7 +333,7 @@
         function renderCalendar(container) {
             const y = selectedMonthDate.getFullYear();
             const m = selectedMonthDate.getMonth();
-            const names = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const names = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
             const first = new Date(y, m, 1).getDay();
             const total = new Date(y, m + 1, 0).getDate();
             const offset = first === 0 ? 6 : first - 1;
@@ -345,7 +345,7 @@
                     <button type="button" class="icon-btn" id="next-m">▶</button>
                 </div>
                 <div class="calendar-grid">
-                    <div class="cal-header">Lun</div><div class="cal-header">Mar</div><div class="cal-header">Mié</div><div class="cal-header">Jue</div><div class="cal-header">Vie</div><div class="cal-header">Sáb</div><div class="cal-header">Dom</div>
+                    <div class="cal-header">Mo</div><div class="cal-header">Di</div><div class="cal-header">Mi</div><div class="cal-header">Do</div><div class="cal-header">Fr</div><div class="cal-header">Sa</div><div class="cal-header">So</div>
             `;
             for (let i = 0; i < offset; i++) html += `<div></div>`;
             for (let d = 1; d <= total; d++) {
@@ -369,8 +369,8 @@
         }
 
         function openModal(dateStr) {
-            document.getElementById('modal-title').textContent = `📅 Citas del ${formatDate(dateStr)}`;
-            renderDayAppts(document.getElementById('modal-content'), dateStr, "Tareas");
+            document.getElementById('modal-title').textContent = `📅 Termine am ${formatDate(dateStr)}`;
+            renderDayAppts(document.getElementById('modal-content'), dateStr, "Aufgaben");
             document.getElementById('day-modal').style.display = 'flex';
         }
         document.getElementById('close-modal').addEventListener('click', () => document.getElementById('day-modal').style.display = 'none');
@@ -379,7 +379,7 @@
             if (timerInterval) clearInterval(timerInterval);
             if (visitLiveInterval) clearInterval(visitLiveInterval);
 
-            document.getElementById('header-title').textContent = `⏱️ Tiempos`;
+            document.getElementById('header-title').textContent = `⏱️ Zeiten`;
             document.getElementById('app-header').querySelector('a').style.display = 'none';
 
             const container = document.getElementById('app-content');
@@ -402,53 +402,53 @@
                 }
             }
 
-            let statusStr = 'Jornada no iniciada';
+            let statusStr = 'Arbeitstag nicht gestartet';
             let badgeBg = '#f1f5f9';
             let badgeColor = '#475569';
             if (employeeDailyLog) {
-                if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Jornada en curso'; badgeBg = '#f0fdf4'; badgeColor = '#15803d'; }
-                else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ En almuerzo'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
-                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Jornada finalizada'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
+                if (employeeDailyLog.status === 'activo') { statusStr = '🟢 Arbeitstag läuft'; badgeBg = '#f0fdf4'; badgeColor = '#15803d'; }
+                else if (employeeDailyLog.status === 'almuerzo') { statusStr = '☕ In der Pause'; badgeBg = '#fef3c7'; badgeColor = '#b45309'; }
+                else if (employeeDailyLog.status === 'finalizado') { statusStr = '✅ Arbeitstag beendet'; badgeBg = '#e0f2fe'; badgeColor = '#0369a1'; }
             }
 
             let activeBannerHtml = '';
             if (externalActiveVisit && timetrackViewMode !== 'active') {
                 const clientName = externalActiveVisit.client.name;
-                const clientAddress = externalActiveVisit.client.address || 'Sin dirección';
+                const clientAddress = externalActiveVisit.client.address || 'Keine Adresse';
                 activeBannerHtml = `
                     <div class="active-client-banner" id="banner-goto-active">
                         <span style="font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            🟢 Estás activo en: ${clientName} - <span style="font-weight: 400; color: #64748b;">${clientAddress}</span>
+                            🟢 Sie sind aktiv bei: ${clientName} - <span style="font-weight: 400; color: #64748b;">${clientAddress}</span>
                         </span>
-                        <span style="color: #2563eb; font-weight: 700; font-size: 0.7rem; flex-shrink: 0; margin-left: 6px;">Ver ➔</span>
+                        <span style="color: #2563eb; font-weight: 700; font-size: 0.7rem; flex-shrink: 0; margin-left: 6px;">Anzeigen ➔</span>
                     </div>
                 `;
             }
 
             const isAtLunch = employeeDailyLog && employeeDailyLog.status === 'almuerzo';
-            const lunchButtonText = isAtLunch ? '▶️ Volver de Almuerzo' : '☕ Almuerzo';
+            const lunchButtonText = isAtLunch ? '▶️ Zurück aus der Pause' : '☕ Pause';
             const lunchButtonStyle = isAtLunch ? 'background:#16a34a; color:#ffffff;' : 'background:#ffedd5; color:#c2410c; border: 1px solid #fed7aa;';
 
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <button type="button" class="icon-btn" id="btn-back-t">← Menú</button>
-                    <button type="button" class="btn-active-clients" id="btn-toggle-view">🟢 Clientes Activos</button>
+                    <button type="button" class="icon-btn" id="btn-back-t">← Menü</button>
+                    <button type="button" class="btn-active-clients" id="btn-toggle-view">🟢 Aktive Kunden</button>
                 </div>
 
                 <div class="card-box">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <strong style="font-size: 0.8rem; color: #0f172a;">🏢 Jornada Laboral</strong>
+                        <strong style="font-size: 0.8rem; color: #0f172a;">🏢 Arbeitstag</strong>
                         <span style="background: ${badgeBg}; color: ${badgeColor}; padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700;">${statusStr}</span>
                     </div>
 
                     <div class="timer-display" id="global-timer">00:00:00</div>
 
                     <div class="btn-group">
-                        <button type="button" class="btn btn-success" id="btn-start" style="flex: 1;">▶️ Iniciar</button>
+                        <button type="button" class="btn btn-success" id="btn-start" style="flex: 1;">▶️ Starten</button>
                         <button type="button" class="btn" style="flex: 1; ${lunchButtonStyle}" id="btn-lunch">${lunchButtonText}</button>
                     </div>
                     <div style="margin-top: 8px;">
-                        <button type="button" class="btn btn-danger" id="btn-end">⏹️ Finalizar Jornada</button>
+                        <button type="button" class="btn btn-danger" id="btn-end">⏹️ Arbeitstag beenden</button>
                     </div>
                 </div>
 
@@ -456,7 +456,7 @@
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <strong id="section-title" style="font-size: 0.8rem; color: #0f172a;">
-                        ${timetrackViewMode === 'assigned' ? '📍 Clientes Asignados Hoy:' : '🟢 Clientes Activos Globales:'}
+                        ${timetrackViewMode === 'assigned' ? '📍 Heute zugewiesene Kunden:' : '🟢 Globale aktive Kunden:'}
                     </strong>
                     <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">${formatDate(todayStr)}</span>
                 </div>
@@ -469,7 +469,7 @@
             });
 
             const btnToggle = document.getElementById('btn-toggle-view');
-            btnToggle.textContent = timetrackViewMode === 'assigned' ? '🟢 Clientes Activos' : '📌 Mis Asignados';
+            btnToggle.textContent = timetrackViewMode === 'assigned' ? '🟢 Aktive Kunden' : '📌 Meine Zugewiesenen';
             btnToggle.addEventListener('click', () => {
                 timetrackViewMode = timetrackViewMode === 'assigned' ? 'active' : 'assigned';
                 renderTimetrackView();
@@ -507,7 +507,7 @@
             }
 
             if (filteredAppts.length === 0) {
-                const msg = timetrackViewMode === 'assigned' ? 'No tienes clientes asignados para hoy.' : '🟢 No hay clientes activos en este momento en la empresa.';
+                const msg = timetrackViewMode === 'assigned' ? 'Ihnen sind heute keine Kunden zugewiesen.' : '🟢 Derzeit gibt es keine aktiven Kunden im Unternehmen.';
                 listContainer.innerHTML = `<div style="padding: 14px; text-align: center; color: #64748b; font-size: 0.78rem; background: #fafafa; border-radius: 12px; border: 1px solid #e2e8f0;">${msg}</div>`;
                 return;
             }
@@ -525,16 +525,16 @@
                 const myActiveVisit = apptVisits.find(v => v.employee_name.toLowerCase() === selectedEmployee.toLowerCase());
                 const amActiveInVisit = !!myActiveVisit;
 
-                let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Pendiente</span>`;
+                let badge = `<span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">Ausstehend</span>`;
                 let actionBtn = '';
 
                 if (isCompleted) {
-                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Finalizado (${appt.total_labor_minutes || 0}m)</span>`;
+                    badge = `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;">✅ Beendet (${appt.total_labor_minutes || 0}m)</span>`;
                     if (timetrackViewMode === 'assigned') {
                         if (isCheckedIn && !amActiveInVisit) {
-                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
+                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Beitreten</button>`;
                         } else {
-                            actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Completado</span>`;
+                            actionBtn = `<span style="font-size: 0.7rem; color: #16a34a; font-weight: 700;">Abgeschlossen</span>`;
                         }
                     }
                 } else if (isCheckedIn) {
@@ -548,20 +548,20 @@
                     
                     if (timetrackViewMode === 'assigned') {
                         if (amActiveInVisit) {
-                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Finalizar</button>`;
+                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Beenden</button>`;
                         } else {
-                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
+                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Beitreten</button>`;
                         }
                     } else {
                         if (!amActiveInVisit) {
-                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Incluirse</button>`;
+                            actionBtn = `<button type="button" class="btn btn-success btn-join" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">➕ Beitreten</button>`;
                         } else {
-                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Finalizar</button>`;
+                            actionBtn = `<button type="button" class="btn btn-danger btn-checkout" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">⏹️ Beenden</button>`;
                         }
                     }
                 } else {
                     if (timetrackViewMode === 'assigned') {
-                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">▶️ Llegué</button>`;
+                        actionBtn = `<button type="button" class="btn btn-primary btn-checkin" data-id="${appt.id}" style="padding: 8px; font-size: 0.7rem;">▶️ Angekommen</button>`;
                     }
                 }
 
@@ -570,14 +570,14 @@
                     teamHtml = `
                         <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Personal activo en visita:</span>
-                                <button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1;">+ Añadir persona</button>
+                                <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">👥 Aktives Personal beim Besuch:</span>
+                                <button type="button" class="icon-btn btn-open-add-emp" data-id="${appt.id}" style="padding: 2px 6px; font-size: 0.65rem; background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1;">+ Person hinzufügen</button>
                             </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                                 ${apptVisits.map((v) => `
                                     <span class="team-chip">
                                         👷‍♂️ ${v.employee_name}
-                                        <button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${v.employee_name}" title="Retirarse de la visita">×</button>
+                                        <button type="button" class="btn-remove-employee" data-id="${appt.id}" data-emp="${v.employee_name}" title="Besuch verlassen">×</button>
                                     </span>
                                 `).join('')}
                             </div>
@@ -590,7 +590,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
                             <div>
                                 <strong style="font-size: 0.8rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
-                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">📍 ${c.address || 'Sin dirección'}</div>
+                                <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">📍 ${c.address || 'Keine Adresse'}</div>
                             </div>
                             <div>${badge}</div>
                         </div>
@@ -598,7 +598,7 @@
                         ${teamHtml}
 
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f8fafc;">
-                            <span style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">⏰ ${appt.time_slot || '09:00'}h (Principal: ${primaryEmployee})</span>
+                            <span style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">⏰ ${appt.time_slot || '09:00'} Uhr (Hauptverantwortlich: ${primaryEmployee})</span>
                             <div style="width: 130px;">${actionBtn}</div>
                         </div>
                     </div>
@@ -627,7 +627,7 @@
                     const h = String(Math.floor(diff / 3600)).padStart(2, '0');
                     const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
                     const s = String(diff % 60).padStart(2, '0');
-                    timerEl.innerHTML = `<span style="color: #b45309; font-size: 1.8rem;">☕ Almuerzo: ${h}:${m}:${s}</span>`;
+                    timerEl.innerHTML = `<span style="color: #b45309; font-size: 1.8rem;">☕ Pause: ${h}:${m}:${s}</span>`;
                     return;
                 }
 
@@ -675,12 +675,11 @@
                         employeeDailyLog = data;
                     }
                     renderTimetrackView();
-                } catch (err) { alert('Error al iniciar: ' + err.message); }
+                } catch (err) { alert('Fehler beim Starten: ' + err.message); }
             });
 
-            // Lógica de Almuerzo con vinculación directa a la visita activa del cliente
             document.getElementById('btn-lunch').addEventListener('click', async () => {
-                if (!employeeDailyLog) { alert('Primero debes iniciar tu jornada.'); return; }
+                if (!employeeDailyLog) { alert('Sie müssen zuerst Ihren Arbeitstag starten.'); return; }
                 const nowPure = getPureLocalTimestamp();
                 
                 let isReturningFromLunch = employeeDailyLog.status === 'almuerzo';
@@ -691,7 +690,6 @@
                     if (error) throw error;
                     employeeDailyLog = data;
 
-                    // Si está volviendo de su almuerzo, busca si está activo en algún cliente para guardar su descuento en lunch_deductions
                     if (isReturningFromLunch && employeeDailyLog.lunch_start_time) {
                         const activeVisit = activeVisitsList.find(v => v.employee_name.toLowerCase() === selectedEmployee.toLowerCase());
                         
@@ -704,7 +702,6 @@
 
                                 let currentDeductions = parseDeductions(appt.lunch_deductions);
                                 
-                                // Agrega o reemplaza el registro del almuerzo de este usuario
                                 const existingIndex = currentDeductions.findIndex(d => d.employee.toLowerCase() === selectedEmployee.toLowerCase());
                                 if (existingIndex >= 0) {
                                     currentDeductions[existingIndex] = {
@@ -738,7 +735,7 @@
 
                     await fetchData();
                     renderTimetrackView();
-                } catch (err) { alert('Error en almuerzo: ' + err.message); }
+                } catch (err) { alert('Fehler bei der Pause: ' + err.message); }
             });
 
             document.getElementById('btn-end').addEventListener('click', async () => {
@@ -749,7 +746,7 @@
                     if (error) throw error;
                     employeeDailyLog = data;
                     renderTimetrackView();
-                } catch (err) { alert('Error al finalizar: ' + err.message); }
+                } catch (err) { alert('Fehler beim Beenden: ' + err.message); }
             });
         }
 
@@ -773,7 +770,7 @@
                 }
                 await fetchData();
                 renderTimetrackView();
-            } else alert('Error al agregar empleado: ' + error.message);
+            } else alert('Fehler beim Hinzufügen des Mitarbeiters: ' + error.message);
         });
 
         function attachClientTimerListeners() {
@@ -785,7 +782,7 @@
 
                     empDropdown.innerHTML = '';
                     if (allEmployeeNames.length === 0) {
-                        empDropdown.innerHTML = `<option value="">No hay empleados registrados</option>`;
+                        empDropdown.innerHTML = `<option value="">Keine Mitarbeiter registriert</option>`;
                     } else {
                         allEmployeeNames.forEach(name => {
                             const opt = document.createElement('option');
@@ -802,13 +799,13 @@
                 btn.addEventListener('click', async (e) => {
                     const id = e.target.getAttribute('data-id');
                     const empToRemove = e.target.getAttribute('data-emp');
-                    if (!confirm(`¿Deseas retirarte de esta visita, ${empToRemove}?`)) return;
+                    if (!confirm(`Möchten Sie diesen Besuch verlassen, ${empToRemove}?`)) return;
 
                     const a = allAppointments.find(x => x.id === id);
                     if (!a) return;
 
                     const clientObj = allClients.find(cl => String(cl.id) === String(a.client_id));
-                    const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
+                    const clientName = clientObj ? clientObj.name : `Kunde #${a.client_id}`;
                     const visitRecord = activeVisitsList.find(v => String(v.appointment_id) === String(id) && v.employee_name.toLowerCase() === empToRemove.toLowerCase());
                     const nowPure = getPureLocalTimestamp();
                     let sessionMinutes = 1;
@@ -825,11 +822,10 @@
                         employee: empToRemove,
                         check_in: visitRecord ? visitRecord.check_in : nowPure,
                         check_out: nowPure,
-                        minutes: sessionMinutes // Guarda duración bruta intacta
+                        minutes: sessionMinutes
                     });
                     let sessions = unifySessions(rawSessions);
 
-                    // Recupera descuentos existentes y calcula total
                     let deductions = parseDeductions(a.lunch_deductions);
                     const totalLunchDeductions = deductions.reduce((sum, item) => sum + item.minutes, 0);
                     const grossLabor = sessions.reduce((sum, item) => sum + item.minutes, 0);
@@ -859,7 +855,7 @@
                     if (!error) {
                         await fetchData();
                         renderTimetrackView();
-                    } else alert('Error al retirar empleado: ' + error.message);
+                    } else alert('Fehler beim Entfernen des Mitarbeiters: ' + error.message);
                 });
             });
 
@@ -878,7 +874,7 @@
                         }
                         await fetchData();
                         renderTimetrackView();
-                    } else alert('Error al unirse: ' + error.message);
+                    } else alert('Fehler beim Beitreten: ' + error.message);
                 });
             });
 
@@ -894,7 +890,7 @@
                         await supabase.from('appointments').update({ check_in_time: a.check_in_time || nowPure }).eq('id', a.id);
                         await fetchData();
                         renderTimetrackView();
-                    } else alert('Error: ' + error.message);
+                    } else alert('Fehler: ' + error.message);
                 });
             });
 
@@ -910,19 +906,19 @@
                     if (otherActiveEmps.length > 0) {
                         const otherNames = otherActiveEmps.map(v => v.employee_name).join(', ');
                         const proceed = confirm(
-                            `⚠️ Atención sobre el Cierre\n\n` +
-                            `Actualmente aún hay compañeros activos en este cliente: [ ${otherNames} ].\n\n` +
-                            `Si únicamente tú terminaste tu trabajo y ellos se quedan, presiona "Cancelar" y usa el botón (×) al lado de tu nombre para retirarte.\n\n` +
-                            `¿Deseas cerrar por completo la visita para TODOS los compañeros ahora mismo?`
+                            `⚠️ Hinweis zum Abschluss\n\n` +
+                            `Derzeit sind noch Kollegen bei diesem Kunden aktiv: [ ${otherNames} ].\n\n` +
+                            `Wenn nur Sie Ihre Arbeit beendet haben und die anderen bleiben, klicken Sie auf "Abbrechen" und nutzen Sie das (×) neben Ihrem Namen, um sich auszutragen.\n\n` +
+                            `Möchten Sie den Besuch jetzt wirklich für ALLE Kollegen abschließen?`
                         );
                         if (!proceed) return;
                     } else {
-                        const confirmSingle = confirm(`¿Estás seguro de que deseas finalizar y cerrar esta visita?`);
+                        const confirmSingle = confirm(`Sind Sie sicher, dass Sie diesen Besuch beenden und schließen möchten?`);
                         if (!confirmSingle) return;
                     }
 
                     const clientObj = allClients.find(cl => String(cl.id) === String(a.client_id));
-                    const clientName = clientObj ? clientObj.name : `Cliente #${a.client_id}`;
+                    const clientName = clientObj ? clientObj.name : `Kunde #${a.client_id}`;
                     const nowPure = getPureLocalTimestamp();
                     let rawSessions = a.sessions ? (typeof a.sessions === 'string' ? JSON.parse(a.sessions) : a.sessions) : [];
 
@@ -966,7 +962,7 @@
                     if (!error) {
                         await fetchData();
                         renderTimetrackView();
-                    } else alert('Error al cerrar visita: ' + error.message);
+                    } else alert('Fehler beim Schließen des Besuchs: ' + error.message);
                 });
             });
         }
