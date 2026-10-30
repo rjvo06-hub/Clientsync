@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Auditoría de Jornadas</title>
+    <title>ClientSync | Arbeitszeit-Audit</title>
     <link rel="stylesheet" href="./css/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -404,21 +404,21 @@
 
     <div class="container">
         <div class="header">
-            <h1>📊 Auditoría de Jornadas</h1>
-            <a href="./index.html" class="icon-btn">← Menú</a>
+            <h1>📊 Arbeitszeit-Audit</h1>
+            <a href="./index.html" class="icon-btn">← Menü</a>
         </div>
 
-        <!-- Filtros -->
+        <!-- Filter -->
         <div class="filter-card">
             <div class="form-group">
-                <label>Empleado (Filtro Rápido):</label>
+                <label>Mitarbeiter (Schnellfilter):</label>
                 <select id="filter-employee">
-                    <option value="ALL">Todos los empleados</option>
+                    <option value="ALL">Alle Mitarbeiter</option>
                 </select>
             </div>
 
             <div class="form-group" id="single-date-group">
-                <label>📅 Fecha de Consulta:</label>
+                <label>📅 Abfragedatum:</label>
                 <div class="single-date-grid">
                     <div class="col-single">
                         <input type="date" id="filter-single-date">
@@ -426,33 +426,33 @@
                 </div>
             </div>
 
-            <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 Consultar por rango (Semana / Mes)</button>
+            <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 Nach Zeitraum abfragen (Woche / Monat)</button>
 
             <div id="range-container">
                 <div class="grid-with-spacers">
                     <div class="form-group col-1">
-                        <label>Desde:</label>
+                        <label>Von:</label>
                         <input type="date" id="filter-start-date">
                     </div>
                     <div class="form-group col-2">
-                        <label>Hasta:</label>
+                        <label>Bis:</label>
                         <input type="date" id="filter-end-date">
                     </div>
                 </div>
             </div>
 
-            <button type="button" class="btn-query" id="btn-search">🔍 Consultar Registros</button>
+            <button type="button" class="btn-query" id="btn-search">🔍 Datensätze abfragen</button>
         </div>
 
-        <!-- Pestañas -->
+        <!-- Reiter / Tabs -->
         <div class="tabs-row">
-            <button type="button" class="tab-btn active" id="tab-employees" onclick="switchView('employees')">👥 Vista por Empleados</button>
-            <button type="button" class="tab-btn" id="tab-clients" onclick="switchView('clients')">🏢 Vista por Clientes</button>
+            <button type="button" class="tab-btn active" id="tab-employees" onclick="switchView('employees')">👥 Ansicht nach Mitarbeitern</button>
+            <button type="button" class="tab-btn" id="tab-clients" onclick="switchView('clients')">🏢 Ansicht nach Kunden</button>
         </div>
 
         <div id="report-results" class="report-section">
             <div style="text-align: center; padding: 30px; color: #64748b; background: #ffffff; border-radius: 24px; font-size: 0.8rem; border: 1px solid #e2e8f0;">
-                Selecciona la fecha y haz clic en "Consultar Registros".
+                Wählen Sie das Datum aus und klicken Sie auf "Datensätze abfragen".
             </div>
         </div>
     </div>
@@ -490,10 +490,10 @@
             useRange = !useRange;
             if (useRange) {
                 rangeContainer.style.display = 'block';
-                btnToggleRange.textContent = '📅 Ocultar rango y usar día único';
+                btnToggleRange.textContent = '📅 Zeitraum ausblenden und Einzeltag verwenden';
             } else {
                 rangeContainer.style.display = 'none';
-                btnToggleRange.textContent = '📅 Consultar por rango (Semana / Mes)';
+                btnToggleRange.textContent = '📅 Nach Zeitraum abfragen (Woche / Monat)';
             }
         });
 
@@ -516,7 +516,7 @@
         function formatDate(str) {
             if (!str) return '';
             const p = str.split('-');
-            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
+            return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : str;
         }
 
         function timeToMinutes(timestampStr) {
@@ -542,7 +542,7 @@
                 }
                 loadReport();
             } catch (err) {
-                console.error('Error al inicializar filtros:', err);
+                console.error('Fehler beim Initialisieren der Filter:', err);
             }
         }
 
@@ -556,7 +556,7 @@
                 endDate = endDateInput.value;
             }
 
-            reportResults.innerHTML = `<div style="text-align: center; padding: 25px; color: #64748b; font-size: 0.8rem;">Cargando registros...</div>`;
+            reportResults.innerHTML = `<div style="text-align: center; padding: 25px; color: #64748b; font-size: 0.8rem;">Datensätze werden geladen...</div>`;
 
             try {
                 let logsQuery = supabase.from('employee_daily_logs').select('*').gte('work_date', startDate).lte('work_date', endDate).order('work_date', { ascending: false });
@@ -582,8 +582,8 @@
                 renderCurrentView();
 
             } catch (err) {
-                console.error('Error al generar reporte:', err);
-                reportResults.innerHTML = `<div style="padding: 15px; color: #dc2626; text-align: center; font-size: 0.75rem;">Error al cargar datos: ${err.message}</div>`;
+                console.error('Fehler beim Generieren des Berichts:', err);
+                reportResults.innerHTML = `<div style="padding: 15px; color: #dc2626; text-align: center; font-size: 0.75rem;">Fehler beim Laden der Daten: ${err.message}</div>`;
             }
         }
 
@@ -594,7 +594,7 @@
             const clientsMap = cachedData.clientsMap;
 
             if (logs.length === 0 && appts.length === 0) {
-                reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No se encontraron registros en las fechas seleccionadas.</div>`;
+                reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Datensätze für die ausgewählten Daten gefunden.</div>`;
                 return;
             }
 
@@ -625,7 +625,7 @@
                 });
 
                 if (reportMap.size === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No hay registros de asistencia de empleados para los criterios seleccionados.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Zeiterfassungsdaten für die ausgewählten Kriterien vorhanden.</div>`;
                     return;
                 }
 
@@ -636,7 +636,7 @@
                     const log = item.log;
                     const dayAppts = item.appointments;
 
-                    let statusBadge = `<span class="badge" style="background:#f1f5f9; color:#475569;">Sin Fichaje</span>`;
+                    let statusBadge = `<span class="badge" style="background:#f1f5f9; color:#475569;">Kein Einstempeln</span>`;
                     let clockIn = '--:--';
                     let clockOut = '--:--';
                     let grossMinutes = 0;
@@ -660,7 +660,7 @@
                         let netMinutes = Math.max(0, grossMinutes - pauseMinutes);
                         netMinutesStr = `<strong style="color:#16a34a;">${formatHoursAndMinutes(netMinutes)}</strong>`;
                     } else {
-                        clockOut = 'En curso';
+                        clockOut = 'Laufend';
                         if (log && log.clock_in_time) {
                             grossMinutes = getFlatMinutesDifference(log.clock_in_time, `${nowLocalDate.getHours().toString().padStart(2, '0')}:${nowLocalDate.getMinutes().toString().padStart(2, '0')}`);
                             grossStr = formatHoursAndMinutes(grossMinutes);
@@ -669,10 +669,10 @@
                     }
 
                     if (log) {
-                        if (log.status === 'activo') statusBadge = `<span class="badge" style="background:#dcfce7; color:#166534;">🟢 Activo</span>`;
-                        else if (log.status === 'pausa') statusBadge = `<span class="badge" style="background:#fef9c3; color:#854d0e;">⏸️ Pausa</span>`;
-                        else if (log.status === 'almuerzo') statusBadge = `<span class="badge" style="background:#fef3c7; color:#b45309;">☕ Almuerzo</span>`;
-                        else if (log.status === 'finalizado') statusBadge = `<span class="badge" style="background:#e0f2fe; color:#0369a1;">✅ Finalizado</span>`;
+                        if (log.status === 'activo') statusBadge = `<span class="badge" style="background:#dcfce7; color:#166534;">🟢 Aktiv</span>`;
+                        else if (log.status === 'pausa') statusBadge = `<span class="badge" style="background:#fef9c3; color:#854d0e;">⏸️ Pause</span>`;
+                        else if (log.status === 'almuerzo') statusBadge = `<span class="badge" style="background:#fef3c7; color:#b45309;">☕ Pause</span>`;
+                        else if (log.status === 'finalizado') statusBadge = `<span class="badge" style="background:#e0f2fe; color:#0369a1;">✅ Beendet</span>`;
                     }
 
                     html += `
@@ -683,24 +683,24 @@
                                     <div class="date-line-inline">📅 ${formatDate(item.date)}</div>
                                 </div>
                                 <div class="employee-info-right">
-                                    <span class="time-clean-group">Inicio: <strong>${clockIn}</strong></span>
+                                    <span class="time-clean-group">Start: <strong>${clockIn}</strong></span>
                                     <span style="color: #e2e8f0;">|</span>
-                                    <span class="time-clean-group">Fin: <strong>${clockOut}</strong></span>
+                                    <span class="time-clean-group">Ende: <strong>${clockOut}</strong></span>
                                     ${statusBadge}
                                 </div>
                             </div>
 
                             <div class="metrics-calc-line">
                                 <div class="calc-left">
-                                    <span style="color:#64748b; font-size:0.62rem; display:block;">BRUTO</span>
+                                    <span style="color:#64748b; font-size:0.62rem; display:block;">BRUTTO</span>
                                     <strong>${grossStr}</strong>
                                 </div>
                                 <div class="calc-center">
-                                    <span style="font-size:0.62rem; display:block;">ALMUERZO</span>
+                                    <span style="font-size:0.62rem; display:block;">PAUSE</span>
                                     <span>- ${formatHoursAndMinutes(pauseMinutes)}</span>
                                 </div>
                                 <div class="calc-right">
-                                    <span style="color:#64748b; font-size:0.62rem; display:block;">NETO TRABAJADO</span>
+                                    <span style="color:#64748b; font-size:0.62rem; display:block;">NETTO GEARBEITET</span>
                                     ${netMinutesStr}
                                 </div>
                             </div>
@@ -708,17 +708,17 @@
 
                     if (dayAppts.length === 0) {
                         html += `
-                            <div style="font-size: 0.74rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">📍 Clientes Visitados por este Empleado:</div>
-                            <div style="font-size: 0.7rem; color: #64748b; font-style: italic; padding: 4px 0;">No hubo visitas registradas en esta fecha.</div>
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">📍 Von diesem Mitarbeiter besuchte Kunden:</div>
+                            <div style="font-size: 0.7rem; color: #64748b; font-style: italic; padding: 4px 0;">An diesem Datum wurden keine Besuche registriert.</div>
                         `;
                     } else {
                         html += `
                             <details class="accordion-visits">
-                                <summary>📍 Clientes Visitados por este Empleado (${dayAppts.length})</summary>
+                                <summary>📍 Von diesem Mitarbeiter besuchte Kunden (${dayAppts.length})</summary>
                                 <div class="visit-list">
                         `;
                         dayAppts.forEach(a => {
-                            const client = clientsMap.get(a.client_id) || { name: 'Cliente Desconocido' };
+                            const client = clientsMap.get(a.client_id) || { name: 'Unbekannter Kunde' };
                             const checkInTime = formatFlatTime(a.check_in_time);
                             const checkOutTime = formatFlatTime(a.check_out_time);
                             const realDurationMins = a.visit_duration_minutes || 0;
@@ -728,16 +728,16 @@
                                     <div class="visit-header-row">
                                         <div>
                                             <div class="visit-client-name">🏢 ${client.name}</div>
-                                            <div class="visit-client-address">${client.address || 'Sin dirección'}</div>
+                                            <div class="visit-client-address">${client.address || 'Keine Adresse'}</div>
                                         </div>
-                                        <div class="visit-time-badge">Prog: ${a.time_slot || '--:--'}h</div>
+                                        <div class="visit-time-badge">Geplant: ${a.time_slot || '--:--'} Uhr</div>
                                     </div>
                                     <div class="visit-footer-row">
                                         <div>
                                             <span style="color:#64748b;">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
                                         </div>
                                         <div style="text-align: right;">
-                                            <div>Duración: <span class="time-pill" style="color:#2563eb;">${formatHoursAndMinutes(realDurationMins)}</span></div>
+                                            <div>Dauer: <span class="time-pill" style="color:#2563eb;">${formatHoursAndMinutes(realDurationMins)}</span></div>
                                         </div>
                                     </div>
                                 </div>
@@ -749,7 +749,7 @@
                 });
 
             } else {
-                // VISTA POR CLIENTES
+                // ANSICHT NACH KUNDEN
                 const filteredAppts = appts.filter(a => {
                     if (selectedEmp === 'ALL') return true;
                     if (!a.assigned_employee) return false;
@@ -758,7 +758,7 @@
                 });
 
                 if (filteredAppts.length === 0) {
-                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">No hay visitas a clientes registradas para los criterios seleccionados.</div>`;
+                    reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Kundenbesuche für die ausgewählten Kriterien registriert.</div>`;
                     return;
                 }
 
@@ -778,15 +778,15 @@
                         <div class="card-box">
                             <div class="employee-summary-header">
                                 <div>
-                                    <strong style="font-size: 0.85rem; color: #0f172a;">📅 Fecha: ${formatDate(dateStr)}</strong>
-                                    <div style="font-size: 0.68rem; color: #64748b;">${dayVisits.length} visita(s) registrada(s)</div>
+                                    <strong style="font-size: 0.85rem; color: #0f172a;">📅 Datum: ${formatDate(dateStr)}</strong>
+                                    <div style="font-size: 0.68rem; color: #64748b;">${dayVisits.length} Besuch(e) registriert</div>
                                 </div>
                             </div>
                             <div class="visit-list">
                     `;
 
                     dayVisits.forEach(a => {
-                        const client = clientsMap.get(a.client_id) || { name: 'Cliente Desconocido' };
+                        const client = clientsMap.get(a.client_id) || { name: 'Unbekannter Kunde' };
                         const checkInTime = formatFlatTime(a.check_in_time);
                         const checkOutTime = formatFlatTime(a.check_out_time);
 
@@ -810,7 +810,7 @@
                         if (sessionsList.length > 0) {
                             const aggregatedSessions = new Map();
                             sessionsList.forEach(s => {
-                                const empName = s.employee || 'Desconocido';
+                                const empName = s.employee || 'Unbekannt';
                                 const sMins = s.minutes || 0;
                                 aggregatedSessions.set(empName, (aggregatedSessions.get(empName) || 0) + sMins);
                             });
@@ -837,7 +837,7 @@
                             });
                         }
 
-                        // Cálculo del Descuento por Almuerzo
+                        // Berechnung des Pausenabzugs
                         let lunchDiscountMins = a.lunch_deduction_minutes || 0;
                         let lunchCount = deductionsList.length;
 
@@ -847,10 +847,10 @@
 
                         let lunchDeductionHtml = '';
                         if (lunchDiscountMins > 0) {
-                            const empLabel = lunchCount > 0 ? ` (${lunchCount} emp)` : '';
+                            const empLabel = lunchCount > 0 ? ` (${lunchCount} MA)` : '';
                             lunchDeductionHtml = `
                                 <div class="lunch-deduction-banner">
-                                    <span>☕ Pausa de almuerzo${empLabel}:</span>
+                                    <span>☕ Pause${empLabel}:</span>
                                     <span style="color: #dc2626; font-weight: 700;">- ${formatHoursAndMinutes(lunchDiscountMins)}</span>
                                 </div>
                             `;
@@ -866,13 +866,13 @@
                                 <div class="visit-header-row">
                                     <div>
                                         <div class="visit-client-name">🏢 ${client.name}</div>
-                                        <div class="visit-client-address">${client.address || 'Sin dirección'}</div>
+                                        <div class="visit-client-address">${client.address || 'Keine Adresse'}</div>
                                     </div>
-                                    <div class="visit-time-badge">Prog: ${a.time_slot || '--:--'}h</div>
+                                    <div class="visit-time-badge">Geplant: ${a.time_slot || '--:--'} Uhr</div>
                                 </div>
 
                                 <div>
-                                    <div style="font-size:0.65rem; color:#64748b; font-weight:700; margin-top: 4px;">Personal presente y tiempo de permanencia individual:</div>
+                                    <div style="font-size:0.65rem; color:#64748b; font-weight:700; margin-top: 4px;">Anwesendes Personal und individuelle Verweildauer:</div>
                                     <div class="team-details-list">${teamDetailsHtml}</div>
                                     ${lunchDeductionHtml}
                                 </div>
@@ -882,8 +882,8 @@
                                         <span style="color:#64748b;">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size:0.7rem; color:#64748b;">Duración de visita: <span class="time-pill" style="color:#2563eb;">${formatHoursAndMinutes(realDurationMins)}</span></div>
-                                        <div style="font-size:0.75rem; margin-top:2px;">Labor total neta: <span class="time-pill" style="color:#16a34a;">${formatHoursAndMinutes(netLaborMins)}</span></div>
+                                        <div style="font-size:0.7rem; color:#64748b;">Besuchsdauer: <span class="time-pill" style="color:#2563eb;">${formatHoursAndMinutes(realDurationMins)}</span></div>
+                                        <div style="font-size:0.75rem; margin-top:2px;">Gesamte Nettoarbeitszeit: <span class="time-pill" style="color:#16a34a;">${formatHoursAndMinutes(netLaborMins)}</span></div>
                                     </div>
                                 </div>
                             </div>
