@@ -112,8 +112,8 @@
         .btn-login:hover { opacity: 0.95; }
         .btn-login:active { transform: scale(0.98); }
 
-        /* Menú Principal (Oculto hasta hacer login) */
-        #main-menu-container {
+        /* Menú Principal y Vista de Cambio de Contraseña (Ocultos inicialmente) */
+        #main-menu-container, #change-password-section {
             display: none;
             flex-direction: column;
             gap: 14px;
@@ -211,6 +211,28 @@
             </form>
         </div>
 
+        <!-- SECCIÓN DE CAMBIO DE CONTRASEÑA (SÓLO PRIMERA VEZ) -->
+        <div id="change-password-section" class="login-card">
+            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 6px; text-align: center; font-weight: 800;">🔑 Erste Anmeldung</h2>
+            <p style="font-size: 0.78rem; color: #64748b; text-align: center; margin-bottom: 16px;">
+                Bitte erstellen Sie ein neues Passwort, um Ihr Konto zu sichern.
+            </p>
+            
+            <form id="change-password-form">
+                <div class="form-group">
+                    <label>Neues Passwort:</label>
+                    <input type="password" id="new-password" placeholder="Neues Passwort eingeben" required minlength="4">
+                </div>
+
+                <div class="form-group">
+                    <label>Passwort bestätigen:</label>
+                    <input type="password" id="confirm-password" placeholder="Passwort wiederholen" required minlength="4">
+                </div>
+
+                <button type="submit" class="btn-login" id="btn-submit-change-password">Passwort aktualisieren & Anmelden</button>
+            </form>
+        </div>
+
         <!-- SECCIÓN 2: MENÚ PRINCIPAL (Aparece al iniciar sesión correctamente) -->
         <div id="main-menu-container">
             <div class="user-welcome-bar">
@@ -264,12 +286,17 @@
         const LEVEL_KEY = 'clientSync_user_level';
 
         let employeesList = [];
+        let pendingEmployeeObj = null; // Para rastrear temporalmente al usuario que está cambiando su contraseña
 
         const loginSection = document.getElementById('login-section');
+        const changePasswordSection = document.getElementById('change-password-section');
         const mainMenuContainer = document.getElementById('main-menu-container');
         const employeeSelect = document.getElementById('login-employee');
         const passwordInput = document.getElementById('login-password');
         const loginForm = document.getElementById('login-form');
+        const changePasswordForm = document.getElementById('change-password-form');
+        const newPasswordInput = document.getElementById('new-password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
         const loggedUserName = document.getElementById('logged-user-name');
         const btnLogout = document.getElementById('btn-logout');
 
@@ -284,6 +311,7 @@
                 if (error) throw error;
 
                 employeesList = data || [];
+                employeeSelect.innerHTML = `<option value="">-- Wer bist du? --</option>`;
                 employeesList.forEach(emp => {
                     employeeSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
@@ -294,7 +322,7 @@
                     showMainDashboard(savedEmp);
                 }
             } catch (err) {
-                console.error('Error al cargar empleados:', err);
+                console.error('Fehler beim Laden der Mitarbeiter:', err);
             }
         }
 
@@ -310,10 +338,30 @@
                 return;
             }
 
-            // Validar contraseña (si el empleado tiene contraseña registrada en la BD)
             const dbPassword = employeeObj.password ? String(employeeObj.password).trim() : '';
 
-            if (dbPassword !== '' && dbPassword !== enteredPassword) {
+            // Condición para detectar si requiere cambio inicial de contraseña:
+            // 1) Si la contraseña en BD es igual a su propio nombre de usuario.
+            // 2) O si está vacía / es "1234" / "password".
+            const isFirstTimeLogin = (dbPassword === '' || dbPassword === employeeObj.name || dbPassword === '1234');
+
+            if (isFirstTimeLogin) {
+                // Verificar que para la primera vez haya escrito su nombre como contraseña de acceso inicial
+                if (dbPassword !== '' && dbPassword !== enteredPassword) {
+                    alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
+                    passwordInput.value = '';
+                    return;
+                }
+
+                // Guardar usuario temporalmente y mostrar pantalla para crear nueva contraseña
+                pendingEmployeeObj = employeeObj;
+                loginSection.style.display = 'none';
+                changePasswordSection.style.display = 'flex';
+                return;
+            }
+
+            // Validación de contraseña habitual
+            if (dbPassword !== enteredPassword) {
                 alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
                 passwordInput.value = '';
                 return;
@@ -326,8 +374,58 @@
             showMainDashboard(employeeObj.name);
         });
 
+        // Evento para actualizar la contraseña por primera vez
+        changePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const newPassword = newPasswordInput.value.trim();
+            const confirmPassword = confirmPasswordInput.value.trim();
+
+            if (newPassword !== confirmPassword) {
+                alert('Die Passwörter stimmen nicht überein.');
+                return;
+            }
+
+            if (newPassword === pendingEmployeeObj.name) {
+                alert('Das neue Passwort darf nicht mit Ihrem Benutzernamen identisch sein.');
+                return;
+            }
+
+            const btnSubmit = document.getElementById('btn-submit-change-password');
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Wird aktualisiert...';
+
+            try {
+                // Actualizar la contraseña en Supabase
+                const { error } = await supabase
+                    .from('employees')
+                    .update({ password: newPassword })
+                    .eq('id', pendingEmployeeObj.id);
+
+                if (error) throw error;
+
+                alert('Passwort erfolgreich aktualisiert!');
+
+                // Actualizar localmente el objeto y guardar la sesión
+                pendingEmployeeObj.password = newPassword;
+                localStorage.setItem(STORAGE_KEY, pendingEmployeeObj.name);
+                localStorage.setItem(LEVEL_KEY, pendingEmployeeObj.user_level || 1);
+
+                changePasswordSection.style.display = 'none';
+                showMainDashboard(pendingEmployeeObj.name);
+
+            } catch (err) {
+                console.error('Fehler beim Aktualisieren des Passwoorts:', err);
+                alert('Fehler beim Speichern des neuen Passworts: ' + err.message);
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Passwort aktualisieren & Anmelden';
+            }
+        });
+
         function showMainDashboard(empName) {
             loginSection.style.display = 'none';
+            changePasswordSection.style.display = 'none';
             mainMenuContainer.style.display = 'flex';
             loggedUserName.textContent = empName;
 
@@ -358,8 +456,13 @@
             localStorage.removeItem(STORAGE_KEY);
             localStorage.removeItem(LEVEL_KEY);
             passwordInput.value = '';
+            newPasswordInput.value = '';
+            confirmPasswordInput.value = '';
             employeeSelect.value = '';
+            pendingEmployeeObj = null;
+
             mainMenuContainer.style.display = 'none';
+            changePasswordSection.style.display = 'none';
             loginSection.style.display = 'block';
         });
 
