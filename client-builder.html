@@ -101,6 +101,7 @@
         import { supabase } from './js/supabaseClient.js';
 
         let allClients = [];
+        let allPostalCodes = [];
         let currentMode = 'edit';
 
         window.setMode = function(mode) {
@@ -124,6 +125,7 @@
                 if (viewTitle) viewTitle.textContent = '➕ Neuen Kunden registrieren';
                 if (saveBtn) saveBtn.textContent = '✨ Kunde erstellen';
                 if (searchInput) searchInput.value = '';
+                clearForm();
             }
         }
 
@@ -143,7 +145,6 @@
                 const mapLat = urlParams.get('latitude');
                 const mapLng = urlParams.get('longitude');
 
-                // Si venimos de la vista de mapa con datos previos
                 if (mapAddress || mapLat || mapLng) {
                     window.setMode('create');
                     clearForm();
@@ -154,17 +155,21 @@
                     if (mapLng) document.getElementById('client-lng').value = mapLng;
                 }
 
-                // Carga de clientes para el buscador
-                const { data, error } = await supabase.from('clients').select('*').order('name', { ascending: true });
-                if (!error && data) {
-                    allClients = data;
-                    const targetClientId = urlParams.get('client_id');
-                    if (targetClientId) {
-                        const found = allClients.find(c => c.id === targetClientId);
-                        if (found) {
-                            window.setMode('edit');
-                            fillClientData(found);
-                        }
+                // Carga simultánea de Clientes y Tabla de Códigos Postales desde Supabase
+                const [{ data: clientsData }, { data: postalData }] = await Promise.all([
+                    supabase.from('clients').select('*').order('name', { ascending: true }),
+                    supabase.from('postal_codes').select('*')
+                ]);
+
+                allClients = clientsData || [];
+                allPostalCodes = postalData || [];
+
+                const targetClientId = urlParams.get('client_id');
+                if (targetClientId) {
+                    const found = allClients.find(c => c.id === targetClientId);
+                    if (found) {
+                        window.setMode('edit');
+                        fillClientData(found);
                     }
                 }
             } catch (err) {
@@ -172,46 +177,56 @@
             }
         }
 
+        // Buscador Inteligente por Nombre, Dirección o CP
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
         if (searchInput && dropdown) {
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase().trim();
+                
                 if (query.length === 0) {
                     dropdown.style.display = 'none';
                     return;
                 }
 
-                const startsWithMatches = allClients.filter(c => {
+                const searchTerms = query.split(' ').filter(term => term.length > 0);
+
+                // Filtrado por coincidencia parcial de todos los términos
+                const filteredClients = allClients.filter(c => {
                     const name = (c.name || '').toLowerCase();
                     const address = (c.address || '').toLowerCase();
                     const postal = (c.postal_code || '').toLowerCase();
-                    return name.startsWith(query) || address.startsWith(query) || postal.startsWith(query);
-                });
 
-                const containsMatches = allClients.filter(c => {
-                    const name = (c.name || '').toLowerCase();
-                    const address = (c.address || '').toLowerCase();
-                    const postal = (c.postal_code || '').toLowerCase();
-                    
-                    const hasMatch = name.includes(query) || address.includes(query) || postal.includes(query);
-                    return hasMatch && !startsWithMatches.includes(c);
+                    return searchTerms.every(term => 
+                        name.includes(term) || address.includes(term) || postal.includes(term)
+                    );
                 });
-
-                const filtered = [...startsWithMatches, ...containsMatches];
 
                 dropdown.innerHTML = '';
-                if (filtered.length > 0) {
-                    filtered.forEach(client => {
+
+                if (filteredClients.length > 0) {
+                    filteredClients.forEach(client => {
                         const item = document.createElement('div');
                         item.className = 'client-result-item';
-                        item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || 'Keine Adresse'}, PLZ: ${client.postal_code || 'N/A'}</span>`;
+                        item.style.padding = '10px 12px';
+                        item.style.cursor = 'pointer';
+                        item.style.borderBottom = '1px solid #edf2f7';
+                        
+                        item.innerHTML = `
+                            <strong style="color: #2b6cb0;">${client.name}</strong><br>
+                            <span style="font-size:0.8rem; color:#666;">
+                                📍 ${client.address || 'Keine Adresse'} | 📮 PLZ: ${client.postal_code || 'N/A'}
+                            </span>
+                        `;
+
+                        // Autocompletado a un clic al seleccionar una opción
                         item.addEventListener('click', () => {
                             fillClientData(client);
                             dropdown.style.display = 'none';
-                            searchInput.value = `${client.name} - ${client.address || 'Keine Adresse'}`;
+                            searchInput.value = `${client.name} - ${client.address || ''} (${client.postal_code || ''})`;
                         });
+
                         dropdown.appendChild(item);
                     });
                     dropdown.style.display = 'block';
@@ -224,6 +239,21 @@
             document.addEventListener('click', (e) => {
                 if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
                     dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // Búsqueda automática en la tabla de códigos postales al escribir en el campo PLZ
+        const postalInput = document.getElementById('client-postal');
+        if (postalInput) {
+            postalInput.addEventListener('input', (e) => {
+                const code = e.target.value.trim();
+                if (code.length >= 4 && allPostalCodes.length > 0) {
+                    const foundPostal = allPostalCodes.find(p => String(p.code || p.postal_code || p.plz) === code);
+                    if (foundPostal) {
+                        if (foundPostal.latitude) document.getElementById('client-lat').value = foundPostal.latitude;
+                        if (foundPostal.longitude) document.getElementById('client-lng').value = foundPostal.longitude;
+                    }
                 }
             });
         }
