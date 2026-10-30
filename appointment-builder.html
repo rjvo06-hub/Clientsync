@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Gestión de Citas</title>
+    <title>ClientSync | Terminverwaltung</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
@@ -176,56 +176,56 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h1 id="page-title" style="margin: 0; font-size: 1.1rem; color: #1a202c; font-weight: 700;">📅 Gestión de Citas</h1>
-            <a href="./index.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600; width: auto;">← Mapa</a>
+            <h1 id="page-title" style="margin: 0; font-size: 1.1rem; color: #1a202c; font-weight: 700;">📅 Terminverwaltung</h1>
+            <a href="./index.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600; width: auto;">← Karte</a>
         </div>
 
         <p id="page-subtitle" style="color: #64748b; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.4;">
-            Gestiona las citas y optimiza tus rutas según las distancias reales de conducción.
+            Verwalten Sie Termine und optimieren Sie Ihre Routen basierend auf realen Fahrstrecken.
         </p>
 
         <form id="appointment-form">
             <div class="client-search-container">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <label style="font-weight: 600; color: #2d3748; font-size: 0.82rem;">1. Buscar Cliente (nombre o calle):</label>
-                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 3px 6px; font-size: 0.7rem; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">🗺️ Mapa</button>
+                    <label style="font-weight: 600; color: #2d3748; font-size: 0.82rem;">1. Kunden suchen (Name oder Straße):</label>
+                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 3px 6px; font-size: 0.7rem; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">🗺️ Karte</button>
                 </div>
-                <input type="text" id="client-search-input" placeholder="Escribe parte del nombre o la calle..." autocomplete="off" required>
+                <input type="text" id="client-search-input" placeholder="Teil des Namens oder der Straße eingeben..." autocomplete="off" required>
                 <input type="hidden" id="client-select" required>
                 <div id="client-results-dropdown" class="client-results-dropdown"></div>
             </div>
 
             <div id="client-details" class="info-card">
-                <strong>Cliente Seleccionado:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
-                <strong>Dirección:</strong> <span id="det-address">-</span><br>
-                <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
+                <strong>Ausgewählter Kunde:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
+                <strong>Adresse:</strong> <span id="det-address">-</span><br>
+                <strong>Koordinaten:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
                 
                 <div id="appointments-selection-container" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e0; display: none;">
                     <details open>
-                        <summary id="appointments-box-title">📅 Citas actuales del cliente:</summary>
+                        <summary id="appointments-box-title">📅 Aktuelle Termine des Kunden:</summary>
                         <div id="client-appointments-list" style="margin-top: 6px;"></div>
                     </details>
                 </div>
             </div>
 
             <div id="date-section" style="background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
-                <label id="section-step-label" style="font-size: 0.82rem; font-weight: 700; color: #2d3748; display: block; margin-bottom: 6px;">2. Fecha, Hora y Detalles:</label>
+                <label id="section-step-label" style="font-size: 0.82rem; font-weight: 700; color: #2d3748; display: block; margin-bottom: 6px;">2. Datum, Uhrzeit und Details:</label>
                 
                 <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 10px;">
                     <details>
-                        <summary style="color: #2b6cb0;">💡 Citas agendadas y distancias reales (recomendadas)</summary>
-                        <div id="suggestions-list" style="margin-top: 6px;">Calculando distancias viales...</div>
+                        <summary style="color: #2b6cb0;">💡 Geplante Termine und reale Entfernungen (Empfohlen)</summary>
+                        <div id="suggestions-list" style="margin-top: 6px;">Fahrstrecken werden berechnet...</div>
                     </details>
                 </div>
 
                 <div class="form-row-group">
                     <div class="datetime-four-grid" style="margin-bottom: 3px;">
                         <div class="datetime-col">
-                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">📅 Fecha:</label>
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">📅 Datum:</label>
                         </div>
                         <div class="datetime-col"></div>
                         <div class="datetime-col">
-                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">⏰ Hora:</label>
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">⏰ Uhrzeit:</label>
                         </div>
                         <div class="datetime-col"></div>
                     </div>
@@ -247,20 +247,20 @@
                 </div>
 
                 <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Técnico Asignado (Opcional):</label>
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Zugewiesener Techniker (Optional):</label>
                     <select id="employee-select">
-                        <option value="General">Sin asignar</option>
+                        <option value="General">Nicht zugewiesen</option>
                     </select>
                 </div>
 
                 <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Horas estimadas (Opcional):</label>
-                    <input type="text" id="estimated-hours" inputmode="decimal" placeholder="Ej. 4 o 1.5">
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Geschätzte Stunden (Optional):</label>
+                    <input type="text" id="estimated-hours" inputmode="decimal" placeholder="Z. B. 4 oder 1.5">
                 </div>
 
                 <div class="client-search-container" style="margin-top: 8px; margin-bottom: 0;">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Trabajo a realizar / Solicitud:</label>
-                    <input type="text" id="service-search-input" placeholder="Ej. Corte de árbol, Poda..." autocomplete="off">
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Auszuführende Arbeit / Anforderung:</label>
+                    <input type="text" id="service-search-input" placeholder="Z. B. Baumschnitt, Pflege..." autocomplete="off">
                     <div id="service-results-dropdown" class="service-results-dropdown"></div>
                 </div>
             </div>
@@ -268,7 +268,7 @@
             <input type="hidden" id="selected-appointment-date" required>
 
             <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 12px; font-size: 0.9rem; opacity: 0.6; margin-bottom: 20px; width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(56, 161, 105, 0.2);" disabled>
-                Confirmar y Agendar Cita
+                Termin bestätigen und buchen
             </button>
         </form>
     </div>
@@ -276,10 +276,10 @@
     <div id="map-modal">
         <div class="map-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; font-size: 0.9rem; color: #2d3748;">🗺️ Selecciona un cliente en el mapa</h3>
-                <button type="button" id="close-map-modal" style="width: auto; padding: 4px 8px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.75rem;">✕ Cerrar</button>
+                <h3 style="margin: 0; font-size: 0.9rem; color: #2d3748;">🗺️ Wählen Sie einen Kunden auf der Karte aus</h3>
+                <button type="button" id="close-map-modal" style="width: auto; padding: 4px 8px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.75rem;">✕ Schließen</button>
             </div>
-            <p style="font-size: 0.72rem; color: #666; margin: 4px 0 0 0;">Haz clic en cualquier pin del mapa para seleccionar al cliente.</p>
+            <p style="font-size: 0.72rem; color: #666; margin: 4px 0 0 0;">Klicken Sie auf Stecknadeln auf der Karte, um den Kunden auszuwählen.</p>
             <div id="interactive-map"></div>
         </div>
     </div>
@@ -307,13 +307,13 @@
 
         function updateUIModeText() {
             if (actionType === 'new') {
-                document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
-                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita o selecciona una fecha recomendada.';
-                document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
+                document.getElementById('page-title').textContent = '➕ Neuen Termin planen';
+                document.getElementById('page-subtitle').textContent = 'Fügen Sie einen neuen Besuch hinzu oder wählen Sie ein empfohlenes Datum.';
+                document.getElementById('save-btn').textContent = 'Bestätigen und neuen Termin erstellen';
             } else {
-                document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
-                document.getElementById('page-subtitle').textContent = 'Modificando la fecha de la cita seleccionada.';
-                document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
+                document.getElementById('page-title').textContent = '🔄 Termin verschieben';
+                document.getElementById('page-subtitle').textContent = 'Das Datum des ausgewählten Termins wird geändert.';
+                document.getElementById('save-btn').textContent = 'Bestätigen und Termin aktualisieren';
             }
         }
         updateUIModeText();
@@ -347,7 +347,7 @@
                     return meters / 1000;
                 }
             } catch (err) {
-                console.error("Error al calcular distancia vial con Routes API:", err);
+                console.error("Fehler bei der Berechnung der Fahrstrecke mit der Routes API:", err);
             }
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -360,7 +360,7 @@
             if (!dateStr) return '';
             const parts = dateStr.split('-');
             if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                return `${parts[2]}.${parts[1]}.${parts[0]}`;
             }
             return dateStr;
         }
@@ -375,8 +375,8 @@
                 const [year, month, day] = dateParts;
                 const localDate = new Date(year, month - 1, day);
                 const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                const dateReadable = localDate.toLocaleDateString('es-ES', options);
-                return `${dateReadable}, ${timePart} hrs`;
+                const dateReadable = localDate.toLocaleDateString('de-DE', options);
+                return `${dateReadable}, ${timePart} Uhr`;
             }
             return `${cleanDate} ${timePart}`;
         }
@@ -437,7 +437,7 @@
                 allEmployees = employeeData || [];
 
                 const empSelect = document.getElementById('employee-select');
-                empSelect.innerHTML = `<option value="General">Sin asignar</option>`;
+                empSelect.innerHTML = `<option value="General">Nicht zugewiesen</option>`;
                 allEmployees.forEach(emp => {
                     empSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
@@ -462,8 +462,8 @@
                 );
 
             } catch (err) {
-                console.error('Error al inicializar:', err);
-                alert('Hubo un error al cargar la información.');
+                console.error('Fehler bei der Initialisierung:', err);
+                alert('Beim Laden der Informationen ist ein Fehler aufgetreten.');
             }
         }
 
@@ -502,7 +502,7 @@
                 filtered.forEach(client => {
                     const item = document.createElement('div');
                     item.className = 'client-result-item';
-                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
+                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#666;">${client.address || 'Keine Adresse'}, PLZ: ${client.postal_code || 'N/A'}</span>`;
                     item.addEventListener('click', () => {
                         selectClient(client, null);
                         dropdown.style.display = 'none';
@@ -511,7 +511,7 @@
                 });
                 dropdown.style.display = 'block';
             } else {
-                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">No se encontraron clientes</div>`;
+                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">Keine Kunden gefunden</div>`;
                 dropdown.style.display = 'block';
             }
         });
@@ -554,7 +554,7 @@
                 });
                 serviceDropdown.style.display = 'block';
             } else {
-                serviceDropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">Se guardará como un nuevo servicio</div>`;
+                serviceDropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">Wird als neue Dienstleistung gespeichert</div>`;
                 serviceDropdown.style.display = 'block';
             }
         });
@@ -568,7 +568,7 @@
         async function selectClient(client, preselectApptId = null) {
             activeClient = client;
             window.activeClient = client;
-            searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
+            searchInput.value = `${client.name} - ${client.address || 'Keine Adresse'}`;
             document.getElementById('client-select').value = client.id;
 
             actionType = preselectApptId ? 'reschedule' : 'new';
@@ -596,12 +596,12 @@
             saveBtn.style.opacity = '0.6';
 
             if (!client.latitude || !client.longitude) {
-                alert('Este cliente no tiene coordenadas geográficas registradas.');
+                alert('Für diesen Kunden sind keine geographischen Koordinaten hinterlegt.');
                 return;
             }
 
             document.getElementById('det-name').textContent = client.name;
-            document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
+            document.getElementById('det-address').textContent = `${client.address || 'Keine Straße'}, PLZ: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
 
             clientAppointments = allAppointments.filter(a => a.client_id === client.id);
@@ -614,10 +614,10 @@
 
             if (clientAppointments.length > 0) {
                 appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (${clientAppointments.length}):`;
+                appointmentsBoxTitle.textContent = `📅 Aktuelle Termine des Kunden (${clientAppointments.length}):`;
 
                 clientAppointments.forEach((appt, index) => {
-                    let formatted = 'Fecha no válida';
+                    let formatted = 'Ungültiges Datum';
                     if (appt.scheduled_date) {
                         formatted = formatLocalDateTime(appt.scheduled_date, appt.time_slot);
                     }
@@ -627,11 +627,11 @@
                     card.dataset.apptId = appt.id;
                     card.innerHTML = `
                         <div style="flex: 1;">
-                            <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
-                            <div style="font-size: 0.72rem; color: #666;">Servicio: ${appt.service_requested || 'General'} | Técnico: ${appt.assigned_employee || 'Sin asignar'}</div>
+                            <strong style="color: #2b6cb0;">Termin #${index + 1}:</strong> ${formatted}
+                            <div style="font-size: 0.72rem; color: #666;">Dienstleistung: ${appt.service_requested || 'Allgemein'} | Techniker: ${appt.assigned_employee || 'Nicht zugewiesen'}</div>
                         </div>
                         <button type="button" class="btn-quick-reschedule" data-id="${appt.id}" style="width: auto; padding: 4px 8px; background: #3182ce; color: white; border: none; border-radius: 6px; font-size: 0.68rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
-                            🔄 Reprogramar
+                            🔄 Verschieben
                         </button>
                     `;
 
@@ -691,14 +691,14 @@
                 dateSection.style.display = 'block';
             } else {
                 appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (0):`;
-                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.78rem;">Este cliente no tiene ninguna cita programada actualmente.</span>`;
+                appointmentsBoxTitle.textContent = `📅 Aktuelle Termine des Kunden (0):`;
+                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.78rem;">Dieser Kunde hat derzeit keine geplanten Termine.</span>`;
                 dateSection.style.display = 'block';
             }
 
             detailsCard.style.display = 'block';
 
-            suggestionsList.innerHTML = 'Calculando distancias viales reales...';
+            suggestionsList.innerHTML = 'Reale Fahrstrecken werden berechnet...';
             suggestionBox.style.display = 'block';
 
             const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
@@ -728,18 +728,18 @@
                             const isCurrentClient = (scheduledClient.id === client.id);
 
                             if (isCurrentClient) {
-                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 6px; border-radius: 4px;">• ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
+                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 6px; border-radius: 4px;">• ${scheduledClient.name} um ${timeStr} Uhr (Aktuell)</div>`;
                             } else {
                                 const dist = await fetchDrivingDistanceKm(client.latitude, client.longitude, scheduledClient.latitude, scheduledClient.longitude);
                                 const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
 
-                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #4a5568; margin-top: 2px;">• <strong>${scheduledClient.name}</strong> a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
+                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #4a5568; margin-top: 2px;">• <strong>${scheduledClient.name}</strong> um ${timeStr} Uhr <span style="color: #2b6cb0; font-weight: bold;">(${distFormatted} entfernt)</span></div>`;
                             }
                         }
                     }
 
                     const totalCountOnDay = apptsOnThisDate.length;
-                    let badgeText = `${totalCountOnDay} cita${totalCountOnDay > 1 ? 's' : ''}`;
+                    let badgeText = `${totalCountOnDay} Termin${totalCountOnDay > 1 ? 'e' : ''}`;
                     const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
 
                     const btn = document.createElement('button');
@@ -752,7 +752,7 @@
                             <span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
                         </div>
                         <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 2px;">
-                            ${clientsDetailsHtml || '<span style="font-size: 0.72rem; color: #666;">Sin otras citas este día</span>'}
+                            ${clientsDetailsHtml || '<span style="font-size: 0.72rem; color: #666;">Keine weiteren Termine an diesem Tag</span>'}
                         </div>
                     `;
 
@@ -782,7 +782,7 @@
                 }
                 suggestionBox.style.display = 'block';
             } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.78rem; color: #718096; margin: 2px 0;">No hay citas registradas. Selecciona la fecha en el calendario.</p>`;
+                suggestionsList.innerHTML = `<p style="font-size: 0.78rem; color: #718096; margin: 2px 0;">Keine Termine registriert. Wählen Sie ein Datum im Kalender.</p>`;
                 suggestionBox.style.display = 'block';
             }
 
@@ -796,7 +796,7 @@
             if (!chosenDate) return;
 
             if (chosenDate < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
+                alert('Termine können nicht in der Vergangenheit geplant werden.');
                 e.target.value = '';
                 return;
             }
@@ -839,17 +839,17 @@
             const employeeVal = document.getElementById('employee-select').value;
 
             if (!clientId || !dateVal) {
-                alert('Selecciona un cliente y una fecha/hora válida.');
+                alert('Bitte wählen Sie einen Kunden und ein gültiges Datum / eine gültige Uhrzeit aus.');
                 return;
             }
 
             if (actionType === 'reschedule' && !selectedAppointmentId) {
-                alert('Por favor, selecciona la cita que deseas modificar.');
+                alert('Bitte wählen Sie den Termin aus, den Sie ändern möchten.');
                 return;
             }
 
             if (dateVal < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
+                alert('Termine können nicht in der Vergangenheit geplant werden.');
                 return;
             }
 
@@ -860,14 +860,14 @@
                 const currentTimeStr = `${currentHours}:${currentMinutes}`;
 
                 if (timeVal < currentTimeStr) {
-                    alert('No puedes programar una cita a una hora que ya ha transcurrido el día de hoy.');
+                    alert('Sie können für heute keinen Termin zu einer bereits vergangenen Uhrzeit planen.');
                     return;
                 }
             }
 
             const btn = document.getElementById('save-btn');
             const originalBtnText = btn.textContent;
-            btn.textContent = 'Guardando...';
+            btn.textContent = 'Wird gespeichert...';
             btn.disabled = true;
 
             if (serviceVal) {
@@ -900,14 +900,14 @@
             }
 
             if (errorResult) {
-                alert('Error al guardar la cita: ' + errorResult.message);
+                alert('Fehler beim Speichern des Termins: ' + errorResult.message);
                 btn.textContent = originalBtnText;
                 btn.disabled = false;
             } else {
-                const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
+                const actionMsg = actionType === 'new' ? 'Neuer Termin erfolgreich gebucht!' : 'Termin erfolgreich verschoben!';
                 const formattedDateReadable = formatLocalDateTime(dateVal, timeVal);
                 
-                alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}\n🛠️ Técnico: ${employeeVal}`);
+                alert(`${actionMsg}\n\n📅 Termin Bestätigt\nDatum: ${formattedDateReadable}\n👤 Kunde: ${activeClient ? activeClient.name : 'Kunde'}\n🛠️ Techniker: ${employeeVal}`);
 
                 // --- REFRESCAR Y MANTENERSE EN LA VISTA PARA CREAR NUEVA CITA ---
                 document.getElementById('appointment-form').reset();
