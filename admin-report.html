@@ -220,6 +220,7 @@
             padding-bottom: 12px;
             margin-bottom: 14px;
             gap: 8px;
+            flex-wrap: wrap; /* <-- CORREGIDO: Permite adaptarse en teléfonos sin salirse */
         }
 
         .employee-info-left {
@@ -243,7 +244,7 @@
             align-items: center;
             gap: 8px;
             font-size: 0.75rem;
-            flex-wrap: nowrap;
+            flex-wrap: wrap; /* <-- CORREGIDO: Asegura flujo interno prolijo */
         }
 
         .time-clean-group {
@@ -267,6 +268,7 @@
             font-weight: 700;
             text-transform: uppercase;
             white-space: nowrap;
+            flex-shrink: 0; /* <-- CORREGIDO: Evita que el botón se comprima de más o rompa límites */
         }
 
         .metrics-calc-line {
