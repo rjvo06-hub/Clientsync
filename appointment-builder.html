@@ -129,7 +129,7 @@
             color: #2b6cb0;
         }
 
-        #map-modal {
+        #map-modal, #edit-name-modal {
             display: none;
             position: fixed;
             top: 0;
@@ -150,6 +150,14 @@
             border-radius: 14px;
             display: flex;
             flex-direction: column;
+        }
+        .edit-modal-content {
+            background: white;
+            width: 90%;
+            max-width: 420px;
+            padding: 18px;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
         #interactive-map {
             width: 100%;
@@ -196,9 +204,14 @@
             </div>
 
             <div id="client-details" class="info-card">
-                <strong>Ausgewählter Kunde:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
-                <strong>Adresse:</strong> <span id="det-address">-</span><br>
-                <strong>Koordinaten:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                    <div>
+                        <strong>Ausgewählter Kunde:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
+                        <strong>Adresse:</strong> <span id="det-address">-</span><br>
+                        <strong>Koordinaten:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span>
+                    </div>
+                    <button type="button" id="btn-edit-name-quick" style="width: auto; padding: 4px 8px; font-size: 0.72rem; background: #edf2f7; color: #2b6cb0; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; font-weight: 600; white-space: nowrap; margin-left: 8px;">✏️ Name bearbeiten</button>
+                </div>
                 
                 <div id="appointments-selection-container" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e0; display: none;">
                     <details open>
@@ -271,6 +284,19 @@
                 Termin bestätigen und buchen
             </button>
         </form>
+    </div>
+
+    <!-- Modal para editar el nombre directamente sin salir de la vista -->
+    <div id="edit-name-modal">
+        <div class="edit-modal-content">
+            <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 1rem; color: #2d3748;">✏️ Kundennamen bearbeiten</h3>
+            <label style="font-size: 0.78rem; color: #4a5568; font-weight: 600; display: block; margin-bottom: 4px;">Neuer Name:</label>
+            <input type="text" id="edit-client-name-input" placeholder="Neuen Namen eingeben..." style="margin-bottom: 14px;">
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button type="button" id="btn-cancel-edit-name" style="background: #e2e8f0; color: #4a5568; border: none; font-weight: 600; cursor: pointer; padding: 8px 12px; border-radius: 6px; width: auto;">Abbrechen</button>
+                <button type="button" id="btn-save-edit-name" style="background: #3182ce; color: white; border: none; font-weight: 600; cursor: pointer; padding: 8px 12px; border-radius: 6px; width: auto;">Speichern</button>
+            </div>
+        </div>
     </div>
 
     <div id="map-modal">
@@ -563,6 +589,55 @@
             if (!serviceSearchInput.contains(e.target) && !serviceDropdown.contains(e.target)) {
                 serviceDropdown.style.display = 'none';
             }
+        });
+
+        // Modal para editar solo el nombre rápidamente sin perder la sesión del agendamiento
+        const editNameModal = document.getElementById('edit-name-modal');
+        const editNameInput = document.getElementById('edit-client-name-input');
+
+        document.getElementById('btn-edit-name-quick').addEventListener('click', () => {
+            if (activeClient && activeClient.id) {
+                editNameInput.value = activeClient.name || '';
+                editNameModal.style.display = 'flex';
+                editNameInput.focus();
+            }
+        });
+
+        document.getElementById('btn-cancel-edit-name').addEventListener('click', () => {
+            editNameModal.style.display = 'none';
+        });
+
+        document.getElementById('btn-save-edit-name').addEventListener('click', async () => {
+            const newName = editNameInput.value.trim();
+            if (!newName) {
+                alert('Bitte geben Sie einen gültigen Namen ein.');
+                return;
+            }
+
+            const btnSave = document.getElementById('btn-save-edit-name');
+            btnSave.disabled = true;
+            btnSave.textContent = 'Wird gespeichert...';
+
+            const { error } = await supabase
+                .from('clients')
+                .update({ name: newName })
+                .eq('id', activeClient.id);
+
+            if (error) {
+                alert('Fehler beim Aktualisieren des Namens: ' + error.message);
+            } else {
+                activeClient.name = newName;
+                const cachedClient = allClients.find(c => c.id === activeClient.id);
+                if (cachedClient) cachedClient.name = newName;
+
+                document.getElementById('det-name').textContent = newName;
+                searchInput.value = `${newName} - ${activeClient.address || 'Keine Adresse'}`;
+                
+                editNameModal.style.display = 'none';
+            }
+
+            btnSave.disabled = false;
+            btnSave.textContent = 'Speichern';
         });
 
         async function selectClient(client, preselectApptId = null) {
@@ -909,7 +984,6 @@
                 
                 alert(`${actionMsg}\n\n📅 Termin Bestätigt\nDatum: ${formattedDateReadable}\n👤 Kunde: ${activeClient ? activeClient.name : 'Kunde'}\n🛠️ Techniker: ${employeeVal}`);
 
-                // --- REFRESCAR Y MANTENERSE EN LA VISTA PARA CREAR NUEVA CITA ---
                 document.getElementById('appointment-form').reset();
                 document.getElementById('client-details').style.display = 'none';
                 document.getElementById('date-section').style.display = 'none';
@@ -925,7 +999,6 @@
                 btn.disabled = true;
                 btn.style.opacity = '0.6';
 
-                // Recargar los datos de la base de datos en segundo plano para actualizar el mapa y las sugerencias
                 await initForm();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
