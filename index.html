@@ -211,7 +211,7 @@
             </form>
         </div>
 
-        <!-- SECCIÓN DE CAMBIO DE CONTRASEÑA (SÓLO PRIMERA VEZ) -->
+        <!-- SECCIÓN DE CAMBIO DE CONTRASEÑA (PRIMERA VEZ) -->
         <div id="change-password-section" class="login-card">
             <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 6px; text-align: center; font-weight: 800;">🔑 Erste Anmeldung</h2>
             <p style="font-size: 0.78rem; color: #64748b; text-align: center; margin-bottom: 16px;">
@@ -233,7 +233,7 @@
             </form>
         </div>
 
-        <!-- SECCIÓN 2: MENÚ PRINCIPAL (Aparece al iniciar sesión correctamente) -->
+        <!-- SECCIÓN 2: MENÚ PRINCIPAL -->
         <div id="main-menu-container">
             <div class="user-welcome-bar">
                 <div>
@@ -243,7 +243,7 @@
                 <button type="button" id="btn-logout" style="background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 6px 12px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: background 0.2s;">🚪 Abmelden</button>
             </div>
 
-            <!-- Portal de Empleado (Visible para todos) -->
+            <!-- Portal de Empleado -->
             <div>
                 <div class="nav-section-title">Arbeitsportal</div>
                 <nav class="nav-buttons" style="grid-template-columns: 1fr;">
@@ -286,7 +286,7 @@
         const LEVEL_KEY = 'clientSync_user_level';
 
         let employeesList = [];
-        let pendingEmployeeObj = null; // Para rastrear temporalmente al usuario que está cambiando su contraseña
+        let pendingEmployeeObj = null;
 
         const loginSection = document.getElementById('login-section');
         const changePasswordSection = document.getElementById('change-password-section');
@@ -338,29 +338,34 @@
                 return;
             }
 
+            // Normalización de la contraseña almacenada en la base de datos
             const dbPassword = employeeObj.password ? String(employeeObj.password).trim() : '';
 
-            // Condición para detectar si requiere cambio inicial de contraseña:
-            // 1) Si la contraseña en BD es igual a su propio nombre de usuario.
-            // 2) O si está vacía / es "1234" / "password".
+            // Se considera primer inicio si la contraseña en BD es null, vacía, igual al nombre o '1234'
             const isFirstTimeLogin = (dbPassword === '' || dbPassword === employeeObj.name || dbPassword === '1234');
 
             if (isFirstTimeLogin) {
-                // Verificar que para la primera vez haya escrito su nombre como contraseña de acceso inicial
-                if (dbPassword !== '' && dbPassword !== enteredPassword) {
-                    alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
+                // Para iniciar sesión por primera vez, debe ingresar su propio nombre, '1234', o la clave temporal guardada
+                const isValidInitialPass = (
+                    enteredPassword === employeeObj.name || 
+                    (dbPassword !== '' && enteredPassword === dbPassword) || 
+                    enteredPassword === '1234'
+                );
+
+                if (!isValidInitialPass) {
+                    alert('Falsches Passwort. Für die erste Anmeldung geben Sie bitte Ihren Benutzernamen als Passwort ein.');
                     passwordInput.value = '';
                     return;
                 }
 
-                // Guardar usuario temporalmente y mostrar pantalla para crear nueva contraseña
+                // Guardar usuario temporal y redirigir al formulario para crear contraseña definitiva
                 pendingEmployeeObj = employeeObj;
                 loginSection.style.display = 'none';
                 changePasswordSection.style.display = 'flex';
                 return;
             }
 
-            // Validación de contraseña habitual
+            // Validación habitual para usuarios que ya configuraron su contraseña
             if (dbPassword !== enteredPassword) {
                 alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
                 passwordInput.value = '';
@@ -374,7 +379,7 @@
             showMainDashboard(employeeObj.name);
         });
 
-        // Evento para actualizar la contraseña por primera vez
+        // Evento para guardar la nueva contraseña por primera vez
         changePasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -396,7 +401,7 @@
             btnSubmit.textContent = 'Wird aktualisiert...';
 
             try {
-                // Actualizar la contraseña en Supabase
+                // Actualizar la contraseña en la base de datos en Supabase
                 const { error } = await supabase
                     .from('employees')
                     .update({ password: newPassword })
@@ -406,7 +411,7 @@
 
                 alert('Passwort erfolgreich aktualisiert!');
 
-                // Actualizar localmente el objeto y guardar la sesión
+                // Actualizar contraseña en memoria local y activar sesión
                 pendingEmployeeObj.password = newPassword;
                 localStorage.setItem(STORAGE_KEY, pendingEmployeeObj.name);
                 localStorage.setItem(LEVEL_KEY, pendingEmployeeObj.user_level || 1);
@@ -429,21 +434,21 @@
             mainMenuContainer.style.display = 'flex';
             loggedUserName.textContent = empName;
 
-            // Actualizar enlaces dinámicos con el empleado
+            // Actualizar enlace con el nombre del empleado
             linkTeam.href = `./employee-schedule.html?employee=${encodeURIComponent(empName)}`;
 
             // Validar niveles de acceso
             const userLevel = Number(localStorage.getItem(LEVEL_KEY)) || 1;
             const accesoAdmin = localStorage.getItem('usuario_acceso');
 
-            // Nivel 2 o superior (o accesoAdmin = 1): Ve Kunden y Termine planen
+            // Nivel 2 o superior: Ve Kunden y Termine planen
             if (userLevel >= 2 || Number(accesoAdmin) === 1) {
                 adminSectionLevel2.style.display = 'block';
             } else {
                 adminSectionLevel2.style.display = 'none';
             }
 
-            // Nivel 3 o superior (o accesoAdmin = 1): Ve el resto de herramientas de administración
+            // Nivel 3 o superior: Ve herramientas de administración
             if (userLevel >= 3 || Number(accesoAdmin) === 1) {
                 adminSectionContainer.style.display = 'block';
                 if (pdfLink) pdfLink.style.display = 'flex';
