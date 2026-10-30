@@ -110,7 +110,6 @@
             box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
 
-        /* Grid simétrico con separadores transparentes laterales y uno central exacto */
         .grid-with-spacers {
             display: grid;
             grid-template-columns: 8px minmax(0, 1fr) 12px minmax(0, 1fr) 8px;
@@ -121,7 +120,6 @@
         .grid-with-spacers .col-1 { grid-column: 2; }
         .grid-with-spacers .col-2 { grid-column: 4; }
 
-        /* Contenedor específico para fecha única simétrica */
         .single-date-grid {
             display: grid;
             grid-template-columns: 8px minmax(0, 1fr) 8px;
@@ -167,7 +165,6 @@
             box-sizing: border-box;
         }
 
-        /* Pestañas de Navegación */
         .tabs-row {
             display: flex;
             gap: 8px;
@@ -220,7 +217,7 @@
             padding-bottom: 12px;
             margin-bottom: 14px;
             gap: 8px;
-            flex-wrap: wrap; /* <-- CORREGIDO: Permite adaptarse en teléfonos sin salirse */
+            flex-wrap: wrap;
         }
 
         .employee-info-left {
@@ -244,7 +241,7 @@
             align-items: center;
             gap: 8px;
             font-size: 0.75rem;
-            flex-wrap: wrap; /* <-- CORREGIDO: Asegura flujo interno prolijo */
+            flex-wrap: wrap;
         }
 
         .time-clean-group {
@@ -257,9 +254,7 @@
             white-space: nowrap;
         }
 
-        .time-clean-group strong {
-            color: #0f172a;
-        }
+        .time-clean-group strong { color: #0f172a; }
 
         .badge {
             font-size: 0.65rem;
@@ -268,7 +263,7 @@
             font-weight: 700;
             text-transform: uppercase;
             white-space: nowrap;
-            flex-shrink: 0; /* <-- CORREGIDO: Evita que el botón se comprima de más o rompa límites */
+            flex-shrink: 0;
         }
 
         .metrics-calc-line {
@@ -379,10 +374,24 @@
             color: #1e293b;
         }
 
-        .visit-footer-row {
+        .lunch-deduction-banner {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: #fffbebf5;
+            border: 1px solid #fef3c7;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.71rem;
+            color: #b45309;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .visit-footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
             border-top: 1px solid #f1f5f9;
             padding-top: 8px;
             font-size: 0.74rem;
@@ -419,7 +428,6 @@
 
             <button type="button" class="advanced-range-toggle" id="btn-toggle-range">📅 Consultar por rango (Semana / Mes)</button>
 
-            <!-- Contenedor con separadores transparentes simétricos -->
             <div id="range-container">
                 <div class="grid-with-spacers">
                     <div class="form-group col-1">
@@ -436,7 +444,7 @@
             <button type="button" class="btn-query" id="btn-search">🔍 Consultar Registros</button>
         </div>
 
-        <!-- Pestañas para separar Vistas -->
+        <!-- Pestañas -->
         <div class="tabs-row">
             <button type="button" class="tab-btn active" id="tab-employees" onclick="switchView('employees')">👥 Vista por Empleados</button>
             <button type="button" class="tab-btn" id="tab-clients" onclick="switchView('clients')">🏢 Vista por Clientes</button>
@@ -462,7 +470,7 @@
         const reportResults = document.getElementById('report-results');
 
         let useRange = false;
-        let currentView = 'employees'; // 'employees' o 'clients'
+        let currentView = 'employees';
         let cachedData = { logs: [], appts: [], clientsMap: new Map() };
 
         window.switchView = function(view) {
@@ -490,7 +498,7 @@
         });
 
         function formatHoursAndMinutes(totalMinutes) {
-            if (!totalMinutes || isNaN(totalMinutes) || totalMinutes < 0) return '0m';
+            if (!totalMinutes || isNaN(totalMinutes) || totalMinutes <= 0) return '0m';
             const h = Math.floor(totalMinutes / 60);
             const m = totalMinutes % 60;
             if (h === 0) return `${m}m`;
@@ -646,8 +654,7 @@
                         grossStr = formatHoursAndMinutes(grossMinutes);
 
                         if (log.lunch_start_time && log.lunch_end_time) {
-                            const rawPauseMins = getFlatMinutesDifference(log.lunch_start_time, log.lunch_end_time);
-                            pauseMinutes = Math.min(30, rawPauseMins);
+                            pauseMinutes = getFlatMinutesDifference(log.lunch_start_time, log.lunch_end_time);
                         }
                         
                         let netMinutes = Math.max(0, grossMinutes - pauseMinutes);
@@ -723,7 +730,7 @@
                                             <div class="visit-client-name">🏢 ${client.name}</div>
                                             <div class="visit-client-address">${client.address || 'Sin dirección'}</div>
                                         </div>
-                                        <div class="visit-time-badge">Prog: ${a.time_slot || '--:--'}</div>
+                                        <div class="visit-time-badge">Prog: ${a.time_slot || '--:--'}h</div>
                                     </div>
                                     <div class="visit-footer-row">
                                         <div>
@@ -742,6 +749,7 @@
                 });
 
             } else {
+                // VISTA POR CLIENTES
                 const filteredAppts = appts.filter(a => {
                     if (selectedEmp === 'ALL') return true;
                     if (!a.assigned_employee) return false;
@@ -786,15 +794,18 @@
                         try {
                             if (typeof a.sessions === 'string') sessionsList = JSON.parse(a.sessions);
                             else if (Array.isArray(a.sessions)) sessionsList = a.sessions;
-                        } catch (e) {
-                            sessionsList = [];
-                        }
+                        } catch (e) { sessionsList = []; }
+
+                        let deductionsList = [];
+                        try {
+                            if (typeof a.lunch_deductions === 'string') deductionsList = JSON.parse(a.lunch_deductions);
+                            else if (Array.isArray(a.lunch_deductions)) deductionsList = a.lunch_deductions;
+                        } catch (e) { deductionsList = []; }
 
                         const teamList = a.assigned_employee ? a.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
-                        const teamCount = Math.max(1, teamList.length);
 
                         let teamDetailsHtml = '';
-                        let totalLaborMins = 0;
+                        let grossLaborMins = 0;
 
                         if (sessionsList.length > 0) {
                             const aggregatedSessions = new Map();
@@ -805,7 +816,7 @@
                             });
 
                             aggregatedSessions.forEach((sMins, empName) => {
-                                totalLaborMins += sMins;
+                                grossLaborMins += sMins;
                                 teamDetailsHtml += `
                                     <div class="team-detail-row">
                                         <span>👤 ${empName}</span>
@@ -816,7 +827,7 @@
                         } else {
                             const fallbackMins = a.visit_duration_minutes || 0;
                             teamList.forEach(emp => {
-                                totalLaborMins += fallbackMins;
+                                grossLaborMins += fallbackMins;
                                 teamDetailsHtml += `
                                     <div class="team-detail-row">
                                         <span>👤 ${emp}</span>
@@ -826,7 +837,29 @@
                             });
                         }
 
+                        // Cálculo del Descuento por Almuerzo
+                        let lunchDiscountMins = a.lunch_deduction_minutes || 0;
+                        let lunchCount = deductionsList.length;
+
+                        if (lunchDiscountMins === 0 && deductionsList.length > 0) {
+                            lunchDiscountMins = deductionsList.reduce((acc, curr) => acc + (Number(curr.minutes) || 0), 0);
+                        }
+
+                        let lunchDeductionHtml = '';
+                        if (lunchDiscountMins > 0) {
+                            const empLabel = lunchCount > 0 ? ` (${lunchCount} emp)` : '';
+                            lunchDeductionHtml = `
+                                <div class="lunch-deduction-banner">
+                                    <span>☕ Pausa de almuerzo${empLabel}:</span>
+                                    <span style="color: #dc2626; font-weight: 700;">- ${formatHoursAndMinutes(lunchDiscountMins)}</span>
+                                </div>
+                            `;
+                        }
+
                         const realDurationMins = a.visit_duration_minutes || 0;
+                        const netLaborMins = a.total_labor_minutes !== undefined && a.total_labor_minutes !== null 
+                            ? a.total_labor_minutes 
+                            : Math.max(0, grossLaborMins - lunchDiscountMins);
 
                         html += `
                             <div class="visit-item">
@@ -835,12 +868,13 @@
                                         <div class="visit-client-name">🏢 ${client.name}</div>
                                         <div class="visit-client-address">${client.address || 'Sin dirección'}</div>
                                     </div>
-                                    <div class="visit-time-badge">Prog: ${a.time_slot || '--:--'}</div>
+                                    <div class="visit-time-badge">Prog: ${a.time_slot || '--:--'}h</div>
                                 </div>
 
                                 <div>
-                                    <div style="font-size:0.65rem; color:#64748b; font-weight:700; margin-top: 4px;">Personal presente y tiempo individual:</div>
+                                    <div style="font-size:0.65rem; color:#64748b; font-weight:700; margin-top: 4px;">Personal presente y tiempo de permanencia individual:</div>
                                     <div class="team-details-list">${teamDetailsHtml}</div>
+                                    ${lunchDeductionHtml}
                                 </div>
 
                                 <div class="visit-footer-row">
@@ -848,8 +882,8 @@
                                         <span style="color:#64748b;">In/Out:</span> <strong>${checkInTime} - ${checkOutTime}</strong>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div>Duración de visita: <span class="time-pill" style="color:#2563eb;">${formatHoursAndMinutes(realDurationMins)}</span></div>
-                                        <div>Labor total (${teamCount} emp): <span class="time-pill" style="color:#16a34a;">${formatHoursAndMinutes(totalLaborMins)}</span></div>
+                                        <div style="font-size:0.7rem; color:#64748b;">Duración de visita: <span class="time-pill" style="color:#2563eb;">${formatHoursAndMinutes(realDurationMins)}</span></div>
+                                        <div style="font-size:0.75rem; margin-top:2px;">Labor total neta: <span class="time-pill" style="color:#16a34a;">${formatHoursAndMinutes(netLaborMins)}</span></div>
                                     </div>
                                 </div>
                             </div>
