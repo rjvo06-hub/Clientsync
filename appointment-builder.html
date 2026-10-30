@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClientSync | Gestión de Citas</title>
+    <title>ClientSync | Terminverwaltung</title>
     <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; }
@@ -176,56 +176,56 @@
 
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h1 id="page-title" style="margin: 0; font-size: 1.1rem; color: #1a202c; font-weight: 700;">📅 Gestión de Citas</h1>
-            <a href="./index.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600; width: auto;">← Mapa</a>
+            <h1 id="page-title" style="margin: 0; font-size: 1.1rem; color: #1a202c; font-weight: 700;">📅 Terminverwaltung</h1>
+            <a href="./index.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600; width: auto;">← Karte</a>
         </div>
 
         <p id="page-subtitle" style="color: #64748b; font-size: 0.8rem; margin-bottom: 12px; line-height: 1.4;">
-            Gestiona las citas y optimiza tus rutas según las distancias reales de conducción.
+            Verwalten Sie Termine und optimieren Sie Ihre Routen basierend auf realen Fahrstrecken.
         </p>
 
         <form id="appointment-form">
             <div class="client-search-container">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <label style="font-weight: 600; color: #2d3748; font-size: 0.82rem;">1. Buscar Cliente (nombre o calle):</label>
-                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 3px 6px; font-size: 0.7rem; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">🗺️ Mapa</button>
+                    <label style="font-weight: 600; color: #2d3748; font-size: 0.82rem;">1. Kunde suchen (Name oder Straße):</label>
+                    <button type="button" id="btn-open-map-selector" style="width: auto; padding: 3px 6px; font-size: 0.7rem; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">🗺️ Karte</button>
                 </div>
-                <input type="text" id="client-search-input" placeholder="Escribe parte del nombre o la calle..." autocomplete="off" required>
+                <input type="text" id="client-search-input" placeholder="Teil des Namens oder der Straße eingeben..." autocomplete="off" required>
                 <input type="hidden" id="client-select" required>
                 <div id="client-results-dropdown" class="client-results-dropdown"></div>
             </div>
 
             <div id="client-details" class="info-card">
-                <strong>Cliente Seleccionado:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
-                <strong>Dirección:</strong> <span id="det-address">-</span><br>
-                <strong>Coordenadas:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
+                <strong>Ausgewählter Kunde:</strong> <span id="det-name" style="color: #2b6cb0; font-weight: bold;">-</span><br>
+                <strong>Adresse:</strong> <span id="det-address">-</span><br>
+                <strong>Koordinaten:</strong> <span id="det-coords" style="color: #2b6cb0;">-</span><br>
                 
                 <div id="appointments-selection-container" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #cbd5e0; display: none;">
                     <details open>
-                        <summary id="appointments-box-title">📅 Citas actuales del cliente:</summary>
+                        <summary id="appointments-box-title">📅 Aktuelle Termine des Kunden:</summary>
                         <div id="client-appointments-list" style="margin-top: 6px;"></div>
                     </details>
                 </div>
             </div>
 
             <div id="date-section" style="background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
-                <label id="section-step-label" style="font-size: 0.82rem; font-weight: 700; color: #2d3748; display: block; margin-bottom: 6px;">2. Fecha, Hora y Detalles:</label>
+                <label id="section-step-label" style="font-size: 0.82rem; font-weight: 700; color: #2d3748; display: block; margin-bottom: 6px;">2. Datum, Uhrzeit und Details:</label>
                 
                 <div id="route-suggestions" class="suggestion-box" style="margin-bottom: 10px;">
                     <details>
-                        <summary style="color: #2b6cb0;">💡 Citas agendadas y distancias reales (recomendadas)</summary>
-                        <div id="suggestions-list" style="margin-top: 6px;">Calculando distancias viales...</div>
+                        <summary style="color: #2b6cb0;">💡 Geplante Termine & reale Entfernungen (Empfohlen)</summary>
+                        <div id="suggestions-list" style="margin-top: 6px;">Fahrstrecken werden berechnet...</div>
                     </details>
                 </div>
 
                 <div class="form-row-group">
                     <div class="datetime-four-grid" style="margin-bottom: 3px;">
                         <div class="datetime-col">
-                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">📅 Fecha:</label>
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">📅 Datum:</label>
                         </div>
                         <div class="datetime-col"></div>
                         <div class="datetime-col">
-                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">⏰ Hora:</label>
+                            <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block;">⏰ Uhrzeit:</label>
                         </div>
                         <div class="datetime-col"></div>
                     </div>
@@ -247,20 +247,20 @@
                 </div>
 
                 <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Técnico Asignado (Opcional):</label>
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Zugewiesener Techniker (Optional):</label>
                     <select id="employee-select">
-                        <option value="General">Sin asignar</option>
+                        <option value="General">Nicht zugewiesen</option>
                     </select>
                 </div>
 
                 <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Horas estimadas (Opcional):</label>
-                    <input type="text" id="estimated-hours" inputmode="decimal" placeholder="Ej. 4 o 1.5">
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Geschätzte Dauer in Std. (Optional):</label>
+                    <input type="text" id="estimated-hours" inputmode="decimal" placeholder="z. B. 4 oder 1.5">
                 </div>
 
                 <div class="client-search-container" style="margin-top: 8px; margin-bottom: 0;">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Trabajo a realizar / Solicitud:</label>
-                    <input type="text" id="service-search-input" placeholder="Ej. Corte de árbol, Poda..." autocomplete="off">
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Auszuführende Arbeit / Anforderung:</label>
+                    <input type="text" id="service-search-input" placeholder="z. B. Baumpflege, Schnitt..." autocomplete="off">
                     <div id="service-results-dropdown" class="service-results-dropdown"></div>
                 </div>
             </div>
@@ -268,7 +268,7 @@
             <input type="hidden" id="selected-appointment-date" required>
 
             <button type="submit" id="save-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 12px; font-size: 0.9rem; opacity: 0.6; margin-bottom: 20px; width: 100%; border-radius: 8px; box-shadow: 0 4px 10px rgba(56, 161, 105, 0.2);" disabled>
-                Confirmar y Agendar Cita
+                Termin bestätigen und buchen
             </button>
         </form>
     </div>
@@ -276,10 +276,10 @@
     <div id="map-modal">
         <div class="map-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; font-size: 0.9rem; color: #2d3748;">🗺️ Selecciona un cliente en el mapa</h3>
-                <button type="button" id="close-map-modal" style="width: auto; padding: 4px 8px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.75rem;">✕ Cerrar</button>
+                <h3 style="margin: 0; font-size: 0.9rem; color: #2d3748;">🗺️ Wählen Sie einen Kunden auf der Karte aus</h3>
+                <button type="button" id="close-map-modal" style="width: auto; padding: 4px 8px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.75rem;">✕ Schließen</button>
             </div>
-            <p style="font-size: 0.72rem; color: #666; margin: 4px 0 0 0;">Haz clic en cualquier pin del mapa para seleccionar al cliente.</p>
+            <p style="font-size: 0.72rem; color: #666; margin: 4px 0 0 0;">Klicken Sie auf einen Pin auf der Karte, um den Kunden auszuwählen.</p>
             <div id="interactive-map"></div>
         </div>
     </div>
@@ -307,13 +307,13 @@
 
         function updateUIModeText() {
             if (actionType === 'new') {
-                document.getElementById('page-title').textContent = '➕ Programar Nueva Cita';
-                document.getElementById('page-subtitle').textContent = 'Agrega una nueva visita o selecciona una fecha recomendada.';
-                document.getElementById('save-btn').textContent = 'Confirmar y Crear Nueva Cita';
+                document.getElementById('page-title').textContent = '➕ Neuen Termin planen';
+                document.getElementById('page-subtitle').textContent = 'Fügen Sie einen neuen Besuch hinzu oder wählen Sie ein empfohlenes Datum.';
+                document.getElementById('save-btn').textContent = 'Neuen Termin bestätigen und erstellen';
             } else {
-                document.getElementById('page-title').textContent = '🔄 Reprogramar Cita';
-                document.getElementById('page-subtitle').textContent = 'Modificando la fecha de la cita seleccionada.';
-                document.getElementById('save-btn').textContent = 'Confirmar y Actualizar Cita';
+                document.getElementById('page-title').textContent = '🔄 Termin verschieben';
+                document.getElementById('page-subtitle').textContent = 'Datum des ausgewählten Termins ändern.';
+                document.getElementById('save-btn').textContent = 'Termin bestätigen und aktualisieren';
             }
         }
         updateUIModeText();
@@ -360,7 +360,7 @@
             if (!dateStr) return '';
             const parts = dateStr.split('-');
             if (parts.length === 3) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                return `${parts[2]}.${parts[1]}.${parts[0]}`;
             }
             return dateStr;
         }
@@ -375,8 +375,8 @@
                 const [year, month, day] = dateParts;
                 const localDate = new Date(year, month - 1, day);
                 const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                const dateReadable = localDate.toLocaleDateString('es-ES', options);
-                return `${dateReadable}, ${timePart} hrs`;
+                const dateReadable = localDate.toLocaleDateString('de-DE', options);
+                return `${dateReadable}, ${timePart} Uhr`;
             }
             return `${cleanDate} ${timePart}`;
         }
@@ -437,7 +437,7 @@
                 allEmployees = employeeData || [];
 
                 const empSelect = document.getElementById('employee-select');
-                empSelect.innerHTML = `<option value="General">Sin asignar</option>`;
+                empSelect.innerHTML = `<option value="General">Nicht zugewiesen</option>`;
                 allEmployees.forEach(emp => {
                     empSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
@@ -463,7 +463,7 @@
 
             } catch (err) {
                 console.error('Error al inicializar:', err);
-                alert('Hubo un error al cargar la información.');
+                alert('Beim Laden der Informationen ist ein Fehler aufgetreten.');
             }
         }
 
@@ -502,7 +502,7 @@
                 filtered.forEach(client => {
                     const item = document.createElement('div');
                     item.className = 'client-result-item';
-                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#666;">${client.address || 'Sin dirección'}, CP: ${client.postal_code || 'N/A'}</span>`;
+                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.75rem; color:#666;">${client.address || 'Keine Adresse'}, PLZ: ${client.postal_code || 'N/A'}</span>`;
                     item.addEventListener('click', () => {
                         selectClient(client, null);
                         dropdown.style.display = 'none';
@@ -511,7 +511,7 @@
                 });
                 dropdown.style.display = 'block';
             } else {
-                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">No se encontraron clientes</div>`;
+                dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">Keine Kunden gefunden</div>`;
                 dropdown.style.display = 'block';
             }
         });
@@ -554,7 +554,7 @@
                 });
                 serviceDropdown.style.display = 'block';
             } else {
-                serviceDropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">Se guardará como un nuevo servicio</div>`;
+                serviceDropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">Wird als neue Dienstleistung gespeichert</div>`;
                 serviceDropdown.style.display = 'block';
             }
         });
@@ -568,7 +568,7 @@
         async function selectClient(client, preselectApptId = null) {
             activeClient = client;
             window.activeClient = client;
-            searchInput.value = `${client.name} - ${client.address || 'Sin dirección'}`;
+            searchInput.value = `${client.name} - ${client.address || 'Keine Adresse'}`;
             document.getElementById('client-select').value = client.id;
 
             actionType = preselectApptId ? 'reschedule' : 'new';
@@ -596,12 +596,12 @@
             saveBtn.style.opacity = '0.6';
 
             if (!client.latitude || !client.longitude) {
-                alert('Este cliente no tiene coordenadas geográficas registradas.');
+                alert('Für diesen Kunden sind keine geografischen Koordinaten gespeichert.');
                 return;
             }
 
             document.getElementById('det-name').textContent = client.name;
-            document.getElementById('det-address').textContent = `${client.address || 'Sin calle'}, CP: ${client.postal_code || 'N/A'}`;
+            document.getElementById('det-address').textContent = `${client.address || 'Keine Straße'}, PLZ: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
 
             clientAppointments = allAppointments.filter(a => a.client_id === client.id);
@@ -614,10 +614,10 @@
 
             if (clientAppointments.length > 0) {
                 appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (${clientAppointments.length}):`;
+                appointmentsBoxTitle.textContent = `📅 Aktuelle Termine des Kunden (${clientAppointments.length}):`;
 
                 clientAppointments.forEach((appt, index) => {
-                    let formatted = 'Fecha no válida';
+                    let formatted = 'Ungültiges Datum';
                     if (appt.scheduled_date) {
                         formatted = formatLocalDateTime(appt.scheduled_date, appt.time_slot);
                     }
@@ -627,11 +627,11 @@
                     card.dataset.apptId = appt.id;
                     card.innerHTML = `
                         <div style="flex: 1;">
-                            <strong style="color: #2b6cb0;">Cita #${index + 1}:</strong> ${formatted}
-                            <div style="font-size: 0.72rem; color: #666;">Servicio: ${appt.service_requested || 'General'} | Técnico: ${appt.assigned_employee || 'Sin asignar'}</div>
+                            <strong style="color: #2b6cb0;">Termin #${index + 1}:</strong> ${formatted}
+                            <div style="font-size: 0.72rem; color: #666;">Dienstleistung: ${appt.service_requested || 'General'} | Techniker: ${appt.assigned_employee || 'Nicht zugewiesen'}</div>
                         </div>
                         <button type="button" class="btn-quick-reschedule" data-id="${appt.id}" style="width: auto; padding: 4px 8px; background: #3182ce; color: white; border: none; border-radius: 6px; font-size: 0.68rem; font-weight: bold; cursor: pointer; white-space: nowrap;">
-                            🔄 Reprogramar
+                            🔄 Verschieben
                         </button>
                     `;
 
@@ -658,276 +658,96 @@
                             if (appt.assigned_employee) {
                                 document.getElementById('employee-select').value = appt.assigned_employee;
                             }
-                            selectedDateOnly = datePart;
-                            updateFinalTimestamp();
-                            saveBtn.disabled = false;
-                            saveBtn.style.opacity = '1';
-
-                            document.querySelectorAll('.suggestion-item-btn').forEach(b => {
-                                b.classList.remove('selected-suggestion', 'reschedule-highlight');
-                                if (b.dataset.date === datePart) {
-                                    b.classList.add('reschedule-highlight');
-                                }
-                            });
                         }
-
-                        setTimeout(() => {
-                            dateSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            const dateInput = document.getElementById('free-date-input');
-                            if (dateInput) dateInput.focus();
-                        }, 100);
                     };
 
-                    card.querySelector('.btn-quick-reschedule').addEventListener('click', handleSelectThisAppointment);
                     card.addEventListener('click', handleSelectThisAppointment);
-
                     appointmentsListDiv.appendChild(card);
 
-                    if (preselectApptId && appt.id === preselectApptId) {
-                        targetApptToSelect = { card, appt };
+                    if (preselectApptId && String(appt.id) === String(preselectApptId)) {
+                        targetApptToSelect = handleSelectThisAppointment;
                     }
                 });
-
-                dateSection.style.display = 'block';
             } else {
-                appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = `📅 Citas actuales del cliente (0):`;
-                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.78rem;">Este cliente no tiene ninguna cita programada actualmente.</span>`;
-                dateSection.style.display = 'block';
+                appointmentsContainer.style.display = 'none';
             }
 
             detailsCard.style.display = 'block';
-
-            suggestionsList.innerHTML = 'Calculando distancias viales reales...';
-            suggestionBox.style.display = 'block';
-
-            const activeDates = [...new Set(allAppointments.map(a => a.scheduled_date?.split('T')[0]))].filter(d => d >= todayStrSystem);
-
-            activeDates.sort((dateA, dateB) => {
-                const countA = allAppointments.filter(a => a.scheduled_date?.startsWith(dateA)).length;
-                const countB = allAppointments.filter(a => a.scheduled_date?.startsWith(dateB)).length;
-                return countA - countB;
-            });
-
-            if (activeDates.length > 0) {
-                suggestionsList.innerHTML = '';
-                for (const dateStr of activeDates) {
-                    const apptsOnThisDate = allAppointments.filter(a => a.scheduled_date?.startsWith(dateStr));
-
-                    apptsOnThisDate.sort((a, b) => {
-                        const timeA = a.time_slot || '00:00';
-                        const timeB = b.time_slot || '00:00';
-                        return timeA.localeCompare(timeB);
-                    });
-
-                    let clientsDetailsHtml = '';
-                    for (const appt of apptsOnThisDate) {
-                        const scheduledClient = allClients.find(c => c.id === appt.client_id);
-                        if (scheduledClient && scheduledClient.latitude && scheduledClient.longitude) {
-                            const timeStr = appt.time_slot ? appt.time_slot.substring(0, 5) : '09:00';
-                            const isCurrentClient = (scheduledClient.id === client.id);
-
-                            if (isCurrentClient) {
-                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #2b6cb0; margin-top: 2px; font-weight: bold; background: #ebf8ff; padding: 2px 6px; border-radius: 4px;">• ${scheduledClient.name} a las ${timeStr}h (Actual)</div>`;
-                            } else {
-                                const dist = await fetchDrivingDistanceKm(client.latitude, client.longitude, scheduledClient.latitude, scheduledClient.longitude);
-                                const distFormatted = dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`;
-
-                                clientsDetailsHtml += `<div style="font-size: 0.78rem; color: #4a5568; margin-top: 2px;">• <strong>${scheduledClient.name}</strong> a las ${timeStr}h <span style="color: #2b6cb0; font-weight: bold;">(a ${distFormatted})</span></div>`;
-                            }
-                        }
-                    }
-
-                    const totalCountOnDay = apptsOnThisDate.length;
-                    let badgeText = `${totalCountOnDay} cita${totalCountOnDay > 1 ? 's' : ''}`;
-                    const formattedDateDDMMYYYY = formatDateToDDMMYYYY(dateStr);
-
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = `suggestion-item-btn`;
-                    btn.dataset.date = dateStr;
-                    btn.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 3px;">
-                            <strong style="font-size: 0.8rem; color: #2b6cb0; text-decoration: underline;">📅 ${formattedDateDDMMYYYY}</strong>
-                            <span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 10px; background: #e2e8f0; color: #4a5568; font-weight: bold;">${badgeText}</span>
-                        </div>
-                        <div style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 2px;">
-                            ${clientsDetailsHtml || '<span style="font-size: 0.72rem; color: #666;">Sin otras citas este día</span>'}
-                        </div>
-                    `;
-
-                    btn.addEventListener('click', () => {
-                        if (!selectedAppointmentId) {
-                            actionType = 'new';
-                            updateUIModeText();
-                            document.querySelectorAll('.appointment-selection-card').forEach(c => c.classList.remove('selected'));
-                        }
-
-                        selectedDateOnly = dateStr;
-                        document.getElementById('free-date-input').value = dateStr;
-                        
-                        const suggestedTime = suggestNextTimeForDate(dateStr);
-                        document.getElementById('appointment-time').value = suggestedTime;
-
-                        updateFinalTimestamp();
-
-                        document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion', 'reschedule-highlight'));
-                        btn.classList.add('selected-suggestion');
-
-                        saveBtn.disabled = false;
-                        saveBtn.style.opacity = '1';
-                    });
-
-                    suggestionsList.appendChild(btn);
-                }
-                suggestionBox.style.display = 'block';
-            } else {
-                suggestionsList.innerHTML = `<p style="font-size: 0.78rem; color: #718096; margin: 2px 0;">No hay citas registradas. Selecciona la fecha en el calendario.</p>`;
-                suggestionBox.style.display = 'block';
-            }
+            dateSection.style.display = 'block';
 
             if (targetApptToSelect) {
-                targetApptToSelect.card.querySelector('.btn-quick-reschedule').click();
+                targetApptToSelect();
             }
+
+            initFormEvents();
         }
 
-        document.getElementById('free-date-input').addEventListener('change', (e) => {
-            const chosenDate = e.target.value;
-            if (!chosenDate) return;
-
-            if (chosenDate < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                e.target.value = '';
-                return;
-            }
-
-            selectedDateOnly = chosenDate;
-            
-            const suggestedTime = suggestNextTimeForDate(chosenDate);
-            document.getElementById('appointment-time').value = suggestedTime;
-
-            updateFinalTimestamp();
-
-            document.querySelectorAll('.suggestion-item-btn').forEach(b => b.classList.remove('selected-suggestion', 'reschedule-highlight'));
-
+        function initFormEvents() {
+            const freeDateInput = document.getElementById('free-date-input');
+            const timeInput = document.getElementById('appointment-time');
             const saveBtn = document.getElementById('save-btn');
-            saveBtn.disabled = false;
-            saveBtn.style.opacity = '1';
-        });
 
-        document.getElementById('appointment-time').addEventListener('change', () => {
-            if (selectedDateOnly) {
-                updateFinalTimestamp();
+            function checkFormValidity() {
+                if (freeDateInput.value && timeInput.value && activeClient) {
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
+                } else {
+                    saveBtn.disabled = true;
+                    saveBtn.style.opacity = '0.6';
+                }
             }
-        });
 
-        function updateFinalTimestamp() {
-            if (selectedDateOnly) {
-                document.getElementById('selected-appointment-date').value = selectedDateOnly;
-            }
+            freeDateInput.addEventListener('change', checkFormValidity);
+            timeInput.addEventListener('change', checkFormValidity);
         }
 
         document.getElementById('appointment-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const clientId = document.getElementById('client-select').value;
-            updateFinalTimestamp();
-            const dateVal = document.getElementById('selected-appointment-date').value;
-            const timeVal = document.getElementById('appointment-time').value || '09:00';
-            const rawHours = document.getElementById('estimated-hours').value.trim();
-            const serviceVal = document.getElementById('service-search-input').value.trim();
-            const employeeVal = document.getElementById('employee-select').value;
-
-            if (!clientId || !dateVal) {
-                alert('Selecciona un cliente y una fecha/hora válida.');
+            if (!activeClient) {
+                alert('Bitte wählen Sie zuerst einen Kunden aus.');
                 return;
             }
 
-            if (actionType === 'reschedule' && !selectedAppointmentId) {
-                alert('Por favor, selecciona la cita que deseas modificar.');
+            const dateValue = document.getElementById('free-date-input').value;
+            const timeValue = document.getElementById('appointment-time').value;
+            const empValue = document.getElementById('employee-select').value;
+            const hoursValue = document.getElementById('estimated-hours').value;
+            const serviceValue = document.getElementById('service-search-input').value || 'General';
+
+            if (!dateValue || !timeValue) {
+                alert('Bitte wählen Sie Datum und Uhrzeit aus.');
                 return;
             }
 
-            if (dateVal < todayStrSystem) {
-                alert('No se pueden programar citas en fechas pasadas.');
-                return;
-            }
-
-            if (dateVal === todayStrSystem) {
-                const now = new Date();
-                const currentHours = String(now.getHours()).padStart(2, '0');
-                const currentMinutes = String(now.getMinutes()).padStart(2, '0');
-                const currentTimeStr = `${currentHours}:${currentMinutes}`;
-
-                if (timeVal < currentTimeStr) {
-                    alert('No puedes programar una cita a una hora que ya ha transcurrido el día de hoy.');
-                    return;
+            try {
+                if (actionType === 'new') {
+                    const { error } = await supabase.from('appointments').insert([{
+                        client_id: activeClient.id,
+                        scheduled_date: dateValue,
+                        time_slot: timeValue,
+                        assigned_employee: empValue,
+                        estimated_hours: hoursValue ? Number(hoursValue) : null,
+                        service_requested: serviceValue
+                    }]);
+                    if (error) throw error;
+                    alert('Termin erfolgreich erstellt.');
+                } else {
+                    const { error } = await supabase.from('appointments').update({
+                        scheduled_date: dateValue,
+                        time_slot: timeValue,
+                        assigned_employee: empValue,
+                        estimated_hours: hoursValue ? Number(hoursValue) : null,
+                        service_requested: serviceValue
+                    }).eq('id', selectedAppointmentId);
+                    if (error) throw error;
+                    alert('Termin erfolgreich aktualisiert.');
                 }
-            }
 
-            const btn = document.getElementById('save-btn');
-            const originalBtnText = btn.textContent;
-            btn.textContent = 'Guardando...';
-            btn.disabled = true;
-
-            if (serviceVal) {
-                const exists = allServices.some(s => s.name.toLowerCase() === serviceVal.toLowerCase());
-                if (!exists) {
-                    const { data: newSrv } = await supabase.from('services').insert([{ name: serviceVal }]).select();
-                    if (newSrv) allServices.push(newSrv[0]);
-                }
-            }
-
-            const parsedHours = rawHours !== '' ? parseFloat(rawHours.replace(',', '.')) : null;
-
-            const payload = {
-                client_id: clientId,
-                scheduled_date: dateVal,
-                time_slot: timeVal,
-                estimated_hours: !isNaN(parsedHours) ? parsedHours : null,
-                service_requested: serviceVal || null,
-                assigned_employee: employeeVal !== 'General' ? employeeVal : null
-            };
-
-            let errorResult = null;
-
-            if (actionType === 'new') {
-                const { error } = await supabase.from('appointments').insert([payload]);
-                errorResult = error;
-            } else {
-                const { error } = await supabase.from('appointments').update(payload).eq('id', selectedAppointmentId);
-                errorResult = error;
-            }
-
-            if (errorResult) {
-                alert('Error al guardar la cita: ' + errorResult.message);
-                btn.textContent = originalBtnText;
-                btn.disabled = false;
-            } else {
-                const actionMsg = actionType === 'new' ? '¡Nueva cita registrada con éxito!' : '¡Cita reprogramada con éxito!';
-                const formattedDateReadable = formatLocalDateTime(dateVal, timeVal);
-                
-                alert(`${actionMsg}\n\n📅 Cita Confirmada\nFecha: ${formattedDateReadable}\n👤 Cliente: ${activeClient ? activeClient.name : 'Cliente'}\n🛠️ Técnico: ${employeeVal}`);
-
-                // --- REFRESCAR Y MANTENERSE EN LA VISTA PARA CREAR NUEVA CITA ---
-                document.getElementById('appointment-form').reset();
-                document.getElementById('client-details').style.display = 'none';
-                document.getElementById('date-section').style.display = 'none';
-                document.getElementById('route-suggestions').style.display = 'none';
-                document.getElementById('client-search-input').value = '';
-                document.getElementById('client-select').value = '';
-                
-                actionType = 'new';
-                selectedAppointmentId = null;
-                updateUIModeText();
-
-                btn.textContent = originalBtnText;
-                btn.disabled = true;
-                btn.style.opacity = '0.6';
-
-                // Recargar los datos de la base de datos en segundo plano para actualizar el mapa y las sugerencias
-                await initForm();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.location.href = './admin-assignments.html';
+            } catch (err) {
+                console.error('Error al guardar cita:', err);
+                alert('Fehler beim Speichern des Termins.');
             }
         });
 
