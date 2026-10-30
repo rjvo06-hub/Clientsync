@@ -316,16 +316,18 @@
 
         function unifySessions(sessionsArray) {
             if (!sessionsArray || !Array.isArray(sessionsArray)) return [];
-            const map = {};
+            const cleaned = [];
             sessionsArray.forEach(s => {
                 const name = (s.employee || '').trim();
                 if (!name) return;
-                if (!map[name]) {
-                    map[name] = { employee: name, minutes: 0 };
-                }
-                map[name].minutes += (s.minutes || 0);
+                cleaned.push({
+                    employee: name,
+                    check_in: s.check_in || null,
+                    check_out: s.check_out || null,
+                    minutes: Math.max(1, Number(s.minutes) || 0)
+                });
             });
-            return Object.values(map);
+            return cleaned;
         }
 
         async function init() {
@@ -1052,8 +1054,9 @@
 
                     if (remainingActive.length === 0) {
                         updateData.check_out_time = nowPure;
-                        updateData.visit_duration_minutes = sessionMinutes;
+                        updateData.visit_duration_minutes = Math.max(1, Math.round((Date.now() - parseTimestampToMs(earliestCheckIn || nowPure)) / 60000));
                         updateData.client_name = clientName;
+                        updateData.status = 'Completado';
                     }
 
                     const { error } = await supabase.from('appointments').update(updateData).eq('id', id);
@@ -1131,10 +1134,10 @@
                     if (otherActiveEmps.length > 0) {
                         const otherNames = otherActiveEmps.map(v => v.employee_name).join(', ');
                         const proceed = confirm(
-                            `⚠️ Aviso de Cierre de Visita\n\n` +
+                            `⚠️ Atención sobre el Cierre\n\n` +
                             `Actualmente aún hay compañeros activos en este cliente: [ ${otherNames} ].\n\n` +
-                            `Si continúas y finalizas la visita, se cerrará por completo para todos los participantes.\n\n` +
-                            `¿Deseas proceder con el cierre total de la visita?`
+                            `Si únicamente tú terminaste tu trabajo y ellos se quedan, presiona "Cancelar" y usa el botón (×) al lado de tu nombre para retirarte.\n\n` +
+                            `¿Deseas cerrar por completo la visita para TODOS los compañeros ahora mismo?`
                         );
                         if (!proceed) return;
                     } else {
@@ -1171,8 +1174,9 @@
                         total_labor_minutes: totalLabor,
                         check_in_time: earliestCheckIn,
                         check_out_time: nowPure,
-                        visit_duration_minutes: apptVisits.length > 0 ? Math.max(1, Math.round((Date.now() - parseTimestampToMs(apptVisits[0].check_in)) / 60000)) : 1,
-                        client_name: clientName
+                        visit_duration_minutes: apptVisits.length > 0 ? Math.max(1, Math.round((Date.now() - parseTimestampToMs(earliestCheckIn || apptVisits[0].check_in)) / 60000)) : 1,
+                        client_name: clientName,
+                        status: 'Completado'
                     };
 
                     const { error } = await supabase.from('appointments').update(updatePayload).eq('id', id);
