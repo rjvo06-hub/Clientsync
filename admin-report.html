@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Librería externa para generación de PDF -->
+    <!-- Carga de html2pdf.js necesaria para generar los reportes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
@@ -199,11 +199,11 @@
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
         }
 
-        /* Alineación dinámica para el botón PDF */
+        /* Oculto por defecto con display: none */
         .pdf-action-row {
-            display: flex;
+            display: none;
             width: 100%;
-            justify-content: flex-start; /* Se ajusta con JS */
+            justify-content: flex-start;
             margin-top: -4px;
         }
 
@@ -474,11 +474,11 @@
 
         <!-- Reiter / Tabs -->
         <div class="tabs-row">
-            <button type="button" class="tab-btn active" id="tab-employees" onclick="switchView('employees')">👥 Ansicht nach Mitarbeitern</button>
-            <button type="button" class="tab-btn" id="tab-clients" onclick="switchView('clients')">🏢 Ansicht nach Kunden</button>
+            <button type="button" class="tab-btn active" id="tab-employees">👥 Ansicht nach Mitarbeitern</button>
+            <button type="button" class="tab-btn" id="tab-clients">🏢 Ansicht nach Kunden</button>
         </div>
 
-        <!-- Contenedor alineado según la vista seleccionada -->
+        <!-- Fila contenedora del botón de PDF (oculta por defecto) -->
         <div class="pdf-action-row" id="pdf-button-wrapper">
             <button type="button" class="btn-pdf" id="btn-export-pdf">📄 PDF Generieren</button>
         </div>
@@ -492,9 +492,7 @@
 
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
-        // Módulo de empleados (Izquierda)
         import { generateEmployeePDF } from './js/pdfGenerator.js';
-        // Módulo de clientes (Derecha)
         import { generateClientPDF } from './js/pdfGeneratorClient.js';
 
         const employeeSelect = document.getElementById('filter-employee');
@@ -507,16 +505,17 @@
         const pdfButtonWrapper = document.getElementById('pdf-button-wrapper');
         const rangeContainer = document.getElementById('range-container');
         const reportResults = document.getElementById('report-results');
+        const tabEmployees = document.getElementById('tab-employees');
+        const tabClients = document.getElementById('tab-clients');
 
         let useRange = false;
         let currentView = 'employees';
         let cachedData = { logs: [], appts: [], clientsMap: new Map() };
 
-        // Cambiar vista y alternar posición del botón PDF
-        window.switchView = function(view) {
+        function switchView(view) {
             currentView = view;
-            document.getElementById('tab-employees').classList.toggle('active', view === 'employees');
-            document.getElementById('tab-clients').classList.toggle('active', view === 'clients');
+            tabEmployees.classList.toggle('active', view === 'employees');
+            tabClients.classList.toggle('active', view === 'clients');
 
             if (view === 'employees') {
                 pdfButtonWrapper.style.justifyContent = 'flex-start'; // Lado Izquierdo
@@ -525,7 +524,10 @@
             }
 
             renderCurrentView();
-        };
+        }
+
+        tabEmployees.addEventListener('click', () => switchView('employees'));
+        tabClients.addEventListener('click', () => switchView('clients'));
 
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
@@ -581,13 +583,17 @@
 
         async function init() {
             try {
-                const { data: employees } = await supabase.from('employees').select('name').order('name');
-                if (employees) {
+                const { data: employees, error: empErr } = await supabase.from('employees').select('name').order('name');
+                if (empErr) console.error('Error obteniendo empleados:', empErr);
+                
+                if (employees && employees.length > 0) {
                     employees.forEach(e => {
-                        employeeSelect.innerHTML += `<option value="${e.name}">${e.name}</option>`;
+                        const opt = document.createElement('option');
+                        opt.value = e.name;
+                        opt.textContent = e.name;
+                        employeeSelect.appendChild(opt);
                     });
                 }
-                loadReport();
             } catch (err) {
                 console.error('Fehler beim Initialisieren der Filter:', err);
             }
@@ -631,6 +637,7 @@
             } catch (err) {
                 console.error('Fehler beim Generieren des Berichts:', err);
                 reportResults.innerHTML = `<div style="padding: 15px; color: #dc2626; text-align: center; font-size: 0.75rem;">Fehler beim Laden der Daten: ${err.message}</div>`;
+                pdfButtonWrapper.style.display = 'none'; // Ocultar si ocurre error
             }
         }
 
@@ -642,10 +649,12 @@
 
             if (logs.length === 0 && appts.length === 0) {
                 reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Datensätze für die ausgewählten Daten gefunden.</div>`;
+                pdfButtonWrapper.style.display = 'none'; // Ocultar si no hay registros
                 return;
             }
 
             let html = '';
+            let hasDataToShow = false;
 
             if (currentView === 'employees') {
                 const reportMap = new Map();
@@ -673,9 +682,11 @@
 
                 if (reportMap.size === 0) {
                     reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Zeiterfassungsdaten für die ausgewählten Kriterien vorhanden.</div>`;
+                    pdfButtonWrapper.style.display = 'none'; // Ocultar si no hay datos de horas
                     return;
                 }
 
+                hasDataToShow = true;
                 const sortedKeys = Array.from(reportMap.keys()).sort().reverse();
 
                 sortedKeys.forEach(key => {
@@ -806,9 +817,11 @@
 
                 if (filteredAppts.length === 0) {
                     reportResults.innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b; background: white; border-radius: 24px; font-size: 0.78rem; border: 1px solid #e2e8f0;">Keine Kundenbesuche für die ausgewählten Kriterien registriert.</div>`;
+                    pdfButtonWrapper.style.display = 'none'; // Ocultar si no hay citas
                     return;
                 }
 
+                hasDataToShow = true;
                 const apptsByDate = new Map();
                 filteredAppts.forEach(a => {
                     const dateStr = a.scheduled_date.split('T')[0];
@@ -941,11 +954,17 @@
             }
 
             reportResults.innerHTML = html;
+
+            // Mostrar el botón de PDF solo si hay datos válidos tras consultar
+            if (hasDataToShow) {
+                pdfButtonWrapper.style.display = 'flex';
+            } else {
+                pdfButtonWrapper.style.display = 'none';
+            }
         }
 
         btnSearch.addEventListener('click', loadReport);
 
-        // Listener dinámico del botón según vista activa
         btnExportPdf.addEventListener('click', () => {
             const selectedEmployee = employeeSelect.value;
             if (currentView === 'employees') {
