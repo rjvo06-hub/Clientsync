@@ -16,10 +16,7 @@
         .pdf-page {
             width: 210mm;
             height: auto;
-            padding-top: 18mm; /* Distancia exacta para empezar justo debajo de la línea del membrete (15mm) */
-            padding-left: 8mm;
-            padding-right: 8mm;
-            padding-bottom: 8mm;
+            padding: 0 8mm 8mm 8mm;
             background: white;
             margin: auto;
             box-sizing: border-box;
@@ -29,7 +26,7 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 18mm 8mm 8mm 8mm;
+                margin: 25mm 8mm 8mm 8mm;
             }
             body { background: white; padding: 0; }
             .no-print { display: none !important; }
@@ -447,11 +444,11 @@
             window.print();
         });
 
-        // DESCARGA DE PDF CONFIGURADA CON PADDING EXACTO Y SIN PÁGINAS FANTASMA
+        // GENERACIÓN DE PDF PERFECTA SIN SOLAPAMIENTO DE MEMBRETE
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       [0, 0, 0, 0], // Margen externo deshabilitado para tomar el padding-top: 18mm del CSS exacto
+                margin:       [28, 8, 12, 8], // Margen de 28mm arriba garantiza que la tabla comience siempre debajo del membrete en todas las páginas
                 filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
@@ -465,31 +462,31 @@
                 for (let i = 1; i <= totalPages; i++) {
                     pdf.setPage(i);
                     
-                    // Membrete superior dibujado exactamente en la franja superior de 18mm
+                    // Membrete en franja reservada de los primeros 20mm en TODAS las hojas
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(13);
                     pdf.setTextColor(17, 24, 39);
-                    pdf.text("TERMINBERICHT & ARBEITSZEITEN", 8, 9);
+                    pdf.text("TERMINBERICHT & ARBEITSZEITEN", 8, 11);
                     
                     pdf.setFont("helvetica", "normal");
                     pdf.setFontSize(8);
                     pdf.setTextColor(107, 114, 128);
-                    pdf.text(textoPeriodoPDF, 8, 13);
+                    pdf.text(textoPeriodoPDF, 8, 16);
                     
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(6);
                     pdf.setTextColor(156, 163, 175);
-                    pdf.text("AUSSTELLUNGSDATUM", 202, 8, { align: "right" });
+                    pdf.text("AUSSTELLUNGSDATUM", 202, 11, { align: "right" });
                     
                     pdf.setFont("helvetica", "normal");
                     pdf.setFontSize(8);
                     pdf.setTextColor(55, 65, 81);
-                    pdf.text(fechaEmisionPDF, 202, 12, { align: "right" });
+                    pdf.text(fechaEmisionPDF, 202, 15, { align: "right" });
                     
-                    // Línea azul horizontal justo a 15mm
+                    // Línea horizontal azul en 19mm (por encima de los 28mm donde inicia la tabla HTML)
                     pdf.setDrawColor(79, 70, 229);
                     pdf.setLineWidth(0.5);
-                    pdf.line(8, 15, 202, 15);
+                    pdf.line(8, 19, 202, 19);
                 }
             }).save();
         });
