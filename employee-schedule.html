@@ -90,7 +90,6 @@
         let activeVisitsList = [];
         let allEmployeeNames = [];
         let allServices = [];
-        let allActivities = [];
         let employeeDailyLog = null;
         let selectedEmployee = '';
         let selectedMonthDate = new Date();
@@ -177,20 +176,18 @@
         }
 
         async function fetchData() {
-            const [{ data: clients }, { data: appointments }, { data: activeVisits }, { data: employeesData }, { data: servicesData }, { data: activitiesData }] = await Promise.all([
+            const [{ data: clients }, { data: appointments }, { data: activeVisits }, { data: employeesData }, { data: servicesData }] = await Promise.all([
                 supabase.from('clients').select('*').order('name', { ascending: true }),
                 supabase.from('appointments').select('*').order('time_slot', { ascending: true }),
                 supabase.from('active_visits').select('*'),
                 supabase.from('employees').select('*'),
-                supabase.from('services').select('*').order('name', { ascending: true }),
-                supabase.from('activities').select('*')
+                supabase.from('services').select('*').order('name', { ascending: true })
             ]);
             
             allClients = clients || [];
             allAppointments = appointments || [];
             activeVisitsList = activeVisits || [];
             allServices = servicesData || [];
-            allActivities = activitiesData || [];
             
             const namesSet = new Set();
             if (employeesData) {
@@ -221,10 +218,6 @@
 
             supabase.channel('active-visits-realtime-channel')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'active_visits' }, async () => { await fetchData(); refreshCurrentView(); })
-                .subscribe();
-
-            supabase.channel('activities-realtime-channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, async () => { await fetchData(); refreshCurrentView(); })
                 .subscribe();
 
             supabase.channel('services-realtime-channel')
@@ -602,11 +595,16 @@
                     `;
                 }
 
-                // --- CAPTURADOR CON AUTOCOMPLETADO Y CREACIÓN DE SERVICIOS ---
+                // --- CAPTURADOR DE SERVICIOS GUARDADO EN JSONB (activities_log) ---
                 let servicesHtml = '';
-                const apptActivities = allActivities.filter(act => String(act.appointment_id) === String(appt.id));
+                let currentLog = [];
+                try {
+                    currentLog = typeof appt.activities_log === 'string' 
+                        ? JSON.parse(appt.activities_log) 
+                        : (appt.activities_log || []);
+                } catch (e) { currentLog = []; }
 
-                if (isCheckedIn || apptActivities.length > 0) {
+                if (isCheckedIn || currentLog.length > 0) {
                     let serviceSelector = '';
                     if (isCheckedIn && amActiveInVisit) {
                         const datalistId = `services-list-${appt.id}`;
@@ -627,10 +625,10 @@
                         <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
                             <span style="font-size: 0.68rem; color: #64748b; font-weight: 600;">🛠️ Erbrachte Dienstleistungen:</span>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                ${apptActivities.length > 0 ? apptActivities.map(act => `
-                                    <span class="service-chip">
-                                        🛠️ ${act.description}
-                                        ${(isCheckedIn && amActiveInVisit) ? `<button type="button" class="btn-remove-service" data-act-id="${act.id}" title="Löschen">×</button>` : ''}
+                                ${currentLog.length > 0 ? currentLog.map(item => `
+                                    <span class="service-chip" title="Registriert von ${item.employee_name} um ${item.timestamp || ''}">
+                                        🛠️ ${item.service_name} <small style="opacity: 0.75; margin-left: 3px;">(👷‍♂️ ${item.employee_name})</small>
+                                        ${(isCheckedIn && amActiveInVisit) ? `<button type="button" class="btn-remove-service" data-appt-id="${appt.id}" data-log-id="${item.id}" title="Löschen">×</button>` : ''}
                                     </span>
                                 `).join('') : '<span style="font-size: 0.68rem; color: #94a3b8; font-style: italic;">Keine Dienstleistungen erfasst</span>'}
                             </div>
@@ -641,7 +639,7 @@
 
                 html += `
                     <div class="item-card">
-                        <!-- LÍNEA 1: Nombre a la izquierda | Tiempo / Badge a la derecha -->
+                        <!-- LÍNEA 1: Nombre a la izquierda | Tiempo a la derecha -->
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
                             <strong style="font-size: 0.8rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
                             <div>${badge}</div>
@@ -650,7 +648,7 @@
                         <!-- LÍNEA 2: Dirección del cliente -->
                         <div style="font-size: 0.7rem; color: #64748b;">📍 ${c.address || 'Keine Adresse'}</div>
 
-                        <!-- LÍNEA 3: Capturador de datos / Servicios realizados con autocompletado -->
+                        <!-- LÍNEA 3: Capturador de datos / Servicios realizados -->
                         ${servicesHtml}
 
                         ${teamHtml}
@@ -832,7 +830,7 @@
         });
 
         function attachClientTimerListeners() {
-            // AÑADIR/CREAR SERVICIO CON AUTOCOMPLETADO
+            // AÑADIR/CREAR SERVICIO GUARDANDO EN EL JSONB 'activities_log' DE APPOINTMENTS
             document.querySelectorAll('.btn-add-service').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const apptId = e.target.getAttribute('data-id');
@@ -845,47 +843,104 @@
                         return;
                     }
 
-                    // 1. Verificar si el servicio ya existe en la tabla services (insensible a mayúsculas)
-                    let existingService = allServices.find(s => s.name.toLowerCase() === serviceName.toLowerCase());
+                    const appt = allAppointments.find(a => String(a.id) === String(apptId));
+                    if (!appt) return;
 
-                    // 2. Si es un servicio nuevo, guardarlo en la tabla 'services'
-                    if (!existingService) {
-                        const { data: newService, error: serviceError } = await supabase
-                            .from('services')
-                            .insert([{ name: serviceName }])
-                            .select()
-                            .single();
+                    let currentLog = [];
+                    try {
+                        currentLog = typeof appt.activities_log === 'string' 
+                            ? JSON.parse(appt.activities_log) 
+                            : (appt.activities_log || []);
+                    } catch (err) { currentLog = []; }
 
-                        if (serviceError) {
-                            alert('Fehler beim Speichern der neuen Dienstleistung: ' + serviceError.message);
-                            return;
-                        }
-                        existingService = newService;
+                    // Verificar duplicados para esta cita
+                    const alreadyAdded = currentLog.some(log => log.service_name.toLowerCase() === serviceName.toLowerCase());
+                    if (alreadyAdded) {
+                        alert(`⚠️ Die Dienstleistung "${serviceName}" wurde für diesen Termin bereits erfasst.`);
+                        inputEl.value = '';
+                        return;
                     }
 
-                    // 3. Registrar la actividad vinculada a la cita
-                    const { error: activityError } = await supabase.from('activities').insert([{
-                        appointment_id: apptId,
-                        hours_spent: 0,
-                        description: existingService.name
-                    }]);
+                    // Guardar/Verificar catálogo en la tabla 'services'
+                    let existingService = allServices.find(s => s.name.trim().toLowerCase() === serviceName.toLowerCase());
 
-                    if (!activityError) {
+                    if (!existingService) {
+                        const { data: dbService } = await supabase
+                            .from('services')
+                            .select('*')
+                            .ilike('name', serviceName)
+                            .maybeSingle();
+
+                        if (dbService) {
+                            existingService = dbService;
+                        } else {
+                            const { data: newService, error: serviceError } = await supabase
+                                .from('services')
+                                .insert([{ name: serviceName }])
+                                .select()
+                                .maybeSingle();
+
+                            if (!serviceError) {
+                                existingService = newService;
+                            } else if (serviceError.code === '23505') {
+                                const { data: fallback } = await supabase
+                                    .from('services')
+                                    .select('*')
+                                    .ilike('name', serviceName)
+                                    .maybeSingle();
+                                existingService = fallback;
+                            }
+                        }
+                    }
+
+                    const finalServiceName = existingService ? existingService.name : serviceName;
+                    const nowPure = getPureLocalTimestamp();
+
+                    const newActivityEntry = {
+                        id: crypto.randomUUID(),
+                        service_name: finalServiceName,
+                        employee_name: selectedEmployee,
+                        timestamp: nowPure
+                    };
+
+                    currentLog.push(newActivityEntry);
+
+                    const { error: updateError } = await supabase
+                        .from('appointments')
+                        .update({ activities_log: currentLog })
+                        .eq('id', apptId);
+
+                    if (!updateError) {
+                        inputEl.value = '';
                         await fetchData();
                         renderTimetrackView();
                     } else {
-                        alert('Fehler beim Speichern der Aktivität: ' + activityError.message);
+                        alert('Fehler beim Speichern der Dienstleistung: ' + updateError.message);
                     }
                 });
             });
 
-            // ELIMINAR SERVICIO
+            // ELIMINAR SERVICIO DEL JSONB
             document.querySelectorAll('.btn-remove-service').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
-                    const actId = e.target.getAttribute('data-act-id');
-                    if (!actId) return;
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    const logId = e.target.getAttribute('data-log-id');
+                    if (!apptId || !logId) return;
 
-                    const { error } = await supabase.from('activities').delete().eq('id', actId);
+                    const appt = allAppointments.find(a => String(a.id) === String(apptId));
+                    if (!appt) return;
+
+                    let currentLog = typeof appt.activities_log === 'string' 
+                        ? JSON.parse(appt.activities_log) 
+                        : (appt.activities_log || []);
+
+                    const updatedLog = currentLog.filter(item => String(item.id) !== String(logId));
+
+                    const { error } = await supabase
+                        .from('appointments')
+                        .update({ activities_log: updatedLog })
+                        .eq('id', apptId);
+
                     if (!error) {
                         await fetchData();
                         renderTimetrackView();
