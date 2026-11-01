@@ -16,7 +16,7 @@
         .pdf-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 18mm 8mm 12mm 8mm; /* Arriba 18mm, Lados 8mm, Abajo 12mm */
+            padding: 0 8mm; /* Padding vertical removido para evitar duplicar el margen de html2pdf */
             background: white;
             margin: auto;
         }
@@ -25,7 +25,7 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 18mm 8mm 12mm 8mm;
+                margin: 22mm 8mm 12mm 8mm;
             }
             body { background: white; padding: 0; }
             .no-print { display: none !important; }
@@ -447,7 +447,7 @@
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       [18, 8, 12, 8], // Márgenes [Arriba, Izquierda, Abajo, Derecha]
+                margin:       [22, 8, 12, 8], // Margen superior ajustado a 22mm para dar espacio uniforme bajo el membrete
                 filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
