@@ -12,20 +12,24 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
-        /* MARGENES ESTÁNDAR COMPACTOS EN PANTALLA Y VISTA PREVIA */
+        /* ESTILOS DEL CONTENEDOR PDF OPTIMIZADO */
         .pdf-page {
             width: 210mm;
-            min-height: 297mm;
-            padding: 0 8mm; /* Padding vertical removido para evitar duplicar el margen de html2pdf */
+            height: auto;
+            padding-top: 18mm; /* Distancia exacta para empezar justo debajo de la línea del membrete (15mm) */
+            padding-left: 8mm;
+            padding-right: 8mm;
+            padding-bottom: 8mm;
             background: white;
             margin: auto;
+            box-sizing: border-box;
         }
 
         /* REGLAS PARA IMPRESIÓN DIRECTA DEL NAVEGADOR */
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 22mm 8mm 12mm 8mm;
+                margin: 18mm 8mm 8mm 8mm;
             }
             body { background: white; padding: 0; }
             .no-print { display: none !important; }
@@ -45,7 +49,7 @@
             display: table-footer-group;
         }
 
-        /* BLOQUES COMPACTOS E INDIVISIBLES (EVITA CORTAR CLIENTES POR LA MITAD) */
+        /* BLOQUES COMPACTOS E INDIVISIBLES */
         .appointment-card {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -121,7 +125,7 @@
     </div>
 
     <!-- DOCUMENTO A IMPRIMIR / PDF -->
-    <div class="overflow-x-auto pb-12">
+    <div class="overflow-x-auto pb-4">
         <div id="pdfContainer" class="pdf-page">
             
             <table class="w-full text-left border-collapse">
@@ -148,7 +152,7 @@
                 <!-- PIE DE PÁGINA -->
                 <tfoot>
                     <tr>
-                        <td colspan="5" class="pt-4">
+                        <td colspan="5" class="pt-2">
                             <div class="border-t border-gray-200 pt-2 flex justify-between items-center text-[10px] text-gray-400">
                                 <p>Verwaltungssystem für Außendiensteinsätze</p>
                                 <p>Automatisch generiertes Dokument</p>
@@ -443,14 +447,14 @@
             window.print();
         });
 
-        // DESCARGA DE PDF CON MÁRGENES ESTÁNDAR COMPACTOS Y MEMBRETE EN CADA PÁGINA
+        // DESCARGA DE PDF CONFIGURADA CON PADDING EXACTO Y SIN PÁGINAS FANTASMA
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       [22, 8, 12, 8], // Margen superior ajustado a 22mm para dar espacio uniforme bajo el membrete
+                margin:       [0, 0, 0, 0], // Margen externo deshabilitado para tomar el padding-top: 18mm del CSS exacto
                 filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
+                html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], avoid: ['.appointment-card'] }
             };
@@ -461,29 +465,29 @@
                 for (let i = 1; i <= totalPages; i++) {
                     pdf.setPage(i);
                     
-                    // Dibujar el membrete exacto en la franja superior de 18mm en cada página
+                    // Membrete superior dibujado exactamente en la franja superior de 18mm
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(13);
-                    pdf.setTextColor(17, 24, 39); // Gray 900
+                    pdf.setTextColor(17, 24, 39);
                     pdf.text("TERMINBERICHT & ARBEITSZEITEN", 8, 9);
                     
                     pdf.setFont("helvetica", "normal");
                     pdf.setFontSize(8);
-                    pdf.setTextColor(107, 114, 128); // Gray 500
+                    pdf.setTextColor(107, 114, 128);
                     pdf.text(textoPeriodoPDF, 8, 13);
                     
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(6);
-                    pdf.setTextColor(156, 163, 175); // Gray 400
+                    pdf.setTextColor(156, 163, 175);
                     pdf.text("AUSSTELLUNGSDATUM", 202, 8, { align: "right" });
                     
                     pdf.setFont("helvetica", "normal");
                     pdf.setFontSize(8);
-                    pdf.setTextColor(55, 65, 81); // Gray 700
+                    pdf.setTextColor(55, 65, 81);
                     pdf.text(fechaEmisionPDF, 202, 12, { align: "right" });
                     
-                    // Línea divisoria azul a 15mm de alto
-                    pdf.setDrawColor(79, 70, 229); // Indigo 600
+                    // Línea azul horizontal justo a 15mm
+                    pdf.setDrawColor(79, 70, 229);
                     pdf.setLineWidth(0.5);
                     pdf.line(8, 15, 202, 15);
                 }
