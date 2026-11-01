@@ -233,7 +233,7 @@
             return fechaStr;
         }
 
-        // CÁLCULO DE HORAS TRABAJADAS DESCONTANDO PAUSA Y REDONDEANDO A PASOS DE 0.5 STUNDEN
+        // REGLA SOLICITADA: Si es <= 0.5h se lleva a 0.5 Std. Si es > 0.5h se lleva al entero superior (1.0, 2.0, etc.)
         function calcularNetoHoras(clockIn, clockOut, lunchStart, lunchEnd) {
             if (!clockIn || !clockOut) return { netoStr: '-', minsPausa: 0 };
             
@@ -254,11 +254,17 @@
             }
 
             let netoMins = totalMins - minsPausa;
-            if (netoMins < 0) netoMins = 0;
+            if (netoMins <= 0) return { netoStr: '0,0 Std.', minsPausa: Math.round(minsPausa) };
 
-            // Redondeo al 0.5 o entero más cercano
             const horas = netoMins / 60.0;
-            const redondeado = Math.round(horas * 2) / 2.0;
+            let redondeado;
+
+            if (horas <= 0.5) {
+                redondeado = 0.5;
+            } else {
+                redondeado = Math.ceil(horas);
+            }
+
             const netoStr = `${redondeado.toFixed(1).replace('.', ',')} Std.`;
 
             return { netoStr, minsPausa: Math.round(minsPausa) };
