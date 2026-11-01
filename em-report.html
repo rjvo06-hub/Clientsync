@@ -52,9 +52,14 @@
     <!-- CONTROLES Y FILTROS (NO-PRINT) -->
     <div class="no-print max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
-            <div>
-                <h1 class="text-lg font-bold text-gray-800">Arbeitszeitbericht-Generator</h1>
-                <p class="text-xs text-gray-500">Erfassung der täglichen Arbeitszeiten und Pausen</p>
+            <div class="flex items-center gap-3">
+                <a href="./admin-pdf.html" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-xs transition">
+                    ← Zurück
+                </a>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800">Arbeitszeitbericht-Generator</h1>
+                    <p class="text-xs text-gray-500">Erfassung der täglichen Arbeitszeiten und Pausen</p>
+                </div>
             </div>
             
             <div class="flex gap-2">
@@ -233,7 +238,6 @@
             return fechaStr;
         }
 
-        // REGLA SOLICITADA: Si es <= 0.5h se lleva a 0.5 Std. Si es > 0.5h se lleva al entero superior (1.0, 2.0, etc.)
         function calcularNetoHoras(clockIn, clockOut, lunchStart, lunchEnd) {
             if (!clockIn || !clockOut) return { netoStr: '-', minsPausa: 0 };
             
@@ -286,12 +290,10 @@
                     .order('work_date', { ascending: true })
                     .order('clock_in_time', { ascending: true });
 
-                // Filtro por Empleado Específico o Todos
                 if (selectEmpleado.value !== 'todos') {
                     query = query.eq('employee_name', selectEmpleado.value);
                 }
 
-                // Filtro de Fechas
                 if (modo === 'manual' && fechaIniCustom && fechaFinCustom) {
                     query = query.gte('work_date', fechaIniCustom).lte('work_date', fechaFinCustom);
                     textoPeriodoPDF = `Zeitraum: ${formatearFechaEspanolAAleman(fechaIniCustom)} – ${formatearFechaEspanolAAleman(fechaFinCustom)}`;
@@ -384,7 +386,6 @@
             });
         });
 
-        // Evento al cambiar de empleado en el desplegable
         selectEmpleado.addEventListener('change', () => {
             if (chkRangoManual.checked) {
                 cargarJornadas('manual', fechaDesde.value, fechaHasta.value);
@@ -393,7 +394,6 @@
             }
         });
 
-        // Toggle para Rango Manual
         chkRangoManual.addEventListener('change', (e) => {
             if (e.target.checked) {
                 panelRangoManual.classList.remove('hidden');
@@ -407,7 +407,6 @@
             }
         });
 
-        // Botón Aplicar Rango Manual
         btnAplicarManual.addEventListener('click', () => {
             if (!fechaDesde.value || !fechaHasta.value) {
                 alert('Bitte Start- und Enddatum auswählen.');
@@ -419,13 +418,12 @@
 
         btnImprimir.addEventListener('click', () => window.print());
 
-        // EXPORTACIÓN A PDF CON MARGENES DE 28mm PERFECTOS
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       [28, 8, 12, 8],
-                filename:     `Arbeitszeiten_${new Date().toISOString().slice(0,10)}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
+                margin:        [28, 8, 12, 8],
+                filename:      `Arbeitszeiten_${new Date().toISOString().slice(0,10)}.pdf`,
+                image:         { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], avoid: ['.log-card'] }
@@ -437,7 +435,6 @@
                 for (let i = 1; i <= totalPages; i++) {
                     pdf.setPage(i);
                     
-                    // Membrete en franja reservada de los primeros 20mm
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(13);
                     pdf.setTextColor(17, 24, 39);
@@ -458,7 +455,6 @@
                     pdf.setTextColor(55, 65, 81);
                     pdf.text(fechaEmisionPDF, 202, 15, { align: "right" });
                     
-                    // Línea azul horizontal en 19mm
                     pdf.setDrawColor(79, 70, 229);
                     pdf.setLineWidth(0.5);
                     pdf.line(8, 19, 202, 19);
@@ -466,7 +462,6 @@
             }).save();
         });
 
-        // Inicialización
         cargarListaEmpleados();
         cargarJornadas('semana_actual');
     </script>
