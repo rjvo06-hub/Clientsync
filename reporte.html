@@ -1,161 +1,224 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Resumido de Citas y Mano de Obra</title>
+    <title>Zusammenfassender und Detaillierter Terminbericht</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- html2pdf.js para conversión HTML -> PDF -->
+    <!-- html2pdf.js für den HTML -> PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
+        /* MARGENES ESTÁNDAR COMPACTOS EN PANTALLA Y VISTA PREVIA */
         .pdf-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 15mm 20mm;
+            padding: 18mm 8mm 12mm 8mm; /* Arriba 18mm, Lados 8mm, Abajo 12mm */
             background: white;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
             margin: auto;
+        }
+
+        /* REGLAS PARA IMPRESIÓN DIRECTA DEL NAVEGADOR */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 18mm 8mm 12mm 8mm;
+            }
+            body { background: white; padding: 0; }
+            .no-print { display: none !important; }
+            .pdf-page {
+                width: 100%;
+                padding: 0;
+                box-shadow: none;
+            }
+        }
+
+        /* REPETICIÓN DE ENCABEZADO DE TABLA EN CADA HOJA */
+        thead {
+            display: table-header-group;
+        }
+
+        tfoot {
+            display: table-footer-group;
+        }
+
+        /* BLOQUES COMPACTOS E INDIVISIBLES (EVITA CORTAR CLIENTES POR LA MITAD) */
+        .appointment-card {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+
+        .arrow-icon {
+            display: inline-block;
+            transition: transform 0.2s ease-in-out;
+        }
+        .arrow-icon.active {
+            transform: rotate(90deg);
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen py-8 px-4">
+<body class="bg-gray-100 min-h-screen py-6 px-4">
 
-    <!-- CONTROLES Y FILTROS -->
-    <div class="max-w-4xl mx-auto mb-6 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+    <!-- CONTROLES Y FILTROS (NO-PRINT) -->
+    <div class="no-print max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
             <div>
-                <h1 class="text-xl font-bold text-gray-800">Generador de Reporte de Citas</h1>
-                <p class="text-xs text-gray-500 mt-0.5">Filtrado rápido de períodos o rango manual personalizado</p>
+                <h1 class="text-lg font-bold text-gray-800">Terminbericht-Generator</h1>
+                <p class="text-xs text-gray-500">Kompakte Druckansicht mit optimierten Standard-Rändern</p>
             </div>
             
             <div class="flex gap-2">
+                <button id="btnImprimir" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-lg text-xs transition flex items-center gap-1.5">
+                    🖨️ Drucken
+                </button>
                 <button id="btnDescargarPDF" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition flex items-center gap-2 text-sm disabled:opacity-50" disabled>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Descargar PDF
+                    PDF herunterladen
                 </button>
             </div>
         </div>
 
-        <!-- ACCESOS RÁPIDOS Y CASILLA DE SELECCIÓN -->
-        <div class="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+        <!-- FILTROS Y CONTROLES INTERACTIVOS -->
+        <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-1.5" id="grupoBotonesRapidos">
-                <button data-rango="semana_actual" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700">Esta Semana</button>
-                <button data-rango="semana_pasada" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Semana Pasada</button>
-                <button data-rango="mes_actual" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Este Mes</button>
-                <button data-rango="todo" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Ver Todo</button>
+                <button data-rango="semana_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700">Diese Woche</button>
+                <button data-rango="semana_pasada" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Letzte Woche</button>
+                <button data-rango="mes_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Diesen Monat</button>
+                <button data-rango="todo" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Alle anzeigen</button>
             </div>
 
-            <!-- OPCCIÓN PARA ACTIVAR SELECCIÓN MANUAL -->
-            <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 select-none">
-                <input type="checkbox" id="chkRangoManual" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                Quiero seleccionar el rango de fecha
+            <div class="flex items-center gap-1.5">
+                <button id="btnExpandirTodo" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded border border-gray-300">
+                    📖 Details anzeigen
+                </button>
+                <button id="btnContraerTodo" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded border border-gray-300">
+                    📕 Details verbergen
+                </button>
+            </div>
+
+            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-700 bg-gray-50 px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-100 select-none">
+                <input type="checkbox" id="chkRangoManual" class="w-3.5 h-3.5 text-indigo-600 rounded border-gray-300">
+                Manuelle Auswahl
             </label>
         </div>
 
-        <!-- CAMPOS DE FECHA MANUAL (DESPLEGABLE OCULTO POR DEFECTO) -->
-        <div id="panelRangoManual" class="hidden mt-4 pt-3 border-t border-dashed border-gray-200 flex flex-wrap items-end gap-3 bg-indigo-50/50 p-3 rounded-lg">
+        <div id="panelRangoManual" class="hidden mt-3 pt-2 border-t border-dashed border-gray-200 flex flex-wrap items-end gap-2 bg-indigo-50/50 p-2 rounded-lg">
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Fecha Desde</label>
-                <input type="date" id="fechaDesde" class="px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white">
+                <label class="block text-[11px] font-medium text-gray-600 mb-0.5">Von Datum</label>
+                <input type="date" id="fechaDesde" class="px-2 py-1 text-xs border border-gray-300 rounded bg-white">
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Fecha Hasta</label>
-                <input type="date" id="fechaHasta" class="px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white">
+                <label class="block text-[11px] font-medium text-gray-600 mb-0.5">Bis Datum</label>
+                <input type="date" id="fechaHasta" class="px-2 py-1 text-xs border border-gray-300 rounded bg-white">
             </div>
-            <button id="btnAplicarManual" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
-                Consultar Rango
+            <button id="btnAplicarManual" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded shadow-sm">
+                Abfragen
             </button>
         </div>
     </div>
 
-    <!-- AREA DE VISTA PREVIA DEL DOCUMENTO -->
+    <!-- DOCUMENTO A IMPRIMIR / PDF -->
     <div class="overflow-x-auto pb-12">
         <div id="pdfContainer" class="pdf-page">
             
-            <!-- ENCABEZADO DEL REPORTE -->
-            <div class="border-b-2 border-indigo-600 pb-4 mb-6 flex justify-between items-end">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">REPORTE RESUMIDO DE CITAS</h2>
-                    <p class="text-sm text-gray-500 mt-1" id="lblPeriodo">Control de visitas e intervenciones de campo</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-gray-400 font-semibold uppercase">Fecha de Emisión</p>
-                    <p id="fechaEmision" class="text-sm font-medium text-gray-700">-</p>
-                </div>
-            </div>
-
-            <!-- TABLA DE DATOS -->
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-indigo-50/70 text-indigo-900 uppercase text-xs font-bold border-y border-indigo-100">
-                        <th class="py-3 px-3 w-1/6">Fecha</th>
-                        <th class="py-3 px-3 w-1/4">Cliente</th>
-                        <th class="py-3 px-3 text-center w-1/4">Horario (Activación - Terminación)</th>
-                        <th class="py-3 px-3 text-center w-1/6">Mano Obra Acumulada</th>
-                        <th class="py-3 px-3 w-1/4">Empleados Participantes</th>
+                    <!-- CABECERA DE COLUMNAS -->
+                    <tr class="bg-indigo-50/80 text-indigo-950 uppercase text-[10px] font-bold border-y border-indigo-200">
+                        <th class="py-1.5 px-2 w-1/6">Datum</th>
+                        <th class="py-1.5 px-2 w-1/4">Kunde</th>
+                        <th class="py-1.5 px-2 text-center w-1/4">Uhrzeit</th>
+                        <th class="py-1.5 px-2 text-center w-1/6">Gesamte Std.</th>
+                        <th class="py-1.5 px-2 w-1/4">Mitarbeiter</th>
                     </tr>
                 </thead>
-                <tbody id="tablaCuerpo" class="divide-y divide-gray-200 text-sm">
+
+                <!-- CUERPO DE DATOS -->
+                <tbody id="tablaCuerpo" class="divide-y divide-gray-200 text-xs">
                     <tr>
-                        <td colspan="5" class="py-8 text-center text-gray-400 italic">
-                            Cargando datos...
+                        <td colspan="5" class="py-6 text-center text-gray-400 italic">
+                            Daten werden geladen...
                         </td>
                     </tr>
                 </tbody>
-            </table>
 
-            <!-- PIE DE PÁGINA DOCUMENTO -->
-            <div class="mt-12 pt-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400">
-                <p>Sistema de Gestión de Visitas y Tiempos</p>
-                <p>Documento Generado Automáticamente</p>
-            </div>
+                <!-- PIE DE PÁGINA -->
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="pt-4">
+                            <div class="border-t border-gray-200 pt-2 flex justify-between items-center text-[10px] text-gray-400">
+                                <p>Verwaltungssystem für Außendiensteinsätze</p>
+                                <p>Automatisch generiertes Dokument</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
 
         </div>
     </div>
 
-    <!-- INTEGRACIÓN CON SUPABASE -->
+    <!-- JAVASCRIPT & LOGICA SUPABASE -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
         const btnDescargarPDF = document.getElementById('btnDescargarPDF');
+        const btnImprimir = document.getElementById('btnImprimir');
         const chkRangoManual = document.getElementById('chkRangoManual');
         const panelRangoManual = document.getElementById('panelRangoManual');
         const btnAplicarManual = document.getElementById('btnAplicarManual');
         const fechaDesde = document.getElementById('fechaDesde');
         const fechaHasta = document.getElementById('fechaHasta');
         const tablaCuerpo = document.getElementById('tablaCuerpo');
-        const fechaEmision = document.getElementById('fechaEmision');
-        const lblPeriodo = document.getElementById('lblPeriodo');
         const botonesRango = document.querySelectorAll('.btn-rango');
+        
+        const btnExpandirTodo = document.getElementById('btnExpandirTodo');
+        const btnContraerTodo = document.getElementById('btnContraerTodo');
 
-        let modoRango = 'semana_actual';
-
-        // Fecha de emisión
-        fechaEmision.textContent = new Date().toLocaleDateString('es-ES', {
+        let textoPeriodoPDF = "Übersicht der Außendiensteinsätze";
+        let fechaEmisionPDF = new Date().toLocaleDateString('de-DE', {
             year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // Alternar visibilidad de selección manual
+        window.toggleDetalle = function(id) {
+            const filaDetalle = document.getElementById(id);
+            const flecha = document.getElementById(`arrow-${id}`);
+            
+            if (filaDetalle.classList.contains('hidden')) {
+                filaDetalle.classList.remove('hidden');
+                if (flecha) flecha.classList.add('active');
+            } else {
+                filaDetalle.classList.add('hidden');
+                if (flecha) flecha.classList.remove('active');
+            }
+        };
+
+        btnExpandirTodo.addEventListener('click', () => {
+            document.querySelectorAll('[id^="detalle-"]').forEach(el => el.classList.remove('hidden'));
+            document.querySelectorAll('[id^="arrow-"]').forEach(el => el.classList.add('active'));
+        });
+
+        btnContraerTodo.addEventListener('click', () => {
+            document.querySelectorAll('[id^="detalle-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id^="arrow-"]').forEach(el => el.classList.remove('active'));
+        });
+
         chkRangoManual.addEventListener('change', (e) => {
             if (e.target.checked) {
                 panelRangoManual.classList.remove('hidden');
-                // Inicializar fechas con hoy si están vacías
                 const hoyStr = new Date().toISOString().slice(0,10);
                 if (!fechaDesde.value) fechaDesde.value = hoyStr;
                 if (!fechaHasta.value) fechaHasta.value = hoyStr;
             } else {
                 panelRangoManual.classList.add('hidden');
-                // Volver al modo por defecto (semana actual)
                 activarBotonRango('semana_actual');
                 cargarDatosCitas('semana_actual');
             }
         });
 
-        // Calcular rangos de fecha predefinidos
         function obtenerFechasPorModo(modo) {
             const hoy = new Date();
             let inicio, fin;
@@ -189,7 +252,7 @@
             if (!minutos || minutos <= 0) return '-';
             const horas = minutos / 60.0;
             const redondeado = Math.ceil(horas * 2) / 2.0;
-            return `${redondeado.toFixed(1)} h`;
+            return `${redondeado.toFixed(1).replace('.', ',')} Std.`;
         }
 
         function formatearHora(isoString) {
@@ -197,10 +260,19 @@
             try {
                 const date = new Date(isoString);
                 if (isNaN(date.getTime())) return String(isoString).substring(0, 5);
-                return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+                return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false });
             } catch {
                 return '-';
             }
+        }
+
+        function formatearFechaEspanolAAleman(fechaStr) {
+            if (!fechaStr) return '-';
+            const partes = fechaStr.split('-');
+            if (partes.length === 3) {
+                return `${partes[2]}.${partes[1]}.${partes[0]}`;
+            }
+            return fechaStr;
         }
 
         function obtenerEmpleados(sessionsJson, assignedEmployee) {
@@ -218,12 +290,11 @@
             return empleados.length > 0 ? empleados.join(', ') : '-';
         }
 
-        // Cargar datos según modo o rango manual
         async function cargarDatosCitas(modo, fechaIniCustom = null, fechaFinCustom = null) {
             tablaCuerpo.innerHTML = `
                 <tr>
-                    <td colspan="5" class="py-8 text-center text-indigo-600 font-medium">
-                        Cargando datos desde Supabase...
+                    <td colspan="5" class="py-6 text-center text-indigo-600 font-medium">
+                        Daten werden aus Supabase geladen...
                     </td>
                 </tr>
             `;
@@ -237,13 +308,13 @@
 
                 if (modo === 'manual' && fechaIniCustom && fechaFinCustom) {
                     query = query.gte('scheduled_date', fechaIniCustom).lte('scheduled_date', fechaFinCustom);
-                    lblPeriodo.textContent = `Período personalizado: del ${fechaIniCustom} al ${fechaFinCustom}`;
+                    textoPeriodoPDF = `Benutzerdefinierter Zeitraum: ${formatearFechaEspanolAAleman(fechaIniCustom)} – ${formatearFechaEspanolAAleman(fechaFinCustom)}`;
                 } else if (modo !== 'todo') {
                     const { inicio, fin } = obtenerFechasPorModo(modo);
                     query = query.gte('scheduled_date', inicio).lte('scheduled_date', fin);
-                    lblPeriodo.textContent = `Período: del ${inicio} al ${fin}`;
+                    textoPeriodoPDF = `Zeitraum: ${formatearFechaEspanolAAleman(inicio)} – ${formatearFechaEspanolAAleman(fin)}`;
                 } else {
-                    lblPeriodo.textContent = `Listado histórico completo de citas`;
+                    textoPeriodoPDF = `Vollständige Historie aller Termine`;
                 }
 
                 const { data, error } = await query;
@@ -253,8 +324,8 @@
                 if (!data || data.length === 0) {
                     tablaCuerpo.innerHTML = `
                         <tr>
-                            <td colspan="5" class="py-8 text-center text-gray-500">
-                                No se encontraron citas registradas para este período.
+                            <td colspan="5" class="py-6 text-center text-gray-500">
+                                Für diesen Zeitraum wurden keine Termine gefunden.
                             </td>
                         </tr>
                     `;
@@ -263,9 +334,9 @@
                 }
 
                 let htmlRows = '';
-                data.forEach(item => {
-                    const cliente = item.client_name || 'Sin cliente';
-                    const fecha = item.scheduled_date || '-';
+                data.forEach((item, index) => {
+                    const cliente = item.client_name || 'Kein Kunde zugewiesen';
+                    const fecha = formatearFechaEspanolAAleman(item.scheduled_date);
                     const checkIn = formatearHora(item.check_in_time);
                     const checkOut = formatearHora(item.check_out_time);
                     
@@ -273,13 +344,53 @@
                     const manoObra = calcularHorasRedondeadas(item.total_labor_minutes);
                     const empleados = obtenerEmpleados(item.sessions, item.assigned_employee);
 
+                    let detalleEmpleadosHtml = '';
+                    if (item.sessions && Array.isArray(item.sessions) && item.sessions.length > 0) {
+                        item.sessions.forEach(s => {
+                            const empNombre = s.employee || 'Mitarbeiter';
+                            const empIn = formatearHora(s.check_in) !== '-' ? formatearHora(s.check_in) : checkIn;
+                            const empOut = formatearHora(s.check_out) !== '-' ? formatearHora(s.check_out) : checkOut;
+                            const empMin = s.minutes || 0;
+                            const empHrs = (empMin / 60.0).toFixed(1).replace('.', ',');
+
+                            detalleEmpleadosHtml += `
+                                <div class="flex justify-between items-center py-0.5 border-b border-gray-100 last:border-0 text-[11px]">
+                                    <span class="font-semibold text-gray-800 flex items-center gap-1">👤 ${empNombre}</span>
+                                    <span class="text-gray-600">Aktivierung: <b class="text-gray-800">${empIn}</b> | Fertigstellung: <b class="text-gray-800">${empOut}</b></span>
+                                    <span class="font-bold text-indigo-600">${empMin} Min. (${empHrs} Std.)</span>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        detalleEmpleadosHtml = `<p class="text-[11px] text-gray-400 italic">Keine detaillierten Sitzungen erfasst.</p>`;
+                    }
+
+                    const detalleId = `detalle-${index}`;
+
                     htmlRows += `
-                        <tr class="hover:bg-gray-50/80 transition">
-                            <td class="py-3 px-3 font-medium text-gray-800 whitespace-nowrap">${fecha}</td>
-                            <td class="py-3 px-3 font-semibold text-gray-900">${cliente}</td>
-                            <td class="py-3 px-3 text-center text-gray-700 whitespace-nowrap">${horario}</td>
-                            <td class="py-3 px-3 text-center font-bold text-indigo-700 whitespace-nowrap">${manoObra}</td>
-                            <td class="py-3 px-3 text-gray-600 text-xs">${empleados}</td>
+                        <tr class="appointment-card border-b border-gray-200">
+                            <td colspan="5" class="p-0">
+                                <table class="w-full text-left border-collapse">
+                                    <tr class="hover:bg-indigo-50/40 transition cursor-pointer select-none" onclick="toggleDetalle('${detalleId}')">
+                                        <td class="py-2 px-2 font-medium text-gray-800 whitespace-nowrap w-1/6">
+                                            <span class="arrow-icon mr-1 text-indigo-500 font-bold text-[10px]" id="arrow-${detalleId}">▶</span>
+                                            ${fecha}
+                                        </td>
+                                        <td class="py-2 px-2 font-semibold text-gray-900 w-1/4">${cliente}</td>
+                                        <td class="py-2 px-2 text-center text-gray-700 whitespace-nowrap w-1/4">${horario}</td>
+                                        <td class="py-2 px-2 text-center font-bold text-indigo-700 whitespace-nowrap w-1/6">${manoObra}</td>
+                                        <td class="py-2 px-2 text-gray-600 text-[11px] w-1/4">${empleados}</td>
+                                    </tr>
+                                    <tr id="${detalleId}" class="hidden bg-gray-50/90">
+                                        <td colspan="5" class="py-1.5 px-4">
+                                            <div class="bg-white p-2 rounded border border-gray-200 shadow-inner">
+                                                <p class="text-[10px] font-bold text-indigo-900 mb-1 uppercase tracking-wider">Detaillierte Arbeitszeiten pro Mitarbeiter:</p>
+                                                ${detalleEmpleadosHtml}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
                         </tr>
                     `;
                 });
@@ -288,11 +399,11 @@
                 btnDescargarPDF.disabled = false;
 
             } catch (err) {
-                console.error('Error al consultar Supabase:', err);
+                console.error('Fehler beim Abfragen von Supabase:', err);
                 tablaCuerpo.innerHTML = `
                     <tr>
-                        <td colspan="5" class="py-8 text-center text-red-500 font-medium">
-                            Error al cargar los datos: ${err.message || 'Verifica la conexión a Supabase.'}
+                        <td colspan="5" class="py-6 text-center text-red-500 font-medium">
+                            Fehler beim Laden der Daten: ${err.message || 'Bitte prüfen Sie die Verbindung zu Supabase.'}
                         </td>
                     </tr>
                 `;
@@ -303,14 +414,13 @@
         function activarBotonRango(modoSeleccionado) {
             botonesRango.forEach(btn => {
                 if (btn.dataset.rango === modoSeleccionado) {
-                    btn.className = 'btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700';
+                    btn.className = 'btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700';
                 } else {
-                    btn.className = 'btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50';
+                    btn.className = 'btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50';
                 }
             });
         }
 
-        // Listeners accesos rápidos
         botonesRango.forEach(btn => {
             btn.addEventListener('click', () => {
                 chkRangoManual.checked = false;
@@ -320,30 +430,66 @@
             });
         });
 
-        // Listener aplicar rango manual
         btnAplicarManual.addEventListener('click', () => {
             if (!fechaDesde.value || !fechaHasta.value) {
-                alert('Por favor selecciona la fecha desde y hasta.');
+                alert('Bitte wählen Sie Start- und Enddatum aus.');
                 return;
             }
-            botonesRango.forEach(btn => btn.className = 'btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50');
+            botonesRango.forEach(btn => btn.className = 'btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50');
             cargarDatosCitas('manual', fechaDesde.value, fechaHasta.value);
         });
 
-        // Descargar PDF
+        btnImprimir.addEventListener('click', () => {
+            window.print();
+        });
+
+        // DESCARGA DE PDF CON MÁRGENES ESTÁNDAR COMPACTOS Y MEMBRETE EN CADA PÁGINA
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       0,
-                filename:     `Reporte_Resumido_Citas_${new Date().toISOString().slice(0,10)}.pdf`,
+                margin:       [18, 8, 12, 8], // Márgenes [Arriba, Izquierda, Abajo, Derecha]
+                filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['css', 'legacy'], avoid: ['.appointment-card'] }
             };
-            html2pdf().set(opciones).from(elemento).save();
+
+            html2pdf().set(opciones).from(elemento).toPdf().get('pdf').then((pdf) => {
+                const totalPages = pdf.internal.getNumberOfPages();
+                
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    
+                    // Dibujar el membrete exacto en la franja superior de 18mm en cada página
+                    pdf.setFont("helvetica", "bold");
+                    pdf.setFontSize(13);
+                    pdf.setTextColor(17, 24, 39); // Gray 900
+                    pdf.text("TERMINBERICHT & ARBEITSZEITEN", 8, 9);
+                    
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(107, 114, 128); // Gray 500
+                    pdf.text(textoPeriodoPDF, 8, 13);
+                    
+                    pdf.setFont("helvetica", "bold");
+                    pdf.setFontSize(6);
+                    pdf.setTextColor(156, 163, 175); // Gray 400
+                    pdf.text("AUSSTELLUNGSDATUM", 202, 8, { align: "right" });
+                    
+                    pdf.setFont("helvetica", "normal");
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(55, 65, 81); // Gray 700
+                    pdf.text(fechaEmisionPDF, 202, 12, { align: "right" });
+                    
+                    // Línea divisoria azul a 15mm de alto
+                    pdf.setDrawColor(79, 70, 229); // Indigo 600
+                    pdf.setLineWidth(0.5);
+                    pdf.line(8, 15, 202, 15);
+                }
+            }).save();
         });
 
-        // Carga inicial (Semana actual automática)
         cargarDatosCitas('semana_actual');
     </script>
 </body>
