@@ -88,7 +88,7 @@
         <!-- FILTROS Y CONTROLES INTERACTIVOS -->
         <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-1.5" id="grupoBotonesRapidos">
-                <button data-rango="semana_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700">Diese Woche</button>
+                <button data-rango="semana_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Diese Woche</button>
                 <button data-rango="semana_pasada" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Letzte Woche</button>
                 <button data-rango="mes_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Diesen Monat</button>
                 <button data-rango="todo" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Alle anzeigen</button>
@@ -139,11 +139,11 @@
                     </tr>
                 </thead>
 
-                <!-- CUERPO DE DATOS -->
+                <!-- CUERPO DE DATOS (INICIALMENTE VACÍO) -->
                 <tbody id="tablaCuerpo" class="divide-y divide-gray-200 text-xs">
                     <tr>
-                        <td colspan="5" class="py-6 text-center text-gray-400 italic">
-                            Daten werden geladen...
+                        <td colspan="5" class="py-8 text-center text-gray-400 italic font-medium">
+                            Bitte wählen Sie einen Zeitraum aus, um die Termine anzuzeigen.
                         </td>
                     </tr>
                 </tbody>
@@ -217,8 +217,6 @@
                 if (!fechaHasta.value) fechaHasta.value = hoyStr;
             } else {
                 panelRangoManual.classList.add('hidden');
-                activarBotonRango('semana_actual');
-                cargarDatosCitas('semana_actual');
             }
         });
 
@@ -490,7 +488,7 @@
             }).save();
         });
 
-        cargarDatosCitas('semana_actual');
+        // Se elimina la ejecución inicial para que la tabla arranque vacía hasta la consulta del usuario.
     </script>
 </body>
 </html>
