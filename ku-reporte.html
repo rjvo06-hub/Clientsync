@@ -37,7 +37,6 @@
             }
         }
 
-        /* REPETICIÓN DE ENCABEZADO DE TABLA EN CADA HOJA */
         thead {
             display: table-header-group;
         }
@@ -46,7 +45,6 @@
             display: table-footer-group;
         }
 
-        /* BLOQUES COMPACTOS E INDIVISIBLES */
         .appointment-card {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -66,9 +64,14 @@
     <!-- CONTROLES Y FILTROS (NO-PRINT) -->
     <div class="no-print max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
-            <div>
-                <h1 class="text-lg font-bold text-gray-800">Terminbericht-Generator</h1>
-                <p class="text-xs text-gray-500">Kompakte Druckansicht mit optimierten Standard-Rändern</p>
+            <div class="flex items-center gap-3">
+                <a href="./admin-pdf.html" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-xs transition">
+                    ← Zurück
+                </a>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800">Terminbericht-Generator</h1>
+                    <p class="text-xs text-gray-500">Kompakte Druckansicht mit optimierten Standard-Rändern</p>
+                </div>
             </div>
             
             <div class="flex gap-2">
@@ -127,7 +130,6 @@
             
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <!-- CABECERA DE COLUMNAS -->
                     <tr class="bg-indigo-50/80 text-indigo-950 uppercase text-[10px] font-bold border-y border-indigo-200">
                         <th class="py-1.5 px-2 w-1/6">Datum</th>
                         <th class="py-1.5 px-2 w-1/4">Kunde</th>
@@ -444,13 +446,12 @@
             window.print();
         });
 
-        // GENERACIÓN DE PDF PERFECTA SIN SOLAPAMIENTO DE MEMBRETE
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       [28, 8, 12, 8], // Margen de 28mm arriba garantiza que la tabla comience siempre debajo del membrete en todas las páginas
-                filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
+                margin:        [28, 8, 12, 8],
+                filename:      `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
+                image:         { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], avoid: ['.appointment-card'] }
@@ -462,7 +463,6 @@
                 for (let i = 1; i <= totalPages; i++) {
                     pdf.setPage(i);
                     
-                    // Membrete en franja reservada de los primeros 20mm en TODAS las hojas
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(13);
                     pdf.setTextColor(17, 24, 39);
@@ -483,7 +483,6 @@
                     pdf.setTextColor(55, 65, 81);
                     pdf.text(fechaEmisionPDF, 202, 15, { align: "right" });
                     
-                    // Línea horizontal azul en 19mm (por encima de los 28mm donde inicia la tabla HTML)
                     pdf.setDrawColor(79, 70, 229);
                     pdf.setLineWidth(0.5);
                     pdf.line(8, 19, 202, 19);
