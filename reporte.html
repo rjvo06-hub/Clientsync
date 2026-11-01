@@ -15,7 +15,7 @@
         .pdf-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 10mm 12mm;
+            padding: 12mm 12mm;
             background: white;
             margin: auto;
         }
@@ -30,16 +30,16 @@
             }
         }
 
-        /* CONFIGURACIÓN CLAVE PARA REPETIR MEMBRETE Y ENCABEZADOS EN CADA PÁGINA */
+        /* REPETICIÓN DE ENCABEZADOS EN TABLA */
         thead {
-            display: table-header-group; /* Hace que todo lo dentro de THEAD se repita en hojas 2, 3, etc. */
+            display: table-header-group;
         }
 
         tfoot {
-            display: table-footer-group; /* Repite el pie de página en cada hoja */
+            display: table-footer-group;
         }
 
-        /* EVITAR EL CORTE HUÉRFANO DE CLIENTES */
+        /* BLOQUES COMPACTOS E INDIVISIBLES */
         .appointment-card {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -56,17 +56,17 @@
 </head>
 <body class="bg-gray-100 min-h-screen py-6 px-4">
 
-    <!-- CONTROLES NAVEGACIÓN Y FILTROS (SE OCULTAN EN PDF/IMPRESIÓN) -->
+    <!-- BEDIENELEMENTE UND FILTER (NO-PRINT) -->
     <div class="no-print max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
             <div>
                 <h1 class="text-lg font-bold text-gray-800">Terminbericht-Generator</h1>
-                <p class="text-xs text-gray-500">Kompakter Bericht mit automatischem Seitenkopf auf allen Seiten</p>
+                <p class="text-xs text-gray-500">Bericht mit festem Membrete auf allen PDF-Seiten</p>
             </div>
             
             <div class="flex gap-2">
                 <button id="btnImprimir" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-800 text-white font-medium rounded-lg text-xs transition flex items-center gap-1.5">
-                    🖨️ Drucken (Imprimir)
+                    🖨️ Drucken
                 </button>
                 <button id="btnDescargarPDF" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition flex items-center gap-2 text-sm disabled:opacity-50" disabled>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -114,13 +114,13 @@
         </div>
     </div>
 
-    <!-- ÁREA DE IMPRESIÓN / PDF -->
+    <!-- ÁREA DE VISTA PREVIA Y PDF -->
     <div class="overflow-x-auto pb-12">
         <div id="pdfContainer" class="pdf-page">
             
             <table class="w-full text-left border-collapse">
-                <!-- THEAD CONTUENE EL MEMBRETE COMPLETO + CABECERA DE TABLA (SE REPITE EN TODAS LAS HOJAS) -->
                 <thead>
+                    <!-- MEMBRETE COMPLETO EN EL THEAD -->
                     <tr>
                         <th colspan="5" class="p-0 font-normal">
                             <div class="border-b-2 border-indigo-600 pb-2 mb-3 flex justify-between items-end">
@@ -135,6 +135,7 @@
                             </div>
                         </th>
                     </tr>
+                    <!-- CABECERA DE TABLA -->
                     <tr class="bg-indigo-50/80 text-indigo-950 uppercase text-[10px] font-bold border-y border-indigo-200">
                         <th class="py-1.5 px-2 w-1/6">Datum</th>
                         <th class="py-1.5 px-2 w-1/4">Kunde</th>
@@ -144,7 +145,6 @@
                     </tr>
                 </thead>
 
-                <!-- CUERPO DE DATOS -->
                 <tbody id="tablaCuerpo" class="divide-y divide-gray-200 text-xs">
                     <tr>
                         <td colspan="5" class="py-6 text-center text-gray-400 italic">
@@ -153,7 +153,6 @@
                     </tr>
                 </tbody>
 
-                <!-- PIE DE PÁGINA REPETITIVO -->
                 <tfoot>
                     <tr>
                         <td colspan="5" class="pt-4">
@@ -169,7 +168,7 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT & SUPABASE -->
+    <!-- JAVASCRIPT -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -452,17 +451,30 @@
             window.print();
         });
 
+        // DESCARGA DE PDF CON MEMBRETE GARANTIZADO EN CADA PÁGINA VÍA HOOK JS
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       [8, 8, 8, 8],
+                margin:       [12, 8, 12, 8],
                 filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak:    { mode: ['css', 'legacy'], avoid: ['.appointment-card'] }
             };
-            html2pdf().set(opciones).from(elemento).save();
+
+            // Se utiliza el worker de html2pdf para estampar la repetición
+            html2pdf().set(opciones).from(elemento).toPdf().get('pdf').then((pdf) => {
+                const totalPages = pdf.internal.getNumberOfPages();
+                
+                // Si el PDF tiene 2 o más páginas, aseguramos el membrete en las páginas secundarias
+                for (let i = 2; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(150);
+                    pdf.text(`TERMINBERICHT & ARBEITSZEITEN - Seite ${i} von ${totalPages}`, 12, 8);
+                }
+            }).save();
         });
 
         cargarDatosCitas('semana_actual');
