@@ -15,20 +15,19 @@
         .pdf-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 15mm 20mm;
+            padding: 10mm 12mm; /* Reducido para mayor aprovechamiento del papel */
             background: white;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
             margin: auto;
         }
 
-        /* Reglas clave para salto de página en PDF */
-        thead {
-            display: table-header-group; /* Repite el encabezado de la tabla al pasar de página */
-        }
-        
-        tr {
-            page-break-inside: avoid !important; /* Evita cortar filas o tarjetas de empleados por la mitad */
+        /* EVITAR EL CORTE HUÉRFANO DE CLIENTES EN IMPRESIÓN/PDF */
+        .appointment-group {
+            page-break-inside: avoid !important;
             break-inside: avoid !important;
+        }
+
+        thead {
+            display: table-header-group; /* Repite encabezados de tabla */
         }
 
         .arrow-icon {
@@ -40,14 +39,14 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen py-8 px-4">
+<body class="bg-gray-100 min-h-screen py-6 px-4">
 
     <!-- BEDIENELEMENTE UND FILTER -->
-    <div class="max-w-4xl mx-auto mb-6 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+    <div class="max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
             <div>
-                <h1 class="text-xl font-bold text-gray-800">Terminbericht-Generator</h1>
-                <p class="text-xs text-gray-500 mt-0.5">Klicken Sie auf eine Zeile oder nutzen Sie die Schaltflächen, um Details einzusehen</p>
+                <h1 class="text-lg font-bold text-gray-800">Terminbericht-Generator</h1>
+                <p class="text-xs text-gray-500">Kompakte Druckansicht mit automatischer Seitenumbruch-Optimierung</p>
             </div>
             
             <div class="flex gap-2">
@@ -59,85 +58,84 @@
         </div>
 
         <!-- SCHNELLFILTER UND KONTROLLKÄSTCHEN -->
-        <div class="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+        <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-1.5" id="grupoBotonesRapidos">
-                <button data-rango="semana_actual" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700">Diese Woche</button>
-                <button data-rango="semana_pasada" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Letzte Woche</button>
-                <button data-rango="mes_actual" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Diesen Monat</button>
-                <button data-rango="todo" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Alle anzeigen</button>
+                <button data-rango="semana_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700">Diese Woche</button>
+                <button data-rango="semana_pasada" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Letzte Woche</button>
+                <button data-rango="mes_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Diesen Monat</button>
+                <button data-rango="todo" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Alle anzeigen</button>
             </div>
 
-            <!-- BOTONES PARA MOSTRAR/OCULTAR DETALLES -->
-            <div class="flex items-center gap-2">
-                <button id="btnExpandirTodo" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg border border-gray-300">
-                    📖 Alle Details anzeigen
+            <!-- BOTONES EXPANDIR / CONTRAER -->
+            <div class="flex items-center gap-1.5">
+                <button id="btnExpandirTodo" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded border border-gray-300">
+                    📖 Details anzeigen
                 </button>
-                <button id="btnContraerTodo" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg border border-gray-300">
-                    📕 Alle Details verbergen
+                <button id="btnContraerTodo" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded border border-gray-300">
+                    📕 Details verbergen
                 </button>
             </div>
 
-            <!-- MANUELLE AUSWAHL AKTIVIEREN -->
-            <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 select-none">
-                <input type="checkbox" id="chkRangoManual" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                Datumsauswahl manuell festlegen
+            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-gray-700 bg-gray-50 px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-100 select-none">
+                <input type="checkbox" id="chkRangoManual" class="w-3.5 h-3.5 text-indigo-600 rounded border-gray-300">
+                Manuelle Auswahl
             </label>
         </div>
 
-        <!-- EINGABEFERLDER FÜR MANUELLEN DATUMSBEREICH (VERSTECKT) -->
-        <div id="panelRangoManual" class="hidden mt-4 pt-3 border-t border-dashed border-gray-200 flex flex-wrap items-end gap-3 bg-indigo-50/50 p-3 rounded-lg">
+        <!-- PANEL RANGO MANUAL -->
+        <div id="panelRangoManual" class="hidden mt-3 pt-2 border-t border-dashed border-gray-200 flex flex-wrap items-end gap-2 bg-indigo-50/50 p-2 rounded-lg">
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Von Datum</label>
-                <input type="date" id="fechaDesde" class="px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white">
+                <label class="block text-[11px] font-medium text-gray-600 mb-0.5">Von Datum</label>
+                <input type="date" id="fechaDesde" class="px-2 py-1 text-xs border border-gray-300 rounded bg-white">
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Bis Datum</label>
-                <input type="date" id="fechaHasta" class="px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white">
+                <label class="block text-[11px] font-medium text-gray-600 mb-0.5">Bis Datum</label>
+                <input type="date" id="fechaHasta" class="px-2 py-1 text-xs border border-gray-300 rounded bg-white">
             </div>
-            <button id="btnAplicarManual" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
-                Zeitraum abfragen
+            <button id="btnAplicarManual" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded shadow-sm">
+                Abfragen
             </button>
         </div>
     </div>
 
-    <!-- VORANSICHT DES DOKUMENTS -->
+    <!-- AREA VISTA PREVIA PDF -->
     <div class="overflow-x-auto pb-12">
         <div id="pdfContainer" class="pdf-page">
             
-            <!-- KOPFZEILE DES BERICHTS -->
-            <div class="border-b-2 border-indigo-600 pb-4 mb-6 flex justify-between items-end">
+            <!-- ENCABEZADO REPORTE (COMPACTO) -->
+            <div class="border-b-2 border-indigo-600 pb-2 mb-4 flex justify-between items-end">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">TERMINBERICHT & ARBEITSZEITEN</h2>
-                    <p class="text-sm text-gray-500 mt-1" id="lblPeriodo">Übersicht der Außendiensteinsätze</p>
+                    <h2 class="text-xl font-bold text-gray-900 tracking-tight leading-tight">TERMINBERICHT & ARBEITSZEITEN</h2>
+                    <p class="text-xs text-gray-500 mt-0.5" id="lblPeriodo">Übersicht der Außendiensteinsätze</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-xs text-gray-400 font-semibold uppercase">Ausstellungsdatum</p>
-                    <p id="fechaEmision" class="text-sm font-medium text-gray-700">-</p>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Ausstellungsdatum</p>
+                    <p id="fechaEmision" class="text-xs font-semibold text-gray-700">-</p>
                 </div>
             </div>
 
-            <!-- TABELLE -->
+            <!-- TABLA PRINCIPAL -->
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-indigo-50/70 text-indigo-900 uppercase text-xs font-bold border-y border-indigo-100">
-                        <th class="py-3 px-3 w-1/6">Datum</th>
-                        <th class="py-3 px-3 w-1/4">Kunde</th>
-                        <th class="py-3 px-3 text-center w-1/4">Uhrzeit (Aktivierung – Fertigstellung)</th>
-                        <th class="py-3 px-3 text-center w-1/6">Gesamte Arbeitszeit</th>
-                        <th class="py-3 px-3 w-1/4">Beteiligte Mitarbeiter</th>
+                    <tr class="bg-indigo-50/80 text-indigo-950 uppercase text-[10px] font-bold border-y border-indigo-200">
+                        <th class="py-1.5 px-2 w-1/6">Datum</th>
+                        <th class="py-1.5 px-2 w-1/4">Kunde</th>
+                        <th class="py-1.5 px-2 text-center w-1/4">Uhrzeit</th>
+                        <th class="py-1.5 px-2 text-center w-1/6">Gesamte Std.</th>
+                        <th class="py-1.5 px-2 w-1/4">Mitarbeiter</th>
                     </tr>
                 </thead>
-                <tbody id="tablaCuerpo" class="divide-y divide-gray-200 text-sm">
+                <tbody id="tablaCuerpo" class="divide-y divide-gray-200 text-xs">
                     <tr>
-                        <td colspan="5" class="py-8 text-center text-gray-400 italic">
+                        <td colspan="5" class="py-6 text-center text-gray-400 italic">
                             Daten werden geladen...
                         </td>
                     </tr>
                 </tbody>
             </table>
 
-            <!-- FUSSZEILE DES DOKUMENTS -->
-            <div class="mt-12 pt-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400">
+            <!-- PIE DE PAGINA -->
+            <div class="mt-6 pt-2 border-t border-gray-200 flex justify-between items-center text-[10px] text-gray-400">
                 <p>Verwaltungssystem für Außendiensteinsätze</p>
                 <p>Automatisch generiertes Dokument</p>
             </div>
@@ -145,7 +143,7 @@
         </div>
     </div>
 
-    <!-- SUPABASE EINBINDUNG -->
+    <!-- LOGICA JS -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -163,12 +161,10 @@
         const btnExpandirTodo = document.getElementById('btnExpandirTodo');
         const btnContraerTodo = document.getElementById('btnContraerTodo');
 
-        // Ausstellungsdatum im deutschen Format
         fechaEmision.textContent = new Date().toLocaleDateString('de-DE', {
             year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // Alternar fila individual (Acordeón)
         window.toggleDetalle = function(id) {
             const filaDetalle = document.getElementById(id);
             const flecha = document.getElementById(`arrow-${id}`);
@@ -182,19 +178,16 @@
             }
         };
 
-        // Expandir todo
         btnExpandirTodo.addEventListener('click', () => {
             document.querySelectorAll('[id^="detalle-"]').forEach(el => el.classList.remove('hidden'));
             document.querySelectorAll('[id^="arrow-"]').forEach(el => el.classList.add('active'));
         });
 
-        // Contraer todo
         btnContraerTodo.addEventListener('click', () => {
             document.querySelectorAll('[id^="detalle-"]').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('[id^="arrow-"]').forEach(el => el.classList.remove('active'));
         });
 
-        // Manejo de casilla de selección manual
         chkRangoManual.addEventListener('change', (e) => {
             if (e.target.checked) {
                 panelRangoManual.classList.remove('hidden');
@@ -282,7 +275,7 @@
         async function cargarDatosCitas(modo, fechaIniCustom = null, fechaFinCustom = null) {
             tablaCuerpo.innerHTML = `
                 <tr>
-                    <td colspan="5" class="py-8 text-center text-indigo-600 font-medium">
+                    <td colspan="5" class="py-6 text-center text-indigo-600 font-medium">
                         Daten werden aus Supabase geladen...
                     </td>
                 </tr>
@@ -297,11 +290,11 @@
 
                 if (modo === 'manual' && fechaIniCustom && fechaFinCustom) {
                     query = query.gte('scheduled_date', fechaIniCustom).lte('scheduled_date', fechaFinCustom);
-                    lblPeriodo.textContent = `Benutzerdefinierter Zeitraum: vom ${formatearFechaEspanolAAleman(fechaIniCustom)} bis ${formatearFechaEspanolAAleman(fechaFinCustom)}`;
+                    lblPeriodo.textContent = `Benutzerdefinierter Zeitraum: ${formatearFechaEspanolAAleman(fechaIniCustom)} – ${formatearFechaEspanolAAleman(fechaFinCustom)}`;
                 } else if (modo !== 'todo') {
                     const { inicio, fin } = obtenerFechasPorModo(modo);
                     query = query.gte('scheduled_date', inicio).lte('scheduled_date', fin);
-                    lblPeriodo.textContent = `Zeitraum: vom ${formatearFechaEspanolAAleman(inicio)} bis ${formatearFechaEspanolAAleman(fin)}`;
+                    lblPeriodo.textContent = `Zeitraum: ${formatearFechaEspanolAAleman(inicio)} – ${formatearFechaEspanolAAleman(fin)}`;
                 } else {
                     lblPeriodo.textContent = `Vollständige Historie aller Termine`;
                 }
@@ -313,7 +306,7 @@
                 if (!data || data.length === 0) {
                     tablaCuerpo.innerHTML = `
                         <tr>
-                            <td colspan="5" class="py-8 text-center text-gray-500">
+                            <td colspan="5" class="py-6 text-center text-gray-500">
                                 Für diesen Zeitraum wurden keine Termine gefunden.
                             </td>
                         </tr>
@@ -343,7 +336,7 @@
                             const empHrs = (empMin / 60.0).toFixed(1).replace('.', ',');
 
                             detalleEmpleadosHtml += `
-                                <div class="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0 text-xs">
+                                <div class="flex justify-between items-center py-0.5 border-b border-gray-100 last:border-0 text-[11px]">
                                     <span class="font-semibold text-gray-800 flex items-center gap-1">👤 ${empNombre}</span>
                                     <span class="text-gray-600">Aktivierung: <b class="text-gray-800">${empIn}</b> | Fertigstellung: <b class="text-gray-800">${empOut}</b></span>
                                     <span class="font-bold text-indigo-600">${empMin} Min. (${empHrs} Std.)</span>
@@ -351,31 +344,36 @@
                             `;
                         });
                     } else {
-                        detalleEmpleadosHtml = `<p class="text-xs text-gray-400 italic">Keine detaillierten Sitzungen erfasst.</p>`;
+                        detalleEmpleadosHtml = `<p class="text-[11px] text-gray-400 italic">Keine detaillierten Sitzungen erfasst.</p>`;
                     }
 
                     const detalleId = `detalle-${index}`;
 
+                    /* CLAVE: SE ENCAPSULA CADA CLIENTE Y SU DETALLE DENTRO DE UN TBODY CON 'appointment-group' */
                     htmlRows += `
-                        <tr class="hover:bg-indigo-50/50 transition cursor-pointer select-none" onclick="toggleDetalle('${detalleId}')">
-                            <td class="py-3 px-3 font-medium text-gray-800 whitespace-nowrap">
-                                <span class="arrow-icon mr-1 text-indigo-500 font-bold" id="arrow-${detalleId}">▶</span>
-                                ${fecha}
-                            </td>
-                            <td class="py-3 px-3 font-semibold text-gray-900">${cliente}</td>
-                            <td class="py-3 px-3 text-center text-gray-700 whitespace-nowrap">${horario}</td>
-                            <td class="py-3 px-3 text-center font-bold text-indigo-700 whitespace-nowrap">${manoObra}</td>
-                            <td class="py-3 px-3 text-gray-600 text-xs">${empleados}</td>
-                        </tr>
+                        <tbody class="appointment-group border-b border-gray-200">
+                            <!-- RESUMEN CLIENTE -->
+                            <tr class="hover:bg-indigo-50/40 transition cursor-pointer select-none" onclick="toggleDetalle('${detalleId}')">
+                                <td class="py-2 px-2 font-medium text-gray-800 whitespace-nowrap">
+                                    <span class="arrow-icon mr-1 text-indigo-500 font-bold text-[10px]" id="arrow-${detalleId}">▶</span>
+                                    ${fecha}
+                                </td>
+                                <td class="py-2 px-2 font-semibold text-gray-900">${cliente}</td>
+                                <td class="py-2 px-2 text-center text-gray-700 whitespace-nowrap">${horario}</td>
+                                <td class="py-2 px-2 text-center font-bold text-indigo-700 whitespace-nowrap">${manoObra}</td>
+                                <td class="py-2 px-2 text-gray-600 text-[11px]">${empleados}</td>
+                            </tr>
 
-                        <tr id="${detalleId}" class="hidden bg-gray-50/80 border-b-2 border-indigo-100">
-                            <td colspan="5" class="py-3 px-6">
-                                <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-inner">
-                                    <p class="text-xs font-bold text-indigo-900 mb-2 uppercase tracking-wider">Detaillierte Arbeitszeiten pro Mitarbeiter:</p>
-                                    ${detalleEmpleadosHtml}
-                                </div>
-                            </td>
-                        </tr>
+                            <!-- DETALLE DESPLEGABLE -->
+                            <tr id="${detalleId}" class="hidden bg-gray-50/90">
+                                <td colspan="5" class="py-1.5 px-4">
+                                    <div class="bg-white p-2 rounded border border-gray-200 shadow-inner">
+                                        <p class="text-[10px] font-bold text-indigo-900 mb-1 uppercase tracking-wider">Detaillierte Arbeitszeiten pro Mitarbeiter:</p>
+                                        ${detalleEmpleadosHtml}
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
                     `;
                 });
 
@@ -386,7 +384,7 @@
                 console.error('Fehler beim Abfragen von Supabase:', err);
                 tablaCuerpo.innerHTML = `
                     <tr>
-                        <td colspan="5" class="py-8 text-center text-red-500 font-medium">
+                        <td colspan="5" class="py-6 text-center text-red-500 font-medium">
                             Fehler beim Laden der Daten: ${err.message || 'Bitte prüfen Sie die Verbindung zu Supabase.'}
                         </td>
                     </tr>
@@ -398,9 +396,9 @@
         function activarBotonRango(modoSeleccionado) {
             botonesRango.forEach(btn => {
                 if (btn.dataset.rango === modoSeleccionado) {
-                    btn.className = 'btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700';
+                    btn.className = 'btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700';
                 } else {
-                    btn.className = 'btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50';
+                    btn.className = 'btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50';
                 }
             });
         }
@@ -419,20 +417,20 @@
                 alert('Bitte wählen Sie Start- und Enddatum aus.');
                 return;
             }
-            botonesRango.forEach(btn => btn.className = 'btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50');
+            botonesRango.forEach(btn => btn.className = 'btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50');
             cargarDatosCitas('manual', fechaDesde.value, fechaHasta.value);
         });
 
-        // Configuración de PDF con saltos de página y márgenes limpios
+        // GENERACION PDF CON SALTO DE PAGINA COMPLETO
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       [10, 0, 10, 0], // Márgenes superior/inferior para evitar cortes
+                margin:       [8, 8, 8, 8], // Márgenes contenidos
                 filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['css', 'legacy'] }
+                pagebreak:    { mode: ['css', 'legacy'], avoid: ['.appointment-group'] }
             };
             html2pdf().set(opciones).from(elemento).save();
         });
