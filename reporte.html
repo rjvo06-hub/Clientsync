@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Resumido de Citas y Mano de Obra</title>
+    <!-- Tailwind CSS CDN para estilos limpios y profesionales -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2pdf.js para conversión directa HTML -> PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Estilos específicos para renderizado PDF impecable */
+        .pdf-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm 20mm;
+            background: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            margin: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8 px-4">
+
+    <!-- BARRA DE ACCIONES / BOTONES -->
+    <div class="max-w-4xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+        <h1 class="text-xl font-bold text-gray-800">Generador de Reporte de Citas</h1>
+        <div class="flex gap-3">
+            <button id="btnConsultar" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Cargar / Actualizar Datos
+            </button>
+            <button id="btnDescargarPDF" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition flex items-center gap-2 disabled:opacity-50" disabled>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Descargar PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- AREA DE VISTA PREVIA DEL DOCUMENTO -->
+    <div class="overflow-x-auto pb-12">
+        <div id="pdfContainer" class="pdf-page">
+            
+            <!-- ENCABEZADO DEL REPORTE -->
+            <div class="border-b-2 border-indigo-600 pb-4 mb-6 flex justify-between items-end">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">REPORTE RESUMIDO DE CITAS</h2>
+                    <p class="text-sm text-gray-500 mt-1">Control semanal de visitas e intervenciones de campo</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-400 font-semibold uppercase">Fecha de Emisión</p>
+                    <p id="fechaEmision" class="text-sm font-medium text-gray-700">-</p>
+                </div>
+            </div>
+
+            <!-- TABLA DE DATOS -->
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-indigo-50/70 text-indigo-900 uppercase text-xs font-bold border-y border-indigo-100">
+                        <th class="py-3 px-3 w-1/6">Fecha</th>
+                        <th class="py-3 px-3 w-1/4">Cliente</th>
+                        <th class="py-3 px-3 text-center w-1/4">Horario (Activación - Terminación)</th>
+                        <th class="py-3 px-3 text-center w-1/6">Mano Obra Acumulada</th>
+                        <th class="py-3 px-3 w-1/4">Empleados Participantes</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCuerpo" class="divide-y divide-gray-200 text-sm">
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-gray-400 italic">
+                            Haz clic en "Cargar / Actualizar Datos" para realizar la consulta a Supabase.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- PIE DE PÁGINA DOCUMENTO -->
+            <div class="mt-12 pt-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-400">
+                <p>Sistema de Gestión de Visitas y Tiempos</p>
+                <p>Documento Generado Automáticamente</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- INTEGRACIÓN CON SUPABASE (ES MODULE) -->
+    <script type="module">
+        // Importación directa desde tu archivo local
+        import { supabase } from './js/supabaseClient.js';
+
+        const btnConsultar = document.getElementById('btnConsultar');
+        const btnDescargarPDF = document.getElementById('btnDescargarPDF');
+        const tablaCuerpo = document.getElementById('tablaCuerpo');
+        const fechaEmision = document.getElementById('fechaEmision');
+
+        // Establecer fecha de emisión
+        fechaEmision.textContent = new Date().toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Función para redondear minutos a bloques hacia arriba de 0.5h (30 min)
+        function calcularHorasRedondeadas(minutos) {
+            if (!minutos || minutos <= 0) return '-';
+            const horas = minutos / 60.0;
+            const redondeado = Math.ceil(horas * 2) / 2.0;
+            return `${redondeado.toFixed(1)} h`;
+        }
+
+        // Formatear Timestamp/ISO String a HH:MM
+        function formatearHora(isoString) {
+            if (!isoString) return '-';
+            try {
+                const date = new Date(isoString);
+                if (isNaN(date.getTime())) return String(isoString).substring(0, 5);
+                return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+            } catch {
+                return '-';
+            }
+        }
+
+        // Extraer lista única de empleados desde la columna JSON 'sessions'
+        function obtenerEmpleados(sessionsJson, assignedEmployee) {
+            const empleados = [];
+            if (sessionsJson && Array.isArray(sessionsJson)) {
+                sessionsJson.forEach(s => {
+                    if (s.employee && !empleados.includes(s.employee)) {
+                        empleados.push(s.employee);
+                    }
+                });
+            }
+            if (empleados.length === 0 && assignedEmployee) {
+                empleados.push(assignedEmployee);
+            }
+            return empleados.length > 0 ? empleados.join(', ') : '-';
+        }
+
+        // Consulta a Supabase y renderizado de tabla
+        async function cargarDatosCitas() {
+            tablaCuerpo.innerHTML = `
+                <tr>
+                    <td colspan="5" class="py-8 text-center text-indigo-600 font-medium">
+                        Cargando registros desde Supabase...
+                    </td>
+                </tr>
+            `;
+
+            try {
+                // Consulta ORM de Supabase
+                const { data, error } = await supabase
+                    .from('appointments')
+                    .select('*')
+                    .order('scheduled_date', { ascending: true })
+                    .order('check_in_time', { ascending: true });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    tablaCuerpo.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-gray-500">
+                                No se encontraron citas registradas.
+                            </td>
+                        </tr>
+                    `;
+                    btnDescargarPDF.disabled = true;
+                    return;
+                }
+
+                // Generación de filas HTML
+                let htmlRows = '';
+                data.forEach(item => {
+                    const cliente = item.client_name || 'Sin cliente';
+                    const fecha = item.scheduled_date || '-';
+                    const checkIn = formatearHora(item.check_in_time);
+                    const checkOut = formatearHora(item.check_out_time);
+                    
+                    const horario = (checkIn !== '-' || checkOut !== '-') ? `${checkIn} – ${checkOut}` : '-';
+                    const manoObra = calcularHorasRedondeadas(item.total_labor_minutes);
+                    const empleados = obtenerEmpleados(item.sessions, item.assigned_employee);
+
+                    htmlRows += `
+                        <tr class="hover:bg-gray-50/80 transition">
+                            <td class="py-3 px-3 font-medium text-gray-800 whitespace-nowrap">${fecha}</td>
+                            <td class="py-3 px-3 font-semibold text-gray-900">${cliente}</td>
+                            <td class="py-3 px-3 text-center text-gray-700 whitespace-nowrap">${horario}</td>
+                            <td class="py-3 px-3 text-center font-bold text-indigo-700 whitespace-nowrap">${manoObra}</td>
+                            <td class="py-3 px-3 text-gray-600 text-xs">${empleados}</td>
+                        </tr>
+                    `;
+                });
+
+                tablaCuerpo.innerHTML = htmlRows;
+                btnDescargarPDF.disabled = false;
+
+            } catch (err) {
+                console.error('Error al consultar Supabase:', err);
+                tablaCuerpo.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-red-500 font-medium">
+                            Error al cargar los datos: ${err.message || 'Verifica la conexión a Supabase.'}
+                        </td>
+                    </tr>
+                `;
+                btnDescargarPDF.disabled = true;
+            }
+        }
+
+        // Descarga del contenedor como PDF limpio
+        function descargarPDF() {
+            const elemento = document.getElementById('pdfContainer');
+            const opciones = {
+                margin:       0,
+                filename:     `Reporte_Resumido_Citas_${new Date().toISOString().slice(0,10)}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opciones).from(elemento).save();
+        }
+
+        // Listeners
+        btnConsultar.addEventListener('click', cargarDatosCitas);
+        btnDescargarPDF.addEventListener('click', descargarPDF);
+
+        // Carga inicial automática al abrir
+        cargarDatosCitas();
+    </script>
+</body>
+</html>
