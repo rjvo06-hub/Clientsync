@@ -76,7 +76,7 @@
         <!-- FILTROS Y CONTROLES INTERACTIVOS -->
         <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-1.5" id="grupoBotonesRapidos">
-                <button data-rango="semana_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700">Diese Woche</button>
+                <button data-rango="semana_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Diese Woche</button>
                 <button data-rango="semana_pasada" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Letzte Woche</button>
                 <button data-rango="mes_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Diesen Monat</button>
                 <button data-rango="todo" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Alle anzeigen</button>
@@ -126,11 +126,11 @@
                     </tr>
                 </thead>
 
-                <!-- CUERPO DE DATOS -->
+                <!-- CUERPO DE DATOS (INICIALMENTE VACÍO) -->
                 <tbody id="tablaCuerpo" class="divide-y divide-gray-200 text-xs">
                     <tr>
-                        <td colspan="5" class="py-6 text-center text-gray-400 italic">
-                            Daten werden geladen...
+                        <td colspan="5" class="py-8 text-center text-gray-400 italic font-medium">
+                            Bitte wählen Sie einen Zeitraum aus, um die Arbeitszeiten anzuzeigen.
                         </td>
                     </tr>
                 </tbody>
@@ -166,7 +166,7 @@
         const botonesRango = document.querySelectorAll('.btn-rango');
         const selectEmpleado = document.getElementById('selectEmpleado');
 
-        let modoActual = 'semana_actual';
+        let modoActual = null;
         let textoPeriodoPDF = "Arbeitszeiten der Mitarbeiter";
         let fechaEmisionPDF = new Date().toLocaleDateString('de-DE', {
             year: 'numeric', month: 'long', day: 'numeric'
@@ -387,6 +387,7 @@
         });
 
         selectEmpleado.addEventListener('change', () => {
+            if (!modoActual && !chkRangoManual.checked) return;
             if (chkRangoManual.checked) {
                 cargarJornadas('manual', fechaDesde.value, fechaHasta.value);
             } else {
@@ -402,8 +403,6 @@
                 if (!fechaHasta.value) fechaHasta.value = hoyStr;
             } else {
                 panelRangoManual.classList.add('hidden');
-                activarBotonRango('semana_actual');
-                cargarJornadas('semana_actual');
             }
         });
 
@@ -412,6 +411,7 @@
                 alert('Bitte Start- und Enddatum auswählen.');
                 return;
             }
+            modoActual = 'manual';
             botonesRango.forEach(btn => btn.className = 'btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50');
             cargarJornadas('manual', fechaDesde.value, fechaHasta.value);
         });
@@ -462,8 +462,8 @@
             }).save();
         });
 
+        // Carga la lista desplegable de empleados, pero NO ejecuta la consulta inicial de jornadas
         cargarListaEmpleados();
-        cargarJornadas('semana_actual');
     </script>
 </body>
 </html>
