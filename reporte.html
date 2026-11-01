@@ -21,7 +21,6 @@
             margin: auto;
         }
 
-        /* Estilos para animación fluida de la flecha del acordeón */
         .arrow-icon {
             display: inline-block;
             transition: transform 0.2s ease-in-out;
@@ -38,7 +37,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div>
                 <h1 class="text-xl font-bold text-gray-800">Terminbericht-Generator</h1>
-                <p class="text-xs text-gray-500 mt-0.5">Klicken Sie auf eine Zeile, um die detaillierten Arbeitszeiten einzusehen</p>
+                <p class="text-xs text-gray-500 mt-0.5">Klicken Sie auf eine Zeile oder nutzen Sie die Schaltflächen, um Details anzuzeigen</p>
             </div>
             
             <div class="flex gap-2">
@@ -56,6 +55,16 @@
                 <button data-rango="semana_pasada" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Letzte Woche</button>
                 <button data-rango="mes_actual" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Diesen Monat</button>
                 <button data-rango="todo" class="btn-rango px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white border-gray-200 text-gray-600 hover:bg-gray-50">Alle anzeigen</button>
+            </div>
+
+            <!-- BOTONES PARA MOSTRAR/OCULTAR DETALLES -->
+            <div class="flex items-center gap-2">
+                <button id="btnExpandirTodo" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg border border-gray-300">
+                    📖 Alle Details anzeigen
+                </button>
+                <button id="btnContraerTodo" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg border border-gray-300">
+                    📕 Alle Details verbergen
+                </button>
             </div>
 
             <!-- MANUELLE AUSWAHL AKTIVIEREN -->
@@ -140,13 +149,16 @@
         const fechaEmision = document.getElementById('fechaEmision');
         const lblPeriodo = document.getElementById('lblPeriodo');
         const botonesRango = document.querySelectorAll('.btn-rango');
+        
+        const btnExpandirTodo = document.getElementById('btnExpandirTodo');
+        const btnContraerTodo = document.getElementById('btnContraerTodo');
 
         // Ausstellungsdatum im deutschen Format
         fechaEmision.textContent = new Date().toLocaleDateString('de-DE', {
             year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // Funktion zum Ein-/Ausblenden von Details (Acordeón)
+        // Alternar fila individual
         window.toggleDetalle = function(id) {
             const filaDetalle = document.getElementById(id);
             const flecha = document.getElementById(`arrow-${id}`);
@@ -160,7 +172,19 @@
             }
         };
 
-        // Sichtbarkeit der manuellen Auswahl umschalten
+        // Expandir todo
+        btnExpandirTodo.addEventListener('click', () => {
+            document.querySelectorAll('[id^="detalle-"]').forEach(el => el.classList.remove('hidden'));
+            document.querySelectorAll('[id^="arrow-"]').forEach(el => el.classList.add('active'));
+        });
+
+        // Contraer todo
+        btnContraerTodo.addEventListener('click', () => {
+            document.querySelectorAll('[id^="detalle-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id^="arrow-"]').forEach(el => el.classList.remove('active'));
+        });
+
+        // Manejo de casilla de selección manual
         chkRangoManual.addEventListener('change', (e) => {
             if (e.target.checked) {
                 panelRangoManual.classList.remove('hidden');
@@ -174,7 +198,6 @@
             }
         });
 
-        // Datumsbereiche berechnen
         function obtenerFechasPorModo(modo) {
             const hoy = new Date();
             let inicio, fin;
@@ -204,7 +227,6 @@
             return { inicio, fin };
         }
 
-        // Aufrundung der Arbeitsstunden auf 0.5 Std.
         function calcularHorasRedondeadas(minutos) {
             if (!minutos || minutos <= 0) return '-';
             const horas = minutos / 60.0;
@@ -212,7 +234,6 @@
             return `${redondeado.toFixed(1).replace('.', ',')} Std.`;
         }
 
-        // Formatierung ISO String/Timestamp zu HH:MM
         function formatearHora(isoString) {
             if (!isoString) return '-';
             try {
@@ -224,7 +245,6 @@
             }
         }
 
-        // Formatierung YYYY-MM-DD zu DD.MM.YYYY
         function formatearFechaEspanolAAleman(fechaStr) {
             if (!fechaStr) return '-';
             const partes = fechaStr.split('-');
@@ -234,7 +254,6 @@
             return fechaStr;
         }
 
-        // Eindeutige Liste der Mitarbeiter aus dem JSON 'sessions' auslesen
         function obtenerEmpleados(sessionsJson, assignedEmployee) {
             const empleados = [];
             if (sessionsJson && Array.isArray(sessionsJson)) {
@@ -250,7 +269,6 @@
             return empleados.length > 0 ? empleados.join(', ') : '-';
         }
 
-        // Daten laden
         async function cargarDatosCitas(modo, fechaIniCustom = null, fechaFinCustom = null) {
             tablaCuerpo.innerHTML = `
                 <tr>
@@ -305,7 +323,6 @@
                     const manoObra = calcularHorasRedondeadas(item.total_labor_minutes);
                     const empleados = obtenerEmpleados(item.sessions, item.assigned_employee);
 
-                    // Desglose detallado por empleado desde 'sessions'
                     let detalleEmpleadosHtml = '';
                     if (item.sessions && Array.isArray(item.sessions) && item.sessions.length > 0) {
                         item.sessions.forEach(s => {
@@ -329,9 +346,7 @@
 
                     const detalleId = `detalle-${index}`;
 
-                    // Renderizado de Fila Resumida + Fila Detallada
                     htmlRows += `
-                        <!-- RESUMEN -->
                         <tr class="hover:bg-indigo-50/50 transition cursor-pointer select-none" onclick="toggleDetalle('${detalleId}')">
                             <td class="py-3 px-3 font-medium text-gray-800 whitespace-nowrap">
                                 <span class="arrow-icon mr-1 text-indigo-500 font-bold" id="arrow-${detalleId}">▶</span>
@@ -343,7 +358,6 @@
                             <td class="py-3 px-3 text-gray-600 text-xs">${empleados}</td>
                         </tr>
 
-                        <!-- DETALLE DESPLEGABLE -->
                         <tr id="${detalleId}" class="hidden bg-gray-50/80 border-b-2 border-indigo-100">
                             <td colspan="5" class="py-3 px-6">
                                 <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-inner">
@@ -381,7 +395,6 @@
             });
         }
 
-        // Event-Listener für Schnellfilter
         botonesRango.forEach(btn => {
             btn.addEventListener('click', () => {
                 chkRangoManual.checked = false;
@@ -391,7 +404,6 @@
             });
         });
 
-        // Event-Listener für manuellen Zeitraum
         btnAplicarManual.addEventListener('click', () => {
             if (!fechaDesde.value || !fechaHasta.value) {
                 alert('Bitte wählen Sie Start- und Enddatum aus.');
@@ -414,7 +426,6 @@
             html2pdf().set(opciones).from(elemento).save();
         });
 
-        // Automatischer Start mit aktueller Woche
         cargarDatosCitas('semana_actual');
     </script>
 </body>
