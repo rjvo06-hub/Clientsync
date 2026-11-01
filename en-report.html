@@ -233,7 +233,7 @@
             return fechaStr;
         }
 
-        // CÁLCULO DE HORAS TRABAJADAS DESCONTANDO LA PAUSA DE ALMUERZO
+        // CÁLCULO DE HORAS TRABAJADAS DESCONTANDO PAUSA Y REDONDEANDO A PASOS DE 0.5 STUNDEN
         function calcularNetoHoras(clockIn, clockOut, lunchStart, lunchEnd) {
             if (!clockIn || !clockOut) return { netoStr: '-', minsPausa: 0 };
             
@@ -256,8 +256,10 @@
             let netoMins = totalMins - minsPausa;
             if (netoMins < 0) netoMins = 0;
 
+            // Redondeo al 0.5 o entero más cercano
             const horas = netoMins / 60.0;
-            const netoStr = `${horas.toFixed(1).replace('.', ',')} Std.`;
+            const redondeado = Math.round(horas * 2) / 2.0;
+            const netoStr = `${redondeado.toFixed(1).replace('.', ',')} Std.`;
 
             return { netoStr, minsPausa: Math.round(minsPausa) };
         }
