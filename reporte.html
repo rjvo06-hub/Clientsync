@@ -6,26 +6,32 @@
     <title>Zusammenfassender und Detaillierter Terminbericht</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- html2pdf.js -->
+    <!-- html2pdf.js für den HTML -> PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
+        /* MARGENES ESTÁNDAR COMPACTOS EN PANTALLA Y VISTA PREVIA */
         .pdf-page {
             width: 210mm;
             min-height: 297mm;
-            padding: 22mm 12mm 15mm 12mm; /* Margen superior de 22mm para dejar espacio al membrete fijo */
+            padding: 18mm 8mm 12mm 8mm; /* Arriba 18mm, Lados 8mm, Abajo 12mm */
             background: white;
             margin: auto;
         }
 
+        /* REGLAS PARA IMPRESIÓN DIRECTA DEL NAVEGADOR */
         @media print {
+            @page {
+                size: A4 portrait;
+                margin: 18mm 8mm 12mm 8mm;
+            }
             body { background: white; padding: 0; }
             .no-print { display: none !important; }
             .pdf-page {
                 width: 100%;
-                padding: 18mm 0 0 0;
+                padding: 0;
                 box-shadow: none;
             }
         }
@@ -39,7 +45,7 @@
             display: table-footer-group;
         }
 
-        /* BLOQUES COMPACTOS E INDIVISIBLES (EVITA CORTAR CLIENTES) */
+        /* BLOQUES COMPACTOS E INDIVISIBLES (EVITA CORTAR CLIENTES POR LA MITAD) */
         .appointment-card {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -56,12 +62,12 @@
 </head>
 <body class="bg-gray-100 min-h-screen py-6 px-4">
 
-    <!-- CONTROLES Y FILTROS (OCULTOS EN IMPRESIÓN/PDF) -->
+    <!-- CONTROLES Y FILTROS (NO-PRINT) -->
     <div class="no-print max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
             <div>
                 <h1 class="text-lg font-bold text-gray-800">Terminbericht-Generator</h1>
-                <p class="text-xs text-gray-500">Bericht mit festem Membrete auf allen PDF-Seiten</p>
+                <p class="text-xs text-gray-500">Kompakte Druckansicht mit optimierten Standard-Rändern</p>
             </div>
             
             <div class="flex gap-2">
@@ -75,7 +81,7 @@
             </div>
         </div>
 
-        <!-- FILTROS -->
+        <!-- FILTROS Y CONTROLES INTERACTIVOS -->
         <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-1.5" id="grupoBotonesRapidos">
                 <button data-rango="semana_actual" class="btn-rango px-2.5 py-1 text-xs font-semibold rounded-lg border bg-indigo-50 border-indigo-200 text-indigo-700">Diese Woche</button>
@@ -114,7 +120,7 @@
         </div>
     </div>
 
-    <!-- DOCUMENTO DE VISTA PREVIA Y PDF -->
+    <!-- DOCUMENTO A IMPRIMIR / PDF -->
     <div class="overflow-x-auto pb-12">
         <div id="pdfContainer" class="pdf-page">
             
@@ -155,7 +161,7 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT -->
+    <!-- JAVASCRIPT & LOGICA SUPABASE -->
     <script type="module">
         import { supabase } from './js/supabaseClient.js';
 
@@ -437,11 +443,11 @@
             window.print();
         });
 
-        // GENERACIÓN DE PDF ESTAMPANDO EL MEMBRETE COMPLETO EN TODAS LAS PÁGINAS
+        // DESCARGA DE PDF CON MÁRGENES ESTÁNDAR COMPACTOS Y MEMBRETE EN CADA PÁGINA
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       [18, 8, 10, 8],
+                margin:       [18, 8, 12, 8], // Márgenes [Arriba, Izquierda, Abajo, Derecha]
                 filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
@@ -455,7 +461,7 @@
                 for (let i = 1; i <= totalPages; i++) {
                     pdf.setPage(i);
                     
-                    // Dibujar el membrete idéntico en la parte superior de cada página
+                    // Dibujar el membrete exacto en la franja superior de 18mm en cada página
                     pdf.setFont("helvetica", "bold");
                     pdf.setFontSize(13);
                     pdf.setTextColor(17, 24, 39); // Gray 900
@@ -476,7 +482,7 @@
                     pdf.setTextColor(55, 65, 81); // Gray 700
                     pdf.text(fechaEmisionPDF, 202, 12, { align: "right" });
                     
-                    // Línea divisoria azul
+                    // Línea divisoria azul a 15mm de alto
                     pdf.setDrawColor(79, 70, 229); // Indigo 600
                     pdf.setLineWidth(0.5);
                     pdf.line(8, 15, 202, 15);
