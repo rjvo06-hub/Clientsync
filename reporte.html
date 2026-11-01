@@ -21,6 +21,16 @@
             margin: auto;
         }
 
+        /* Reglas clave para salto de página en PDF */
+        thead {
+            display: table-header-group; /* Repite el encabezado de la tabla al pasar de página */
+        }
+        
+        tr {
+            page-break-inside: avoid !important; /* Evita cortar filas o tarjetas de empleados por la mitad */
+            break-inside: avoid !important;
+        }
+
         .arrow-icon {
             display: inline-block;
             transition: transform 0.2s ease-in-out;
@@ -37,7 +47,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div>
                 <h1 class="text-xl font-bold text-gray-800">Terminbericht-Generator</h1>
-                <p class="text-xs text-gray-500 mt-0.5">Klicken Sie auf eine Zeile oder nutzen Sie die Schaltflächen, um Details anzuzeigen</p>
+                <p class="text-xs text-gray-500 mt-0.5">Klicken Sie auf eine Zeile oder nutzen Sie die Schaltflächen, um Details einzusehen</p>
             </div>
             
             <div class="flex gap-2">
@@ -158,7 +168,7 @@
             year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // Alternar fila individual
+        // Alternar fila individual (Acordeón)
         window.toggleDetalle = function(id) {
             const filaDetalle = document.getElementById(id);
             const flecha = document.getElementById(`arrow-${id}`);
@@ -413,15 +423,16 @@
             cargarDatosCitas('manual', fechaDesde.value, fechaHasta.value);
         });
 
-        // PDF herunterladen
+        // Configuración de PDF con saltos de página y márgenes limpios
         btnDescargarPDF.addEventListener('click', () => {
             const elemento = document.getElementById('pdfContainer');
             const opciones = {
-                margin:       0,
+                margin:       [10, 0, 10, 0], // Márgenes superior/inferior para evitar cortes
                 filename:     `Terminbericht_${new Date().toISOString().slice(0,10)}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['css', 'legacy'] }
             };
             html2pdf().set(opciones).from(elemento).save();
         });
