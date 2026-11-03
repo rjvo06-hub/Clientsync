@@ -198,12 +198,25 @@
 
         let listaTerminos = [];
         let empleadosActuales = [];
-        const listaEmpleadosDisponibles = ["Nick", "Ute", "Pezi", "Ramiro", "Tini", "Kilian", "Pixi"];
+        let listaEmpleadosDisponibles = [];
 
-        async function cargarTerminosRecientes() {
+        async function cargarDatosIniciales() {
             try {
-                selectTermin.innerHTML = '<option value="">Termine werden geladen...</option>';
+                selectTermin.innerHTML = '<option value="">Wird geladen...</option>';
                 
+                // Cargar empleados desde Supabase
+                const { data: empData, error: empError } = await supabase
+                    .from('employees')
+                    .select('name')
+                    .order('name', { ascending: true });
+
+                if (!empError && empData) {
+                    listaEmpleadosDisponibles = empData.map(e => e.name);
+                } else {
+                    listaEmpleadosDisponibles = ["Nick", "Ute", "Pezi", "Ramiro", "Tini", "Kilian", "Pixi"];
+                }
+
+                // Cargar citas recientes desde Supabase
                 const { data, error } = await supabase
                     .from('appointments')
                     .select('id, client_name, scheduled_date, sessions, check_in_time, check_out_time, assigned_employee')
@@ -273,7 +286,8 @@
         });
 
         window.agregarFilaEmpleado = function() {
-            empleadosActuales.push({ name: "Nick", checkIn: "08:30", checkOut: "12:30" });
+            const primerEmp = listaEmpleadosDisponibles.length > 0 ? listaEmpleadosDisponibles[0] : "Nick";
+            empleadosActuales.push({ name: primerEmp, checkIn: "08:30", checkOut: "12:30" });
             sincronizarDesdeDOM();
             renderizarEmpleados();
         }
@@ -391,7 +405,7 @@
         });
 
         window.addEventListener('DOMContentLoaded', () => {
-            cargarTerminosRecientes();
+            cargarDatosIniciales();
         });
     </script>
 </body>
