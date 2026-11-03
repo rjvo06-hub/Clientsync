@@ -112,7 +112,6 @@
         .btn-login:hover { opacity: 0.95; }
         .btn-login:active { transform: scale(0.98); }
 
-        /* Menú Principal y Vista de Cambio de Contraseña (Ocultos inicialmente) */
         #main-menu-container, #change-password-section {
             display: none;
             flex-direction: column;
@@ -274,6 +273,8 @@
                     <a href="./employee-builder.html"><span>👨‍🔧</span> Mitarbeiter</a>
                     <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Arbeitsbericht</a>
                     <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> PDF-Bericht</a>
+                    <!-- Nuevo acceso para corrección de tiempos (Nivel 3) -->
+                    <a href="./admin-ajuste-tiempos.html" id="navAdminAjuste" style="background: #fff7ed; color: #c2410c; border-color: #ffedd5; grid-column: span 2;"><span>⏱️</span> Zeiten & Sitzungen korrigieren</a>
                 </nav>
             </div>
         </div>
@@ -304,6 +305,7 @@
         const adminSectionLevel2 = document.getElementById('admin-section-level2');
         const adminSectionContainer = document.getElementById('admin-section-container');
         const pdfLink = document.getElementById('navAdminPdf');
+        const ajusteLink = document.getElementById('navAdminAjuste');
 
         async function initApp() {
             try {
@@ -316,7 +318,6 @@
                     employeeSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
                 });
 
-                // Verificar si ya hay sesión activa en localStorage
                 const savedEmp = localStorage.getItem(STORAGE_KEY);
                 if (savedEmp && employeesList.some(e => e.name === savedEmp)) {
                     showMainDashboard(savedEmp);
@@ -338,14 +339,10 @@
                 return;
             }
 
-            // Normalización de la contraseña almacenada en la base de datos
             const dbPassword = employeeObj.password ? String(employeeObj.password).trim() : '';
-
-            // Se considera primer inicio si la contraseña en BD es null, vacía, igual al nombre o '1234'
             const isFirstTimeLogin = (dbPassword === '' || dbPassword === employeeObj.name || dbPassword === '1234');
 
             if (isFirstTimeLogin) {
-                // Para iniciar sesión por primera vez, debe ingresar su propio nombre, '1234', o la clave temporal guardada
                 const isValidInitialPass = (
                     enteredPassword === employeeObj.name || 
                     (dbPassword !== '' && enteredPassword === dbPassword) || 
@@ -358,28 +355,24 @@
                     return;
                 }
 
-                // Guardar usuario temporal y redirigir al formulario para crear contraseña definitiva
                 pendingEmployeeObj = employeeObj;
                 loginSection.style.display = 'none';
                 changePasswordSection.style.display = 'flex';
                 return;
             }
 
-            // Validación habitual para usuarios que ya configuraron su contraseña
             if (dbPassword !== enteredPassword) {
                 alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
                 passwordInput.value = '';
                 return;
             }
 
-            // Guardar sesión y nivel
             localStorage.setItem(STORAGE_KEY, employeeObj.name);
             localStorage.setItem(LEVEL_KEY, employeeObj.user_level || 1);
 
             showMainDashboard(employeeObj.name);
         });
 
-        // Evento para guardar la nueva contraseña por primera vez
         changePasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -401,7 +394,6 @@
             btnSubmit.textContent = 'Wird aktualisiert...';
 
             try {
-                // Actualizar la contraseña en la base de datos en Supabase
                 const { error } = await supabase
                     .from('employees')
                     .update({ password: newPassword })
@@ -411,7 +403,6 @@
 
                 alert('Passwort erfolgreich aktualisiert!');
 
-                // Actualizar contraseña en memoria local y activar sesión
                 pendingEmployeeObj.password = newPassword;
                 localStorage.setItem(STORAGE_KEY, pendingEmployeeObj.name);
                 localStorage.setItem(LEVEL_KEY, pendingEmployeeObj.user_level || 1);
@@ -434,24 +425,21 @@
             mainMenuContainer.style.display = 'flex';
             loggedUserName.textContent = empName;
 
-            // Actualizar enlace con el nombre del empleado
             linkTeam.href = `./employee-schedule.html?employee=${encodeURIComponent(empName)}`;
 
-            // Validar niveles de acceso
             const userLevel = Number(localStorage.getItem(LEVEL_KEY)) || 1;
             const accesoAdmin = localStorage.getItem('usuario_acceso');
 
-            // Nivel 2 o superior: Ve Kunden y Termine planen
             if (userLevel >= 2 || Number(accesoAdmin) === 1) {
                 adminSectionLevel2.style.display = 'block';
             } else {
                 adminSectionLevel2.style.display = 'none';
             }
 
-            // Nivel 3 o superior: Ve herramientas de administración
             if (userLevel >= 3 || Number(accesoAdmin) === 1) {
                 adminSectionContainer.style.display = 'block';
                 if (pdfLink) pdfLink.style.display = 'flex';
+                if (ajusteLink) ajusteLink.style.display = 'flex';
             } else {
                 adminSectionContainer.style.display = 'none';
             }
