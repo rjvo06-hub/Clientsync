@@ -15,6 +15,13 @@
     </div>
 
     <script>
+        // --- PROTECCIÓN DE ACCESO ---
+        const usuarioLogueado = localStorage.getItem('clientSync_saved_employee');
+        if (!usuarioLogueado) {
+            alert('⚠️ Zugriff verweigert. Bitte melden Sie sich zuerst an.');
+            window.location.href = './index.html';
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const lat = urlParams.get('latitude');
