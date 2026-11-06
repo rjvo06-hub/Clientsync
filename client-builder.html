@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClientSync | Kundenverwaltung & -erstellung</title>
-    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="../css/main.css">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
         .container { max-width: 650px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
@@ -40,7 +40,7 @@
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h1 id="view-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">👤 Kundenverwaltung</h1>
-            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Zurück zur Karte</a>
+            <a href="../index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Zurück zur Startseite</a>
         </div>
 
         <!-- Modus-Auswahl -->
@@ -71,7 +71,6 @@
             </div>
 
             <div style="display: flex; gap: 10px;">
-                <!-- Campo de PLZ con desplegable de autocompletado -->
                 <div style="flex: 1; position: relative;">
                     <label>Postleitzahl (PLZ):</label>
                     <input type="text" id="client-postal" placeholder="z. B. 85521 oder Ottobrunn" autocomplete="off">
@@ -85,23 +84,26 @@
 
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
-                    <label>Breitengrad (Lat):</label>
-                    <input type="text" id="client-lat" placeholder="z. B. 48.0585">
+                    <label>Breitengrad (Lat) <span style="color: #e53e3e;">*</span>:</label>
+                    <input type="text" id="client-lat" placeholder="z. B. 48.0585" required>
                 </div>
                 <div style="flex: 1;">
-                    <label>Längengrad (Lng):</label>
-                    <input type="text" id="client-lng" placeholder="z. B. 11.6525">
+                    <label>Längengrad (Lng) <span style="color: #e53e3e;">*</span>:</label>
+                    <input type="text" id="client-lng" placeholder="z. B. 11.6525" required>
                 </div>
             </div>
+            <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
+                * Hinweis: Geographische Koordinaten sind zwingend erforderlich, um Termine und Routen korrekt zu berechnen.
+            </p>
 
-            <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 15px; width: 100%;">
+            <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
                 💾 Änderungen speichern
             </button>
         </form>
     </div>
 
     <script type="module">
-        import { supabase } from './js/supabaseClient.js';
+        import { supabase } from '../js/supabaseClient.js';
 
         let allClients = [];
         let allPostalCodes = [];
@@ -158,7 +160,6 @@
                     if (mapLng) document.getElementById('client-lng').value = mapLng;
                 }
 
-                // Carga en paralelo desde las tablas reales: 'clients' y 'german_postal_codes'
                 const [{ data: clientsData, error: errClients }, { data: postalData, error: errPostal }] = await Promise.all([
                     supabase.from('clients').select('*').order('name', { ascending: true }),
                     supabase.from('german_postal_codes').select('*')
@@ -183,7 +184,6 @@
             }
         }
 
-        // 1. Buscador global (Clientes y CPs)
         const searchInput = document.getElementById('client-search-input');
         const dropdown = document.getElementById('client-results-dropdown');
 
@@ -198,7 +198,6 @@
 
                 const searchTerms = query.split(' ').filter(term => term.length > 0);
 
-                // Filtrar en la tabla CLIENTES
                 const matchedClients = allClients.filter(c => {
                     const name = (c.name || '').toLowerCase();
                     const address = (c.address || '').toLowerCase();
@@ -209,7 +208,6 @@
                     );
                 });
 
-                // Filtrar en la tabla GERMAN_POSTAL_CODES (postal_code y city_name)
                 const matchedPostalCodes = allPostalCodes.filter(p => {
                     const code = String(p.postal_code || '').toLowerCase();
                     const city = (p.city_name || '').toLowerCase();
@@ -226,7 +224,7 @@
                     hasResults = true;
                     const header = document.createElement('div');
                     header.className = 'dropdown-header';
-                    header.textContent = '👤 Kunden (Clientes)';
+                    header.textContent = '👤 Kunden';
                     dropdown.appendChild(header);
 
                     matchedClients.forEach(client => {
@@ -254,7 +252,7 @@
                     hasResults = true;
                     const header = document.createElement('div');
                     header.className = 'dropdown-header';
-                    header.textContent = '📮 Orte / PLZ (Códigos Postales / Lugares)';
+                    header.textContent = '📮 Orte / PLZ';
                     dropdown.appendChild(header);
 
                     matchedPostalCodes.forEach(postal => {
@@ -265,12 +263,11 @@
                         item.className = 'client-result-item';
                         item.innerHTML = `
                             <strong style="color: #2e7d32;">📮 PLZ: ${codeStr} - ${cityStr}</strong><br>
-                            <span style="font-size:0.75rem; color:#666;">Klicken zum Ausfüllen der Adressdaten</span>
+                            <span style="font-size:0.75rem; color:#666;">Klicken zum Ausfüllen der PLZ</span>
                         `;
 
                         item.addEventListener('click', () => {
                             document.getElementById('client-postal').value = codeStr;
-                            
                             dropdown.style.display = 'none';
                             searchInput.value = `${codeStr} - ${cityStr}`;
                             document.getElementById('client-name').focus();
@@ -295,7 +292,6 @@
             });
         }
 
-        // 2. Buscador en tiempo real dentro del campo de Postleitzahl (PLZ)
         const postalInput = document.getElementById('client-postal');
         const postalDropdown = document.getElementById('postal-results-dropdown');
 
@@ -371,19 +367,28 @@
             clientForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
+                const latVal = document.getElementById('client-lat').value.trim();
+                const lngVal = document.getElementById('client-lng').value.trim();
+
+                // VALIDACIÓN OBLIGATORIA DE COORDENADAS
+                if (!latVal || !lngVal) {
+                    alert('⚠️ Fehler: Es ist zwingend erforderlich, geographische Koordinaten (Breitengrad und Längengrad) anzugeben. Bitte wählen Sie den Standort auf der Karte aus.');
+                    return;
+                }
+
                 const clientId = document.getElementById('client-id').value;
                 const payload = {
                     name: document.getElementById('client-name').value.trim(),
                     address: document.getElementById('client-address').value.trim(),
                     postal_code: document.getElementById('client-postal').value.trim(),
                     phone: document.getElementById('client-phone').value.trim(),
-                    latitude: document.getElementById('client-lat').value ? parseFloat(document.getElementById('client-lat').value) : null,
-                    longitude: document.getElementById('client-lng').value ? parseFloat(document.getElementById('client-lng').value) : null
+                    latitude: parseFloat(latVal),
+                    longitude: parseFloat(lngVal)
                 };
 
                 const saveBtn = document.getElementById('save-client-btn');
                 if (saveBtn) {
-                    saveBtn.textContent = 'Speichern...';
+                    saveBtn.textContent = 'Wird gespeichert...';
                     saveBtn.disabled = true;
                 }
 
@@ -409,15 +414,15 @@
                     }
                 } else {
                     if (currentMode === 'create') {
-                        const wantAppointment = confirm('Kunde erfolgreich erstellt!\n\nMöchten Sie jetzt einen neuen Termin für diesen Kunden planen?');
+                        const wantAppointment = confirm('Kunde erfolgreich mit Koordinaten erstellt!\n\nMöchten Sie jetzt einen neuen Termin für diesen Kunden planen?');
                         if (wantAppointment && createdClientId) {
                             window.location.href = `./appointment-builder.html?client_id=${createdClientId}&action=new`;
                         } else {
-                            window.location.href = './index.html';
+                            window.location.href = '../index.html';
                         }
                     } else {
                         alert('Kunde erfolgreich aktualisiert!');
-                        window.location.href = './index.html';
+                        window.location.href = '../index.html';
                     }
                 }
             });
