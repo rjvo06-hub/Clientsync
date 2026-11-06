@@ -458,6 +458,11 @@
     </div>
 
     <script type="module">
+        const usuarioLogueado = localStorage.getItem('clientSync_saved_employee');
+        if (!usuarioLogueado) {
+            alert('⚠️ Zugriff verweigert. Bitte melden Sie sich zuerst an.');
+            window.location.href = '../index.html';
+        }
         import { supabase } from './js/supabaseClient.js';
 
         const employeeSelect = document.getElementById('filter-employee');
