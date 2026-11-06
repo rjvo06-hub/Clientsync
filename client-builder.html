@@ -93,7 +93,7 @@
                 </div>
             </div>
             <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
-                * Hinweis: Geographische Koordinaten sind zwingend erforderlich, um Termine und Routen korrekt zu berechnen.
+                * Hinweis: Geographische Koordinaten werden beim Eingeben der Adresse automatisch ermittelt oder sind zwingend erforderlich.
             </p>
 
             <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
@@ -141,6 +141,40 @@
                 if (el) el.value = '';
             });
         }
+
+        // Función para autocompletar coordenadas automáticamente usando la dirección y la PLZ
+        async function autocompletarCoordenadas() {
+            const address = document.getElementById('client-address').value.trim();
+            const postal = document.getElementById('client-postal').value.trim();
+            
+            if (!address) return;
+
+            const queryStr = `${address}, ${postal} Deutschland`.trim();
+
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
+                const response = await fetch(url, {
+                    headers: { 'Accept-Language': 'de' }
+                });
+                
+                if (!response.ok) throw new Error("Fehler bei der Geokodierung");
+
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    const lat = data[0].lat;
+                    const lon = data[0].lon;
+
+                    document.getElementById('client-lat').value = lat;
+                    document.getElementById('client-lng').value = lon;
+                }
+            } catch (err) {
+                console.error("Konnte Koordinaten nicht automatisch ermitteln:", err);
+            }
+        }
+
+        document.getElementById('client-address').addEventListener('blur', autocompletarCoordenadas);
+        document.getElementById('client-postal').addEventListener('blur', autocompletarCoordenadas);
 
         async function init() {
             try {
@@ -372,7 +406,7 @@
 
                 // VALIDACIÓN OBLIGATORIA DE COORDENADAS
                 if (!latVal || !lngVal) {
-                    alert('⚠️ Fehler: Es ist zwingend erforderlich, geographische Koordinaten (Breitengrad und Längengrad) anzugeben. Bitte wählen Sie den Standort auf der Karte aus.');
+                    alert('⚠️ Fehler: Es ist zwingend erforderlich, geographische Koordinaten (Breitengrad und Längengrad) anzugeben. Bitte geben Sie eine gültige Adresse ein oder wählen Sie den Standort auf der Karte aus.');
                     return;
                 }
 
