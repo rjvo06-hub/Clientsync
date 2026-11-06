@@ -210,22 +210,22 @@
             </form>
         </div>
 
-        <!-- SECCIÓN DE CAMBIO DE CONTRASEÑA (PRIMERA VEZ) -->
+        <!-- SECCIÓN DE CAMBIO DE CONTRASEÑA (ACTUALIZACIÓN DE SEGURIDAD) -->
         <div id="change-password-section" class="login-card">
-            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 6px; text-align: center; font-weight: 800;">🔑 Erste Anmeldung</h2>
-            <p style="font-size: 0.78rem; color: #64748b; text-align: center; margin-bottom: 16px;">
-                Bitte erstellen Sie ein neues Passwort, um Ihr Konto zu sichern.
+            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 6px; text-align: center; font-weight: 800;">🔑 Sicherheitsupdate erforderlich</h2>
+            <p id="password-policy-notice" style="font-size: 0.78rem; color: #64748b; text-align: center; margin-bottom: 16px;">
+                Ihr aktuelles Passwort entspricht nicht den Sicherheitsrichtlinien. Bitte erstellen Sie ein neues Passwort (mind. 8 Zeichen, mit Buchstaben und Zahlen).
             </p>
             
             <form id="change-password-form">
                 <div class="form-group">
                     <label>Neues Passwort:</label>
-                    <input type="password" id="new-password" placeholder="Neues Passwort eingeben" required minlength="1">
+                    <input type="password" id="new-password" placeholder="Mind. 8 Zeichen (Buchstaben & Zahlen)" required minlength="8">
                 </div>
 
                 <div class="form-group">
                     <label>Passwort bestätigen:</label>
-                    <input type="password" id="confirm-password" placeholder="Passwort wiederholen" required minlength="1">
+                    <input type="password" id="confirm-password" placeholder="Passwort wiederholen" required minlength="8">
                 </div>
 
                 <button type="submit" class="btn-login" id="btn-submit-change-password">Passwort aktualisieren & Anmelden</button>
@@ -306,9 +306,18 @@
         const pdfLink = document.getElementById('navAdminPdf');
         const ajusteLink = document.getElementById('navAdminAjuste');
 
+        // Función auxiliar para validar si un texto cumple con la estructura segura:
+        // Mínimo 8 caracteres, al menos una letra y un número.
+        function cumpleEstructuraSegura(password) {
+            if (!password || typeof password !== 'string') return false;
+            if (password.length < 8) return false;
+            const tieneLetra = /[a-zA-ZäöüÄÖÜß]/.test(password);
+            const tieneNumero = /[0-9]/.test(password);
+            return tieneLetra && tieneNumero;
+        }
+
         async function initApp() {
             try {
-                // Solo cargamos los nombres y IDs para poblar el selector de empleados (sin exponer contraseñas)
                 const { data, error } = await supabase.from('employees').select('id, name, user_level').order('name', { ascending: true });
                 if (error) throw error;
 
@@ -327,7 +336,7 @@
             }
         }
 
-        // Validación de login mediante la función segura RPC en Supabase
+        // Validación de login mediante la función RPC segura en Supabase
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const selectedName = employeeSelect.value;
@@ -341,7 +350,7 @@
             }
 
             try {
-                // Llamada segura a la función RPC en la base de datos
+                // 1. Intentamos validar mediante la función RPC segura del servidor
                 const { data, error } = await supabase.rpc('verificar_login', {
                     p_nombre: selectedName,
                     p_password: enteredPassword
@@ -352,14 +361,34 @@
                 if (data && data.length > 0) {
                     const empleado = data[0];
 
-                    // Guardamos la sesión localmente
+                    // Obtenemos el registro completo para revisar la estructura real de su contraseña en la BD
+                    const { data: fullEmp, error: errFull } = await supabase
+                        .from('employees')
+                        .select('*')
+                        .eq('id', empleado.id)
+                        .single();
+
+                    if (!errFull && fullEmp) {
+                        const dbPassword = fullEmp.password ? String(fullEmp.password).trim() : '';
+
+                        // 2. VERIFICACIÓN DE ESTRUCTURA DE SEGURIDAD ACTUAL
+                        // Si la contraseña actual en la base de datos NO cumple con la estructura segura (ej. es "1"),
+                        // interceptamos el acceso, aunque la haya escrito bien, y lo obligamos a actualizarla.
+                        if (!cumpleEstructuraSegura(dbPassword)) {
+                            pendingEmployeeObj = fullEmp;
+                            loginSection.style.display = 'none';
+                            changePasswordSection.style.display = 'flex';
+                            return;
+                        }
+                    }
+
+                    // Si la contraseña ya es segura, le damos acceso normal al sistema
                     localStorage.setItem(STORAGE_KEY, empleado.name);
                     localStorage.setItem(LEVEL_KEY, empleado.user_level || 1);
-
                     showMainDashboard(empleado.name);
+
                 } else {
-                    // Verificamos si es primer inicio de sesión (si la clave en blanco o por defecto coincide con el nombre o '1')
-                    // Esto maneja la transición para cuentas nuevas que aún no han cambiado su clave inicial
+                    // Si el RPC devolvió vacío, revisamos si intentó iniciar con una clave provisional/antigua
                     const { data: fullEmp, error: errFull } = await supabase
                         .from('employees')
                         .select('*')
@@ -368,16 +397,16 @@
 
                     if (!errFull && fullEmp) {
                         const dbPassword = fullEmp.password ? String(fullEmp.password).trim() : '';
-                        const isFirstTimeLogin = (dbPassword === '' || dbPassword === fullEmp.name || dbPassword === '1234' || dbPassword === '1');
-
-                        const isValidInitialPass = (
+                        const esClaveProvisional = (dbPassword === '' || dbPassword === fullEmp.name || dbPassword === '1234' || dbPassword === '1');
+                        
+                        const coincideProvisional = (
                             enteredPassword === fullEmp.name || 
                             enteredPassword === dbPassword || 
                             enteredPassword === '1234' ||
                             enteredPassword === '1'
                         );
 
-                        if (isFirstTimeLogin && isValidInitialPass) {
+                        if (esClaveProvisional && coincideProvisional) {
                             pendingEmployeeObj = fullEmp;
                             loginSection.style.display = 'none';
                             changePasswordSection.style.display = 'flex';
@@ -395,7 +424,7 @@
             }
         });
 
-        // Cambio de contraseña seguro mediante UPDATE directo por ID
+        // Cambio de contraseña con validación estricta de estructura segura
         changePasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -412,6 +441,12 @@
                 return;
             }
 
+            // Validar que cumpla la estructura segura (mínimo 8 caracteres, letra y número)
+            if (!cumpleEstructuraSegura(newPassword)) {
+                alert('Das Passwort ist nicht sicher genug. Es muss mindestens 8 Zeichen lang sein und sowohl Buchstaben als auch Zahlen enthalten.');
+                return;
+            }
+
             const btnSubmit = document.getElementById('btn-submit-change-password');
             btnSubmit.disabled = true;
             btnSubmit.textContent = 'Wird aktualisiert...';
@@ -424,7 +459,7 @@
 
                 if (error) throw error;
 
-                alert('Passwort erfolgreich aktualisiert!');
+                alert('Passwort erfolgreich auf die neue Sicherheitsstruktur aktualisiert!');
 
                 localStorage.setItem(STORAGE_KEY, pendingEmployeeObj.name);
                 localStorage.setItem(LEVEL_KEY, pendingEmployeeObj.user_level || 1);
