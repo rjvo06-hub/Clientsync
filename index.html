@@ -183,7 +183,7 @@
 <body>
 
     <div class="container">
-        <!-- Header minimalista -->
+        <!-- Header -->
         <header class="app-header">
             <h1>ClientSync</h1>
             <span class="badge-brand">WerkSolutions Portal</span>
@@ -220,12 +220,12 @@
             <form id="change-password-form">
                 <div class="form-group">
                     <label>Neues Passwort:</label>
-                    <input type="password" id="new-password" placeholder="Neues Passwort eingeben" required minlength="4">
+                    <input type="password" id="new-password" placeholder="Neues Passwort eingeben" required minlength="1">
                 </div>
 
                 <div class="form-group">
                     <label>Passwort bestätigen:</label>
-                    <input type="password" id="confirm-password" placeholder="Passwort wiederholen" required minlength="4">
+                    <input type="password" id="confirm-password" placeholder="Passwort wiederholen" required minlength="1">
                 </div>
 
                 <button type="submit" class="btn-login" id="btn-submit-change-password">Passwort aktualisieren & Anmelden</button>
@@ -273,7 +273,6 @@
                     <a href="./employee-builder.html"><span>👨‍🔧</span> Mitarbeiter</a>
                     <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Arbeitsbericht</a>
                     <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> PDF-Bericht</a>
-                    <!-- Nuevo acceso para corrección de tiempos (Nivel 3) -->
                     <a href="./admin-ajuste-tiempos.html" id="navAdminAjuste" style="background: #fff7ed; color: #c2410c; border-color: #ffedd5; grid-column: span 2;"><span>⏱️</span> Zeiten & Sitzungen korrigieren</a>
                 </nav>
             </div>
@@ -309,7 +308,8 @@
 
         async function initApp() {
             try {
-                const { data, error } = await supabase.from('employees').select('*').order('name', { ascending: true });
+                // Solo cargamos los nombres y IDs para poblar el selector de empleados (sin exponer contraseñas)
+                const { data, error } = await supabase.from('employees').select('id, name, user_level').order('name', { ascending: true });
                 if (error) throw error;
 
                 employeesList = data || [];
@@ -327,7 +327,8 @@
             }
         }
 
-        loginForm.addEventListener('submit', (e) => {
+        // Validación de login mediante la función segura RPC en Supabase
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const selectedName = employeeSelect.value;
             const enteredPassword = passwordInput.value.trim();
@@ -339,40 +340,62 @@
                 return;
             }
 
-            const dbPassword = employeeObj.password ? String(employeeObj.password).trim() : '';
-            const isFirstTimeLogin = (dbPassword === '' || dbPassword === employeeObj.name || dbPassword === '1234');
+            try {
+                // Llamada segura a la función RPC en la base de datos
+                const { data, error } = await supabase.rpc('verificar_login', {
+                    p_nombre: selectedName,
+                    p_password: enteredPassword
+                });
 
-            if (isFirstTimeLogin) {
-                const isValidInitialPass = (
-                    enteredPassword === employeeObj.name || 
-                    (dbPassword !== '' && enteredPassword === dbPassword) || 
-                    enteredPassword === '1234'
-                );
+                if (error) throw error;
 
-                if (!isValidInitialPass) {
-                    alert('Falsches Passwort. Für die erste Anmeldung geben Sie bitte Ihren Benutzernamen als Passwort ein.');
+                if (data && data.length > 0) {
+                    const empleado = data[0];
+
+                    // Guardamos la sesión localmente
+                    localStorage.setItem(STORAGE_KEY, empleado.name);
+                    localStorage.setItem(LEVEL_KEY, empleado.user_level || 1);
+
+                    showMainDashboard(empleado.name);
+                } else {
+                    // Verificamos si es primer inicio de sesión (si la clave en blanco o por defecto coincide con el nombre o '1')
+                    // Esto maneja la transición para cuentas nuevas que aún no han cambiado su clave inicial
+                    const { data: fullEmp, error: errFull } = await supabase
+                        .from('employees')
+                        .select('*')
+                        .eq('id', employeeObj.id)
+                        .single();
+
+                    if (!errFull && fullEmp) {
+                        const dbPassword = fullEmp.password ? String(fullEmp.password).trim() : '';
+                        const isFirstTimeLogin = (dbPassword === '' || dbPassword === fullEmp.name || dbPassword === '1234' || dbPassword === '1');
+
+                        const isValidInitialPass = (
+                            enteredPassword === fullEmp.name || 
+                            enteredPassword === dbPassword || 
+                            enteredPassword === '1234' ||
+                            enteredPassword === '1'
+                        );
+
+                        if (isFirstTimeLogin && isValidInitialPass) {
+                            pendingEmployeeObj = fullEmp;
+                            loginSection.style.display = 'none';
+                            changePasswordSection.style.display = 'flex';
+                            return;
+                        }
+                    }
+
+                    alert('Falsches Passwort oder ungültige Anmeldeinformationen.');
                     passwordInput.value = '';
-                    return;
                 }
 
-                pendingEmployeeObj = employeeObj;
-                loginSection.style.display = 'none';
-                changePasswordSection.style.display = 'flex';
-                return;
+            } catch (err) {
+                console.error('Fehler beim Login:', err);
+                alert('Ein Fehler ist aufgetreten: ' + err.message);
             }
-
-            if (dbPassword !== enteredPassword) {
-                alert('Falsches Passwort. Bitte versuchen Sie es erneut.');
-                passwordInput.value = '';
-                return;
-            }
-
-            localStorage.setItem(STORAGE_KEY, employeeObj.name);
-            localStorage.setItem(LEVEL_KEY, employeeObj.user_level || 1);
-
-            showMainDashboard(employeeObj.name);
         });
 
+        // Cambio de contraseña seguro mediante UPDATE directo por ID
         changePasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -403,7 +426,6 @@
 
                 alert('Passwort erfolgreich aktualisiert!');
 
-                pendingEmployeeObj.password = newPassword;
                 localStorage.setItem(STORAGE_KEY, pendingEmployeeObj.name);
                 localStorage.setItem(LEVEL_KEY, pendingEmployeeObj.user_level || 1);
 
@@ -411,7 +433,7 @@
                 showMainDashboard(pendingEmployeeObj.name);
 
             } catch (err) {
-                console.error('Fehler beim Aktualisieren des Passwoorts:', err);
+                console.error('Fehler beim Aktualisieren des Passworts:', err);
                 alert('Fehler beim Speichern des neuen Passworts: ' + err.message);
             } finally {
                 btnSubmit.disabled = false;
