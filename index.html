@@ -95,6 +95,34 @@
             box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
 
+        /* Contenedor para el input de contraseña y el botón del ojito */
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-wrapper input {
+            padding-right: 45px; /* Espacio para que el texto no choque con el ojito */
+        }
+
+        .btn-toggle-pass {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-toggle-pass:hover {
+            color: #0f172a;
+        }
+
         .btn-login {
             background: #0f172a;
             color: white;
@@ -203,7 +231,10 @@
 
                 <div class="form-group">
                     <label>Passwort:</label>
-                    <input type="password" id="login-password" placeholder="••••••••" required>
+                    <div class="password-wrapper">
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                        <button type="button" class="btn-toggle-pass" data-target="login-password" title="Passwort anzeigen">👁️</button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-login" id="btn-submit-login">Anmelden</button>
@@ -220,12 +251,18 @@
             <form id="change-password-form">
                 <div class="form-group">
                     <label>Neues Passwort:</label>
-                    <input type="password" id="new-password" placeholder="Mind. 8 Zeichen (Buchstaben & Zahlen)" required minlength="8">
+                    <div class="password-wrapper">
+                        <input type="password" id="new-password" placeholder="Mind. 8 Zeichen (Buchstaben & Zahlen)" required minlength="8">
+                        <button type="button" class="btn-toggle-pass" data-target="new-password" title="Passwort anzeigen">👁️</button>
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label>Passwort bestätigen:</label>
-                    <input type="password" id="confirm-password" placeholder="Passwort wiederholen" required minlength="8">
+                    <div class="password-wrapper">
+                        <input type="password" id="confirm-password" placeholder="Passwort wiederholen" required minlength="8">
+                        <button type="button" class="btn-toggle-pass" data-target="confirm-password" title="Passwort anzeigen">👁️</button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-login" id="btn-submit-change-password">Passwort aktualisieren & Anmelden</button>
@@ -306,8 +343,25 @@
         const pdfLink = document.getElementById('navAdminPdf');
         const ajusteLink = document.getElementById('navAdminAjuste');
 
-        // Función auxiliar para validar si un texto cumple con la estructura segura:
-        // Mínimo 8 caracteres, al menos una letra y un número.
+        // Lógica para el botón del "ojito" (Mostrar / Ocultar contraseña)
+        document.querySelectorAll('.btn-toggle-pass').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.getAttribute('data-target');
+                const inputField = document.getElementById(targetId);
+                if (inputField) {
+                    if (inputField.type === 'password') {
+                        inputField.type = 'text';
+                        button.textContent = '🙈'; // Cambia a ojito tapado
+                        button.title = 'Passwort verbergen';
+                    } else {
+                        inputField.type = 'password';
+                        button.textContent = '👁️'; // Vuelve al ojito normal
+                        button.title = 'Passwort anzeigen';
+                    }
+                }
+            });
+        });
+
         function cumpleEstructuraSegura(password) {
             if (!password || typeof password !== 'string') return false;
             if (password.length < 8) return false;
@@ -336,7 +390,6 @@
             }
         }
 
-        // Validación de login mediante la función RPC segura en Supabase
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const selectedName = employeeSelect.value;
@@ -350,7 +403,6 @@
             }
 
             try {
-                // 1. Intentamos validar mediante la función RPC segura del servidor
                 const { data, error } = await supabase.rpc('verificar_login', {
                     p_nombre: selectedName,
                     p_password: enteredPassword
@@ -361,7 +413,6 @@
                 if (data && data.length > 0) {
                     const empleado = data[0];
 
-                    // Obtenemos el registro completo para revisar la estructura real de su contraseña en la BD
                     const { data: fullEmp, error: errFull } = await supabase
                         .from('employees')
                         .select('*')
@@ -371,9 +422,6 @@
                     if (!errFull && fullEmp) {
                         const dbPassword = fullEmp.password ? String(fullEmp.password).trim() : '';
 
-                        // 2. VERIFICACIÓN DE ESTRUCTURA DE SEGURIDAD ACTUAL
-                        // Si la contraseña actual en la base de datos NO cumple con la estructura segura (ej. es "1"),
-                        // interceptamos el acceso, aunque la haya escrito bien, y lo obligamos a actualizarla.
                         if (!cumpleEstructuraSegura(dbPassword)) {
                             pendingEmployeeObj = fullEmp;
                             loginSection.style.display = 'none';
@@ -382,13 +430,11 @@
                         }
                     }
 
-                    // Si la contraseña ya es segura, le damos acceso normal al sistema
                     localStorage.setItem(STORAGE_KEY, empleado.name);
                     localStorage.setItem(LEVEL_KEY, empleado.user_level || 1);
                     showMainDashboard(empleado.name);
 
                 } else {
-                    // Si el RPC devolvió vacío, revisamos si intentó iniciar con una clave provisional/antigua
                     const { data: fullEmp, error: errFull } = await supabase
                         .from('employees')
                         .select('*')
@@ -424,7 +470,6 @@
             }
         });
 
-        // Cambio de contraseña con validación estricta de estructura segura
         changePasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -441,7 +486,6 @@
                 return;
             }
 
-            // Validar que cumpla la estructura segura (mínimo 8 caracteres, letra y número)
             if (!cumpleEstructuraSegura(newPassword)) {
                 alert('Das Passwort ist nicht sicher genug. Es muss mindestens 8 Zeichen lang sein und sowohl Buchstaben als auch Zahlen enthalten.');
                 return;
