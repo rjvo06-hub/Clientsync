@@ -313,6 +313,11 @@
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC4uaDGEnYaYHBqxhcCGyKA2uTAyJmwRZQ" async defer></script>
 
     <script type="module">
+        const usuarioLogueado = localStorage.getItem('clientSync_saved_employee');
+        if (!usuarioLogueado) {
+            alert('⚠️ Zugriff verweigert. Bitte melden Sie sich zuerst an.');
+            window.location.href = '../index.html';
+        }
         import { supabase } from './js/supabaseClient.js';
         import { initInteractiveMapModal } from './js/interactive-map-modal.js';
 
