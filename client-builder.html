@@ -73,7 +73,7 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1; position: relative;">
                     <label>Postleitzahl (PLZ):</label>
-                    <input type="text" id="client-postal" placeholder="z. B. 85521 oder Ottobrunn" autocomplete="off">
+                    <input type="text" id="client-postal" placeholder="z. B. 85521 oder Ottobrunn" autocomplete="off" required>
                     <div id="postal-results-dropdown" class="client-results-dropdown"></div>
                 </div>
                 <div style="flex: 1;">
@@ -93,7 +93,7 @@
                 </div>
             </div>
             <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
-                * Hinweis: Geographische Koordinaten werden beim Eingeben der Adresse automatisch ermittelt oder sind zwingend erforderlich.
+                * Hinweis: Sobald die Adresse und die Postleitzahl (PLZ) eingegeben sind, ermittelt das System die Koordinaten automatisch.
             </p>
 
             <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
@@ -142,12 +142,15 @@
             });
         }
 
-        // Función para autocompletar coordenadas automáticamente usando la dirección y la PLZ
+        // Función protegida: Solo busca coordenadas si AMBOS (dirección y PLZ) están llenos
         async function autocompletarCoordenadas() {
             const address = document.getElementById('client-address').value.trim();
             const postal = document.getElementById('client-postal').value.trim();
             
-            if (!address) return;
+            // Seguridad: Si falta la dirección o el código postal, no se ejecuta la búsqueda para evitar errores
+            if (!address || !postal) {
+                return;
+            }
 
             const queryStr = `${address}, ${postal} Deutschland`.trim();
 
@@ -173,6 +176,7 @@
             }
         }
 
+        // Se activa de forma segura únicamente cuando el usuario completa la dirección o la PLZ
         document.getElementById('client-address').addEventListener('blur', autocompletarCoordenadas);
         document.getElementById('client-postal').addEventListener('blur', autocompletarCoordenadas);
 
@@ -304,6 +308,8 @@
                             document.getElementById('client-postal').value = codeStr;
                             dropdown.style.display = 'none';
                             searchInput.value = `${codeStr} - ${cityStr}`;
+                            // Disparamos la verificación por si la dirección ya estaba escrita
+                            autocompletarCoordenadas();
                             document.getElementById('client-name').focus();
                         });
 
@@ -361,6 +367,7 @@
                         item.addEventListener('click', () => {
                             postalInput.value = codeStr;
                             postalDropdown.style.display = 'none';
+                            autocompletarCoordenadas();
                         });
 
                         postalDropdown.appendChild(item);
@@ -406,7 +413,7 @@
 
                 // VALIDACIÓN OBLIGATORIA DE COORDENADAS
                 if (!latVal || !lngVal) {
-                    alert('⚠️ Fehler: Es ist zwingend erforderlich, geographische Koordinaten (Breitengrad und Längengrad) anzugeben. Bitte geben Sie eine gültige Adresse ein oder wählen Sie den Standort auf der Karte aus.');
+                    alert('⚠️ Fehler: Geographische Koordinaten fehlen. Bitte stellen Sie sicher, dass sowohl die Adresse als auch die Postleitzahl (PLZ) korrekt eingegeben sind, damit die Koordinaten ermittelt werden können.');
                     return;
                 }
 
