@@ -99,6 +99,11 @@
             <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
                 💾 Änderungen speichern
             </button>
+
+            <!-- Botón de eliminación (visible solo en modo edición) -->
+            <button type="button" id="delete-client-btn" style="background: #e53e3e; color: white; border: none; font-weight: bold; cursor: pointer; padding: 12px; font-size: 0.95rem; margin-top: 10px; width: 100%; border-radius: 8px; display: none;">
+                🗑️ Kunden löschen
+            </button>
         </form>
     </div>
 
@@ -121,6 +126,7 @@
             const searchSection = document.getElementById('search-section');
             const viewTitle = document.getElementById('view-title');
             const saveBtn = document.getElementById('save-client-btn');
+            const deleteBtn = document.getElementById('delete-client-btn');
             const searchInput = document.getElementById('client-search-input');
 
             const btnEdit = document.getElementById('btn-mode-edit');
@@ -132,10 +138,12 @@
                 if (searchSection) searchSection.style.display = 'block';
                 if (viewTitle) viewTitle.textContent = '🔍 Kunde suchen und bearbeiten';
                 if (saveBtn) saveBtn.textContent = '💾 Kunde aktualisieren';
+                if (deleteBtn) deleteBtn.style.display = 'block'; // Mostrar botón eliminar al editar
             } else {
                 if (searchSection) searchSection.style.display = 'block';
                 if (viewTitle) viewTitle.textContent = '➕ Neuen Kunden registrieren';
                 if (saveBtn) saveBtn.textContent = '✨ Kunde erstellen';
+                if (deleteBtn) deleteBtn.style.display = 'none'; // Ocultar botón eliminar al crear
                 if (searchInput) searchInput.value = '';
                 clearForm();
             }
@@ -149,12 +157,10 @@
             });
         }
 
-        // Función protegida: Solo busca coordenadas si AMBOS (dirección y PLZ) están llenos
         async function autocompletarCoordenadas() {
             const address = document.getElementById('client-address').value.trim();
             const postal = document.getElementById('client-postal').value.trim();
             
-            // Seguridad: Si falta la dirección o el código postal, no se ejecuta la búsqueda para evitar errores
             if (!address || !postal) {
                 return;
             }
@@ -183,7 +189,6 @@
             }
         }
 
-        // Se activa de forma segura únicamente cuando el usuario completa la dirección o la PLZ
         document.getElementById('client-address').addEventListener('blur', autocompletarCoordenadas);
         document.getElementById('client-postal').addEventListener('blur', autocompletarCoordenadas);
 
@@ -203,6 +208,8 @@
                     if (mapPostal) document.getElementById('client-postal').value = mapPostal;
                     if (mapLat) document.getElementById('client-lat').value = mapLat;
                     if (mapLng) document.getElementById('client-lng').value = mapLng;
+                } else {
+                    window.setMode('edit');
                 }
 
                 const [{ data: clientsData, error: errClients }, { data: postalData, error: errPostal }] = await Promise.all([
@@ -315,7 +322,6 @@
                             document.getElementById('client-postal').value = codeStr;
                             dropdown.style.display = 'none';
                             searchInput.value = `${codeStr} - ${cityStr}`;
-                            // Disparamos la verificación por si la dirección ya estaba escrita
                             autocompletarCoordenadas();
                             document.getElementById('client-name').focus();
                         });
@@ -410,6 +416,61 @@
             if (lngEl) lngEl.value = client.longitude || '';
         }
 
+        // --- LÓGICA DE ELIMINACIÓN CON VALIDACIÓN DE CITAS ---
+        const deleteBtn = document.getElementById('delete-client-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+                const clientId = document.getElementById('client-id').value;
+                const clientName = document.getElementById('client-name').value;
+
+                if (!clientId) {
+                    alert('⚠️ Bitte wählen Sie zuerst einen Kunden aus, den Sie löschen möchten.');
+                    return;
+                }
+
+                if (!confirm(`Möchten Sie den Kunden "${clientName}" wirklich löschen?`)) {
+                    return;
+                }
+
+                try {
+                    deleteBtn.disabled = true;
+                    deleteBtn.textContent = 'Überprüfe Termine...';
+
+                    // Validación: Buscar si el cliente tiene citas asociadas (programadas o completadas)
+                    const { data: appts, error: apptError } = await supabase
+                        .from('appointments')
+                        .select('id, status, scheduled_date')
+                        .eq('client_id', clientId);
+
+                    if (apptError) throw apptError;
+
+                    if (appts && appts.length > 0) {
+                        alert(`❌ Löschen nicht möglich!\n\nDer Kunde "${clientName}" hat ${appts.length} zugeordnete Termine (programmiert oder abgeschlossen). Aus Sicherheitsgründen können Kunden mit Terminhistorie nicht gelöscht werden.`);
+                        deleteBtn.disabled = false;
+                        deleteBtn.textContent = '🗑️ Kunden löschen';
+                        return;
+                    }
+
+                    // Si no tiene citas, proceder a eliminar
+                    const { error: deleteError } = await supabase
+                        .from('clients')
+                        .delete()
+                        .eq('id', clientId);
+
+                    if (deleteError) throw deleteError;
+
+                    alert('✅ Kunde erfolgreich gelöscht!');
+                    window.location.href = '../index.html';
+
+                } catch (err) {
+                    console.error('Fehler beim Löschen des Kunden:', err);
+                    alert('Fehler beim Löschen: ' + err.message);
+                    deleteBtn.disabled = false;
+                    deleteBtn.textContent = '🗑️ Kunden löschen';
+                }
+            });
+        }
+
         const clientForm = document.getElementById('client-form');
         if (clientForm) {
             clientForm.addEventListener('submit', async (e) => {
@@ -418,7 +479,6 @@
                 const latVal = document.getElementById('client-lat').value.trim();
                 const lngVal = document.getElementById('client-lng').value.trim();
 
-                // VALIDACIÓN OBLIGATORIA DE COORDENADAS
                 if (!latVal || !lngVal) {
                     alert('⚠️ Fehler: Geographische Koordinaten fehlen. Bitte stellen Sie sicher, dass sowohl die Adresse als auch die Postleitzahl (PLZ) korrekt eingegeben sind, damit die Koordinaten ermittelt werden können.');
                     return;
