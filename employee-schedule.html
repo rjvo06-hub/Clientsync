@@ -83,14 +83,22 @@
     </div>
 
     <script type="module">
-        function expulsarAlLogin() {
-    // 1. Limpiar toda la sesión local
-    localStorage.removeItem('clientSync_saved_employee');
-    localStorage.removeItem('clientSync_user_level');
-    
-    // 2. Redirigir limpiamente al index eliminando cualquier parámetro de la URL
-    window.location.replace('./index.html');
         import { supabase } from './js/supabaseClient.js';
+
+        const STORAGE_KEY = 'clientSync_saved_employee';
+        const LEVEL_KEY = 'clientSync_user_level';
+
+        // SEGURIDAD ESTRICTA: Leer única y exclusivamente del almacenamiento local de sesión legítima.
+        // Se ignora por completo cualquier parámetro de empleado que se intente inyectar por URL.
+        let selectedEmployee = localStorage.getItem(STORAGE_KEY) || '';
+
+        if (!selectedEmployee) {
+            alert('⚠️ Zugriff verweigert. Bitte melden Sie sich zuerst an.');
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(LEVEL_KEY);
+            window.location.replace('./index.html');
+            throw new Error('Nicht autorisiert');
+        }
 
         let allClients = [];
         let allAppointments = [];
@@ -98,7 +106,6 @@
         let allEmployeeNames = [];
         let allServices = [];
         let employeeDailyLog = null;
-        let selectedEmployee = '';
         let selectedMonthDate = new Date();
         let timerInterval = null;
         let visitLiveInterval = null;
@@ -108,17 +115,8 @@
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
         
-        const STORAGE_KEY = 'clientSync_saved_employee';
         const urlParams = new URLSearchParams(window.location.search);
-        selectedEmployee = urlParams.get('employee') || localStorage.getItem(STORAGE_KEY) || '';
         const currentView = urlParams.get('view');
-
-        if (!selectedEmployee) {
-            alert('Bitte melden Sie sich zuerst an.');
-            window.location.href = './index.html';
-        } else {
-            localStorage.setItem(STORAGE_KEY, selectedEmployee);
-        }
 
         function formatDate(str) {
             if (!str) return '';
@@ -306,7 +304,6 @@
             else renderCalendar(subContainer);
         }
 
-        // --- MODIFICACIÓN APLICADA: Comprueba si estás asignado en cualquier posición (múltiples técnicos) ---
         function getApptsForDate(dateStr) {
             const map = new Map(allClients.map(c => [c.id, c]));
             return allAppointments.filter(a => {
@@ -404,7 +401,6 @@
             const map = new Map(allClients.map(c => [c.id, c]));
             const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
 
-            // --- MODIFICACIÓN APLICADA: Comprueba asignación múltiple también en Zeiterfassung ---
             const assignedTodayAppts = todayAppts.filter(a => {
                 if (!a.assigned_employee) return false;
                 const assignedList = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
@@ -659,7 +655,7 @@
                         ${teamHtml}
 
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f8fafc;">
-                            <span style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">⏰ ${appt.time_slot || '09:00'} Uhr (Zugewiesen: ${appt.assigned_employee})</span>
+                            <span style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">⏰ ${appt.time_slot || '09:00'} Uhr (Hauptverantwortlich: ${primaryEmployee})</span>
                             <div style="width: 130px;">${actionBtn}</div>
                         </div>
                     </div>
