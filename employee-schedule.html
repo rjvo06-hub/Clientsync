@@ -304,13 +304,14 @@
             else renderCalendar(subContainer);
         }
 
+        // --- MODIFICACIÓN APLICADA: Comprueba si estás asignado en cualquier posición (múltiples técnicos) ---
         function getApptsForDate(dateStr) {
             const map = new Map(allClients.map(c => [c.id, c]));
             return allAppointments.filter(a => {
                 if (!a.scheduled_date || a.scheduled_date.split('T')[0] !== dateStr) return false;
                 if (!a.assigned_employee) return false;
-                const primary = a.assigned_employee.split(',')[0].trim().toLowerCase();
-                return primary === selectedEmployee.toLowerCase() && map.has(a.client_id);
+                const assignedList = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                return assignedList.includes(selectedEmployee.toLowerCase()) && map.has(a.client_id);
             });
         }
 
@@ -401,10 +402,11 @@
             const map = new Map(allClients.map(c => [c.id, c]));
             const todayAppts = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === todayStr);
 
+            // --- MODIFICACIÓN APLICADA: Comprueba asignación múltiple también en Zeiterfassung ---
             const assignedTodayAppts = todayAppts.filter(a => {
                 if (!a.assigned_employee) return false;
-                const primary = a.assigned_employee.split(',')[0].trim().toLowerCase();
-                return primary === selectedEmployee.toLowerCase() && map.has(a.client_id);
+                const assignedList = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                return assignedList.includes(selectedEmployee.toLowerCase()) && map.has(a.client_id);
             });
             const assignedApptIds = new Set(assignedTodayAppts.map(a => a.id));
 
@@ -514,8 +516,8 @@
             if (timetrackViewMode === 'assigned') {
                 filteredAppts = appts.filter(a => {
                     if (!a.assigned_employee) return false;
-                    const primary = a.assigned_employee.split(',')[0].trim().toLowerCase();
-                    return primary === selectedEmployee.toLowerCase();
+                    const assignedList = a.assigned_employee.split(',').map(e => e.trim().toLowerCase());
+                    return assignedList.includes(selectedEmployee.toLowerCase());
                 });
             } else {
                 filteredAppts = appts.filter(a => activeApptIds.has(String(a.id)) && map.has(a.client_id));
@@ -600,7 +602,6 @@
                     `;
                 }
 
-                // --- CAPTURADOR DE SERVICIOS GUARDADO EN JSONB (activities_log) ---
                 let servicesHtml = '';
                 let currentLog = [];
                 try {
@@ -644,22 +645,19 @@
 
                 html += `
                     <div class="item-card">
-                        <!-- LÍNEA 1: Nombre a la izquierda | Tiempo a la derecha -->
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
                             <strong style="font-size: 0.8rem; color: #0f172a;">#${idx + 1} ${c.name}</strong>
                             <div>${badge}</div>
                         </div>
 
-                        <!-- LÍNEA 2: Dirección del cliente -->
                         <div style="font-size: 0.7rem; color: #64748b;">📍 ${c.address || 'Keine Adresse'}</div>
 
-                        <!-- LÍNEA 3: Capturador de datos / Servicios realizados -->
                         ${servicesHtml}
 
                         ${teamHtml}
 
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f8fafc;">
-                            <span style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">⏰ ${appt.time_slot || '09:00'} Uhr (Hauptverantwortlich: ${primaryEmployee})</span>
+                            <span style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">⏰ ${appt.time_slot || '09:00'} Uhr (Zugewiesen: ${appt.assigned_employee})</span>
                             <div style="width: 130px;">${actionBtn}</div>
                         </div>
                     </div>
@@ -835,7 +833,6 @@
         });
 
         function attachClientTimerListeners() {
-            // AÑADIR/CREAR SERVICIO GUARDANDO EN EL JSONB 'activities_log' DE APPOINTMENTS
             document.querySelectorAll('.btn-add-service').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const apptId = e.target.getAttribute('data-id');
@@ -858,7 +855,6 @@
                             : (appt.activities_log || []);
                     } catch (err) { currentLog = []; }
 
-                    // Verificar duplicados para esta cita
                     const alreadyAdded = currentLog.some(log => log.service_name.toLowerCase() === serviceName.toLowerCase());
                     if (alreadyAdded) {
                         alert(`⚠️ Die Dienstleistung "${serviceName}" wurde für diesen Termin bereits erfasst.`);
@@ -866,7 +862,6 @@
                         return;
                     }
 
-                    // Guardar/Verificar catálogo en la tabla 'services'
                     let existingService = allServices.find(s => s.name.trim().toLowerCase() === serviceName.toLowerCase());
 
                     if (!existingService) {
@@ -925,7 +920,6 @@
                 });
             });
 
-            // ELIMINAR SERVICIO DEL JSONB
             document.querySelectorAll('.btn-remove-service').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const apptId = e.target.getAttribute('data-appt-id');
