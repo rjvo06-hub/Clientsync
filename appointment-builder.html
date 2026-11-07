@@ -219,6 +219,11 @@
                         <div id="client-appointments-list" style="margin-top: 6px;"></div>
                     </details>
                 </div>
+
+                <!-- Contenedor para mostrar la última cita pasada -->
+                <div id="last-past-appointment-container" style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e2e8f0; display: none; font-size: 0.78rem; color: #718096;">
+                    🕒 <span id="last-past-appointment-text">-</span>
+                </div>
             </div>
 
             <div id="date-section" style="background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 15px; display: none;">
@@ -701,23 +706,43 @@
             document.getElementById('det-address').textContent = `${client.address || 'Keine Straße'}, PLZ: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
 
-            clientAppointments = allAppointments.filter(a => a.client_id === client.id);
+            // --- FILTRAR CITAS ACTIVAS Y PASADAS ---
+            const allClientAppts = allAppointments.filter(a => a.client_id === client.id);
+            
+            // Separar citas futuras/hoy (activas) de citas pasadas
+            const activeAppts = [];
+            const pastAppts = [];
+
+            allClientAppts.forEach(appt => {
+                if (appt.scheduled_date) {
+                    const apptDateOnly = appt.scheduled_date.split('T')[0];
+                    if (apptDateOnly >= todayStrSystem) {
+                        activeAppts.push(appt);
+                    } else {
+                        pastAppts.push(appt);
+                    }
+                }
+            });
+
+            // Ordenar citas pasadas por fecha descendiente para encontrar la más reciente
+            pastAppts.sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date));
+
             const appointmentsContainer = document.getElementById('appointments-selection-container');
             const appointmentsBoxTitle = document.getElementById('appointments-box-title');
             const appointmentsListDiv = document.getElementById('client-appointments-list');
-            appointmentsListDiv.innerHTML = '';
+            const lastPastContainer = document.getElementById('last-past-appointment-container');
+            const lastPastText = document.getElementById('last-past-appointment-text');
 
+            appointmentsListDiv.innerHTML = '';
             let targetApptToSelect = null;
 
-            if (clientAppointments.length > 0) {
+            // 1. Mostrar citas actuales (futuras o de hoy)
+            if (activeAppts.length > 0) {
                 appointmentsContainer.style.display = 'block';
-                appointmentsBoxTitle.textContent = `📅 Aktuelle Termine des Kunden (${clientAppointments.length}):`;
+                appointmentsBoxTitle.textContent = `📅 Aktuelle Termine des Kunden (${activeAppts.length}):`;
 
-                clientAppointments.forEach((appt, index) => {
-                    let formatted = 'Ungültiges Datum';
-                    if (appt.scheduled_date) {
-                        formatted = formatLocalDateTime(appt.scheduled_date, appt.time_slot);
-                    }
+                activeAppts.forEach((appt, index) => {
+                    let formatted = formatLocalDateTime(appt.scheduled_date, appt.time_slot);
                     
                     const card = document.createElement('div');
                     card.className = 'appointment-selection-card';
@@ -741,31 +766,29 @@
                         card.classList.add('selected');
                         dateSection.style.display = 'block';
                         
-                        if (appt.scheduled_date) {
-                            const datePart = appt.scheduled_date.split('T')[0];
-                            const timePart = appt.time_slot || '09:00';
-                            document.getElementById('free-date-input').value = datePart;
-                            document.getElementById('appointment-time').value = timePart;
-                            if (appt.estimated_hours) {
-                                document.getElementById('estimated-hours').value = appt.estimated_hours;
-                            }
-                            if (appt.service_requested) {
-                                document.getElementById('service-search-input').value = appt.service_requested;
-                            }
-                            renderEmployeeCheckboxes(appt.assigned_employee || '');
-
-                            selectedDateOnly = datePart;
-                            updateFinalTimestamp();
-                            saveBtn.disabled = false;
-                            saveBtn.style.opacity = '1';
-
-                            document.querySelectorAll('.suggestion-item-btn').forEach(b => {
-                                b.classList.remove('selected-suggestion', 'reschedule-highlight');
-                                if (b.dataset.date === datePart) {
-                                    b.classList.add('reschedule-highlight');
-                                }
-                            });
+                        const datePart = appt.scheduled_date.split('T')[0];
+                        const timePart = appt.time_slot || '09:00';
+                        document.getElementById('free-date-input').value = datePart;
+                        document.getElementById('appointment-time').value = timePart;
+                        if (appt.estimated_hours) {
+                            document.getElementById('estimated-hours').value = appt.estimated_hours;
                         }
+                        if (appt.service_requested) {
+                            document.getElementById('service-search-input').value = appt.service_requested;
+                        }
+                        renderEmployeeCheckboxes(appt.assigned_employee || '');
+
+                        selectedDateOnly = datePart;
+                        updateFinalTimestamp();
+                        saveBtn.disabled = false;
+                        saveBtn.style.opacity = '1';
+
+                        document.querySelectorAll('.suggestion-item-btn').forEach(b => {
+                            b.classList.remove('selected-suggestion', 'reschedule-highlight');
+                            if (b.dataset.date === datePart) {
+                                b.classList.add('reschedule-highlight');
+                            }
+                        });
 
                         setTimeout(() => {
                             dateSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -783,15 +806,23 @@
                         targetApptToSelect = { card, appt };
                     }
                 });
-
-                dateSection.style.display = 'block';
             } else {
                 appointmentsContainer.style.display = 'block';
                 appointmentsBoxTitle.textContent = `📅 Aktuelle Termine des Kunden (0):`;
-                appointmentsListDiv.innerHTML = `<span style="color: #e53e3e; font-size: 0.78rem;">Dieser Kunde hat derzeit keine geplanten Termine.</span>`;
-                dateSection.style.display = 'block';
+                appointmentsListDiv.innerHTML = `<span style="color: #718096; font-size: 0.78rem;">Dieser Kunde hat derzeit keine geplanten Termine.</span>`;
             }
 
+            // 2. Mostrar información de la última cita pasada (si existe)
+            if (pastAppts.length > 0) {
+                const lastAppt = pastAppts[0]; // La más reciente
+                const formattedPastDate = formatLocalDateTime(lastAppt.scheduled_date, lastAppt.time_slot);
+                lastPastText.innerHTML = `Letzte abgeschlossene Termin: <strong>${formattedPastDate}</strong> (${lastAppt.service_requested || 'Allgemein'})`;
+                lastPastContainer.style.display = 'block';
+            } else {
+                lastPastContainer.style.display = 'none';
+            }
+
+            dateSection.style.display = 'block';
             detailsCard.style.display = 'block';
 
             suggestionsList.innerHTML = 'Reale Fahrstrecken werden berechnet...';
@@ -933,7 +964,6 @@
             const rawHours = document.getElementById('estimated-hours').value.trim();
             const serviceVal = document.getElementById('service-search-input').value.trim();
             
-            // Recoger los técnicos seleccionados mediante checkboxes
             const checkedBoxes = document.querySelectorAll('.emp-checkbox:checked');
             const selectedEmployeeNames = Array.from(checkedBoxes).map(cb => cb.value);
             const employeeVal = selectedEmployeeNames.length > 0 ? selectedEmployeeNames.join(', ') : null;
