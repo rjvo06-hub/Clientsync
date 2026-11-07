@@ -95,7 +95,6 @@
             box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
         }
 
-        /* Contenedor para el input de contraseña y el botón del ojito */
         .password-wrapper {
             position: relative;
             display: flex;
@@ -103,7 +102,7 @@
         }
 
         .password-wrapper input {
-            padding-right: 45px; /* Espacio para que el texto no choque con el ojito */
+            padding-right: 45px;
         }
 
         .btn-toggle-pass {
@@ -241,7 +240,7 @@
             </form>
         </div>
 
-        <!-- SECCIÓN DE CAMBIO DE CONTRASEÑA (ACTUALIZACIÓN DE SEGURIDAD) -->
+        <!-- SECCIÓN DE CAMBIO DE CONTRASEÑA -->
         <div id="change-password-section" class="login-card">
             <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 6px; text-align: center; font-weight: 800;">🔑 Sicherheitsupdate erforderlich</h2>
             <p id="password-policy-notice" style="font-size: 0.78rem; color: #64748b; text-align: center; margin-bottom: 16px;">
@@ -343,7 +342,6 @@
         const pdfLink = document.getElementById('navAdminPdf');
         const ajusteLink = document.getElementById('navAdminAjuste');
 
-        // Lógica para el botón del "ojito" (Mostrar / Ocultar contraseña)
         document.querySelectorAll('.btn-toggle-pass').forEach(button => {
             button.addEventListener('click', () => {
                 const targetId = button.getAttribute('data-target');
@@ -351,11 +349,11 @@
                 if (inputField) {
                     if (inputField.type === 'password') {
                         inputField.type = 'text';
-                        button.textContent = '🙈'; // Cambia a ojito tapado
+                        button.textContent = '🙈';
                         button.title = 'Passwort verbergen';
                     } else {
                         inputField.type = 'password';
-                        button.textContent = '👁️'; // Vuelve al ojito normal
+                        button.textContent = '👁️';
                         button.title = 'Passwort anzeigen';
                     }
                 }
@@ -382,8 +380,23 @@
                 });
 
                 const savedEmp = localStorage.getItem(STORAGE_KEY);
-                if (savedEmp && employeesList.some(e => e.name === savedEmp)) {
-                    showMainDashboard(savedEmp);
+                if (savedEmp) {
+                    // SEGURIDAD: En lugar de confiar en el nivel almacenado en localStorage,
+                    // consultamos directamente a la base de datos el nivel actual del empleado.
+                    const { data: currentEmp, error: errEmp } = await supabase
+                        .from('employees')
+                        .select('*')
+                        .eq('name', savedEmp)
+                        .maybeSingle();
+
+                    if (!errEmp && currentEmp) {
+                        localStorage.setItem(LEVEL_KEY, currentEmp.user_level || 1);
+                        showMainDashboard(currentEmp.name, currentEmp.user_level || 1);
+                    } else {
+                        // Si el usuario ya no existe o hubo error, limpiamos sesión
+                        localStorage.removeItem(STORAGE_KEY);
+                        localStorage.removeItem(LEVEL_KEY);
+                    }
                 }
             } catch (err) {
                 console.error('Fehler beim Laden der Mitarbeiter:', err);
@@ -430,9 +443,10 @@
                         }
                     }
 
+                    const userLevel = empleado.user_level || 1;
                     localStorage.setItem(STORAGE_KEY, empleado.name);
-                    localStorage.setItem(LEVEL_KEY, empleado.user_level || 1);
-                    showMainDashboard(empleado.name);
+                    localStorage.setItem(LEVEL_KEY, userLevel);
+                    showMainDashboard(empleado.name, userLevel);
 
                 } else {
                     const { data: fullEmp, error: errFull } = await supabase
@@ -505,11 +519,12 @@
 
                 alert('Passwort erfolgreich auf die neue Sicherheitsstruktur aktualisiert!');
 
+                const userLevel = pendingEmployeeObj.user_level || 1;
                 localStorage.setItem(STORAGE_KEY, pendingEmployeeObj.name);
-                localStorage.setItem(LEVEL_KEY, pendingEmployeeObj.user_level || 1);
+                localStorage.setItem(LEVEL_KEY, userLevel);
 
                 changePasswordSection.style.display = 'none';
-                showMainDashboard(pendingEmployeeObj.name);
+                showMainDashboard(pendingEmployeeObj.name, userLevel);
 
             } catch (err) {
                 console.error('Fehler beim Aktualisieren des Passworts:', err);
@@ -520,7 +535,7 @@
             }
         });
 
-        function showMainDashboard(empName) {
+        function showMainDashboard(empName, userLevel) {
             loginSection.style.display = 'none';
             changePasswordSection.style.display = 'none';
             mainMenuContainer.style.display = 'flex';
@@ -528,16 +543,16 @@
 
             linkTeam.href = `./employee-schedule.html?employee=${encodeURIComponent(empName)}`;
 
-            const userLevel = Number(localStorage.getItem(LEVEL_KEY)) || 1;
             const accesoAdmin = localStorage.getItem('usuario_acceso');
 
-            if (userLevel >= 2 || Number(accesoAdmin) === 1) {
+            // Validación robusta basada en el nivel real de la base de datos
+            if (Number(userLevel) >= 2 || Number(accesoAdmin) === 1) {
                 adminSectionLevel2.style.display = 'block';
             } else {
                 adminSectionLevel2.style.display = 'none';
             }
 
-            if (userLevel >= 3 || Number(accesoAdmin) === 1) {
+            if (Number(userLevel) >= 3 || Number(accesoAdmin) === 1) {
                 adminSectionContainer.style.display = 'block';
                 if (pdfLink) pdfLink.style.display = 'flex';
                 if (ajusteLink) ajusteLink.style.display = 'flex';
