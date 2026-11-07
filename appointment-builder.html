@@ -260,10 +260,10 @@
                 </div>
 
                 <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">Zugewiesener Techniker (Optional):</label>
-                    <select id="employee-select">
-                        <option value="General">Nicht zugewiesen</option>
-                    </select>
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">👥 Zugewiesene Techniker (Mehrere):</label>
+                    <div id="employees-checkboxes-container" style="max-height: 130px; overflow-y: auto; border: 1px solid #cbd5e0; padding: 8px; border-radius: 8px; background: white;">
+                        <span style="font-size: 0.75rem; color: #718096;">Lade Mitarbeiter...</span>
+                    </div>
                 </div>
 
                 <div class="form-row-group">
@@ -412,6 +412,28 @@
             return `${cleanDate} ${timePart}`;
         }
 
+        function renderEmployeeCheckboxes(assignedRaw = '') {
+            const container = document.getElementById('employees-checkboxes-container');
+            const assignedList = assignedRaw ? assignedRaw.split(',').map(e => e.trim()).filter(Boolean) : [];
+
+            if (allEmployees.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.75rem; color: #718096;">Keine Mitarbeiter registriert.</span>`;
+                return;
+            }
+
+            let html = '';
+            allEmployees.forEach(emp => {
+                const isChecked = assignedList.includes(emp.name) ? 'checked' : '';
+                html += `
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-bottom: 5px; cursor: pointer;">
+                        <input type="checkbox" class="emp-checkbox" value="${emp.name}" ${isChecked}>
+                        ${emp.name}
+                    </label>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
         function suggestNextTimeForDate(dateStr) {
             const apptsOnDate = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
             if (apptsOnDate.length === 0) {
@@ -467,11 +489,7 @@
                 allServices = serviceData || [];
                 allEmployees = employeeData || [];
 
-                const empSelect = document.getElementById('employee-select');
-                empSelect.innerHTML = `<option value="General">Nicht zugewiesen</option>`;
-                allEmployees.forEach(emp => {
-                    empSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
-                });
+                renderEmployeeCheckboxes();
 
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
@@ -596,7 +614,6 @@
             }
         });
 
-        // Modal para editar solo el nombre rápidamente sin perder la sesión del agendamiento
         const editNameModal = document.getElementById('edit-name-modal');
         const editNameInput = document.getElementById('edit-client-name-input');
 
@@ -670,7 +687,7 @@
             document.getElementById('free-date-input').value = '';
             document.getElementById('appointment-time').value = '';
             document.getElementById('estimated-hours').value = '';
-            document.getElementById('employee-select').value = 'General';
+            renderEmployeeCheckboxes();
             
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.6';
@@ -735,9 +752,8 @@
                             if (appt.service_requested) {
                                 document.getElementById('service-search-input').value = appt.service_requested;
                             }
-                            if (appt.assigned_employee) {
-                                document.getElementById('employee-select').value = appt.assigned_employee;
-                            }
+                            renderEmployeeCheckboxes(appt.assigned_employee || '');
+
                             selectedDateOnly = datePart;
                             updateFinalTimestamp();
                             saveBtn.disabled = false;
@@ -916,7 +932,11 @@
             const timeVal = document.getElementById('appointment-time').value || '09:00';
             const rawHours = document.getElementById('estimated-hours').value.trim();
             const serviceVal = document.getElementById('service-search-input').value.trim();
-            const employeeVal = document.getElementById('employee-select').value;
+            
+            // Recoger los técnicos seleccionados mediante checkboxes
+            const checkedBoxes = document.querySelectorAll('.emp-checkbox:checked');
+            const selectedEmployeeNames = Array.from(checkedBoxes).map(cb => cb.value);
+            const employeeVal = selectedEmployeeNames.length > 0 ? selectedEmployeeNames.join(', ') : null;
 
             if (!clientId || !dateVal) {
                 alert('Bitte wählen Sie einen Kunden und ein gültiges Datum / eine gültige Uhrzeit aus.');
@@ -966,7 +986,7 @@
                 time_slot: timeVal,
                 estimated_hours: !isNaN(parsedHours) ? parsedHours : null,
                 service_requested: serviceVal || null,
-                assigned_employee: employeeVal !== 'General' ? employeeVal : null
+                assigned_employee: employeeVal
             };
 
             let errorResult = null;
@@ -987,7 +1007,7 @@
                 const actionMsg = actionType === 'new' ? 'Neuer Termin erfolgreich gebucht!' : 'Termin erfolgreich verschoben!';
                 const formattedDateReadable = formatLocalDateTime(dateVal, timeVal);
                 
-                alert(`${actionMsg}\n\n📅 Termin Bestätigt\nDatum: ${formattedDateReadable}\n👤 Kunde: ${activeClient ? activeClient.name : 'Kunde'}\n🛠️ Techniker: ${employeeVal}`);
+                alert(`${actionMsg}\n\n📅 Termin Bestätigt\nDatum: ${formattedDateReadable}\n👤 Kunde: ${activeClient ? activeClient.name : 'Kunde'}\n🛠️ Techniker: ${employeeVal || 'Nicht zugewiesen'}`);
 
                 document.getElementById('appointment-form').reset();
                 document.getElementById('client-details').style.display = 'none';
