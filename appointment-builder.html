@@ -99,12 +99,12 @@
             background-color: #f7fafc !important;
         }
 
-        .client-search-container {
+        .client-search-container, .employee-search-container {
             position: relative;
             margin-bottom: 12px;
             width: 100%;
         }
-        .client-results-dropdown, .service-results-dropdown {
+        .client-results-dropdown, .service-results-dropdown, .employee-results-dropdown {
             position: absolute;
             top: 100%;
             left: 0;
@@ -118,15 +118,39 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             display: none;
         }
-        .client-result-item, .service-result-item {
+        .client-result-item, .service-result-item, .employee-result-item {
             padding: 10px 12px;
             cursor: pointer;
             border-bottom: 1px solid #edf2f7;
             font-size: 0.82rem;
         }
-        .client-result-item:hover, .service-result-item:hover {
+        .client-result-item:hover, .service-result-item:hover, .employee-result-item:hover {
             background: #ebf8ff;
             color: #2b6cb0;
+        }
+
+        .employee-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #edf2f7;
+            color: #2d3748;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            border: 1px solid #cbd5e0;
+        }
+        .employee-badge button {
+            background: none;
+            border: none;
+            color: #e53e3e;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 6px;
+            padding: 0;
+            width: auto;
         }
 
         #map-modal, #edit-name-modal {
@@ -220,7 +244,6 @@
                     </details>
                 </div>
 
-                <!-- Contenedor para mostrar la última cita pasada -->
                 <div id="last-past-appointment-container" style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e2e8f0; display: none; font-size: 0.78rem; color: #718096;">
                     🕒 <span id="last-past-appointment-text">-</span>
                 </div>
@@ -264,10 +287,13 @@
                     </div>
                 </div>
 
+                <!-- Menú desplegable y buscador para asignar empleados -->
                 <div class="form-row-group">
-                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">👥 Zugewiesene Techniker (Mehrere):</label>
-                    <div id="employees-checkboxes-container" style="max-height: 130px; overflow-y: auto; border: 1px solid #cbd5e0; padding: 8px; border-radius: 8px; background: white;">
-                        <span style="font-size: 0.75rem; color: #718096;">Lade Mitarbeiter...</span>
+                    <label style="font-size: 0.72rem; font-weight: 600; color: #4a5568; display: block; margin-bottom: 3px;">👥 Zugewiesene Techniker:</label>
+                    <div id="selected-employees-badges" style="margin-bottom: 5px; display: flex; flex-wrap: wrap;"></div>
+                    <div class="employee-search-container">
+                        <input type="text" id="employee-search-input" placeholder="Mitarbeiter suchen oder auswählen (z. B. Rami)..." autocomplete="off">
+                        <div id="employee-results-dropdown" class="employee-results-dropdown"></div>
                     </div>
                 </div>
 
@@ -291,7 +317,7 @@
         </form>
     </div>
 
-    <!-- Modal para editar el nombre directamente sin salir de la vista -->
+    <!-- Modal para editar el nombre -->
     <div id="edit-name-modal">
         <div class="edit-modal-content">
             <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 1rem; color: #2d3748;">✏️ Kundennamen bearbeiten</h3>
@@ -335,6 +361,7 @@
         let clientAppointments = [];
         let selectedAppointmentId = null;
         let selectedDateOnly = '';
+        let assignedEmployeeNames = []; // Array con los nombres seleccionados
         const todayStrSystem = new Date().toISOString().split('T')[0];
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -417,27 +444,78 @@
             return `${cleanDate} ${timePart}`;
         }
 
-        function renderEmployeeCheckboxes(assignedRaw = '') {
-            const container = document.getElementById('employees-checkboxes-container');
-            const assignedList = assignedRaw ? assignedRaw.split(',').map(e => e.trim()).filter(Boolean) : [];
+        // --- GESTIÓN DE EMPLEADOS CON BUSCADOR Y MENÚ DESPLEGABLE ---
+        function renderEmployeeBadges() {
+            const container = document.getElementById('selected-employees-badges');
+            container.innerHTML = '';
+            if (assignedEmployeeNames.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.75rem; color: #718096; font-style: italic; margin-bottom: 4px; display: block;">Kein Techniker zugewiesen</span>`;
+                return;
+            }
+            assignedEmployeeNames.forEach(name => {
+                const badge = document.createElement('span');
+                badge.className = 'employee-badge';
+                badge.innerHTML = `👷‍♂️ ${name} <button type="button" data-name="${name}" title="Entfernen">✕</button>`;
+                badge.querySelector('button').addEventListener('click', (e) => {
+                    const empToRemove = e.target.getAttribute('data-name');
+                    assignedEmployeeNames = assignedEmployeeNames.filter(n => n !== empToRemove);
+                    renderEmployeeBadges();
+                });
+                container.appendChild(badge);
+            });
+        }
 
-            if (allEmployees.length === 0) {
-                container.innerHTML = `<span style="font-size: 0.75rem; color: #718096;">Keine Mitarbeiter registriert.</span>`;
+        const employeeSearchInput = document.getElementById('employee-search-input');
+        const employeeDropdown = document.getElementById('employee-results-dropdown');
+
+        function renderEmployeeDropdownList(filterQuery = '') {
+            employeeDropdown.innerHTML = '';
+            const query = filterQuery.toLowerCase().trim();
+            const filtered = allEmployees.filter(emp => (emp.name || '').toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                employeeDropdown.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: #718096;">Keine Mitarbeiter gefunden</div>`;
+                employeeDropdown.style.display = 'block';
                 return;
             }
 
-            let html = '';
-            allEmployees.forEach(emp => {
-                const isChecked = assignedList.includes(emp.name) ? 'checked' : '';
-                html += `
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-bottom: 5px; cursor: pointer;">
-                        <input type="checkbox" class="emp-checkbox" value="${emp.name}" ${isChecked}>
-                        ${emp.name}
-                    </label>
+            filtered.forEach(emp => {
+                const isSelected = assignedEmployeeNames.includes(emp.name);
+                const item = document.createElement('div');
+                item.className = 'employee-result-item';
+                item.style.display = 'flex';
+                item.style.justify0 = 'space-between';
+                item.style.alignItems = 'center';
+                item.innerHTML = `
+                    <span>👤 ${emp.name}</span>
+                    ${isSelected ? '<span style="color: #38a169; font-size: 0.75rem; font-weight: bold;">✓ Ausgewählt</span>' : ''}
                 `;
+                item.addEventListener('click', () => {
+                    if (!assignedEmployeeNames.includes(emp.name)) {
+                        assignedEmployeeNames.push(emp.name);
+                        renderEmployeeBadges();
+                    }
+                    employeeSearchInput.value = '';
+                    employeeDropdown.style.display = 'none';
+                });
+                employeeDropdown.appendChild(item);
             });
-            container.innerHTML = html;
+            employeeDropdown.style.display = 'block';
         }
+
+        employeeSearchInput.addEventListener('focus', () => {
+            renderEmployeeDropdownList(employeeSearchInput.value);
+        });
+
+        employeeSearchInput.addEventListener('input', (e) => {
+            renderEmployeeDropdownList(e.target.value);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!employeeSearchInput.contains(e.target) && !employeeDropdown.contains(e.target)) {
+                employeeDropdown.style.display = 'none';
+            }
+        });
 
         function suggestNextTimeForDate(dateStr) {
             const apptsOnDate = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.startsWith(dateStr));
@@ -494,7 +572,8 @@
                 allServices = serviceData || [];
                 allEmployees = employeeData || [];
 
-                renderEmployeeCheckboxes();
+                assignedEmployeeNames = [];
+                renderEmployeeBadges();
 
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
@@ -692,7 +771,8 @@
             document.getElementById('free-date-input').value = '';
             document.getElementById('appointment-time').value = '';
             document.getElementById('estimated-hours').value = '';
-            renderEmployeeCheckboxes();
+            assignedEmployeeNames = [];
+            renderEmployeeBadges();
             
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.6';
@@ -706,10 +786,7 @@
             document.getElementById('det-address').textContent = `${client.address || 'Keine Straße'}, PLZ: ${client.postal_code || 'N/A'}`;
             document.getElementById('det-coords').textContent = `${client.latitude}, ${client.longitude}`;
 
-            // --- FILTRAR CITAS ACTIVAS Y PASADAS ---
             const allClientAppts = allAppointments.filter(a => a.client_id === client.id);
-            
-            // Separar citas futuras/hoy (activas) de citas pasadas
             const activeAppts = [];
             const pastAppts = [];
 
@@ -724,7 +801,6 @@
                 }
             });
 
-            // Ordenar citas pasadas por fecha descendiente para encontrar la más reciente
             pastAppts.sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date));
 
             const appointmentsContainer = document.getElementById('appointments-selection-container');
@@ -736,7 +812,6 @@
             appointmentsListDiv.innerHTML = '';
             let targetApptToSelect = null;
 
-            // 1. Mostrar citas actuales (futuras o de hoy)
             if (activeAppts.length > 0) {
                 appointmentsContainer.style.display = 'block';
                 appointmentsBoxTitle.textContent = `📅 Aktuelle Termine des Kunden (${activeAppts.length}):`;
@@ -776,7 +851,9 @@
                         if (appt.service_requested) {
                             document.getElementById('service-search-input').value = appt.service_requested;
                         }
-                        renderEmployeeCheckboxes(appt.assigned_employee || '');
+                        
+                        assignedEmployeeNames = appt.assigned_employee ? appt.assigned_employee.split(',').map(e => e.trim()).filter(Boolean) : [];
+                        renderEmployeeBadges();
 
                         selectedDateOnly = datePart;
                         updateFinalTimestamp();
@@ -812,9 +889,8 @@
                 appointmentsListDiv.innerHTML = `<span style="color: #718096; font-size: 0.78rem;">Dieser Kunde hat derzeit keine geplanten Termine.</span>`;
             }
 
-            // 2. Mostrar información de la última cita pasada (si existe)
             if (pastAppts.length > 0) {
-                const lastAppt = pastAppts[0]; // La más reciente
+                const lastAppt = pastAppts[0];
                 const formattedPastDate = formatLocalDateTime(lastAppt.scheduled_date, lastAppt.time_slot);
                 lastPastText.innerHTML = `Letzte abgeschlossene Termin: <strong>${formattedPastDate}</strong> (${lastAppt.service_requested || 'Allgemein'})`;
                 lastPastContainer.style.display = 'block';
@@ -964,9 +1040,7 @@
             const rawHours = document.getElementById('estimated-hours').value.trim();
             const serviceVal = document.getElementById('service-search-input').value.trim();
             
-            const checkedBoxes = document.querySelectorAll('.emp-checkbox:checked');
-            const selectedEmployeeNames = Array.from(checkedBoxes).map(cb => cb.value);
-            const employeeVal = selectedEmployeeNames.length > 0 ? selectedEmployeeNames.join(', ') : null;
+            const employeeVal = assignedEmployeeNames.length > 0 ? assignedEmployeeNames.join(', ') : null;
 
             if (!clientId || !dateVal) {
                 alert('Bitte wählen Sie einen Kunden und ein gültiges Datum / eine gültige Uhrzeit aus.');
@@ -1048,6 +1122,8 @@
                 
                 actionType = 'new';
                 selectedAppointmentId = null;
+                assignedEmployeeNames = [];
+                renderEmployeeBadges();
                 updateUIModeText();
 
                 btn.textContent = originalBtnText;
