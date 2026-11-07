@@ -30,6 +30,7 @@
 
         .badge-count { font-size: 0.65rem; background: rgba(0,0,0,0.1); padding: 1px 5px; border-radius: 10px; font-weight: bold; }
         .badge-completed { background: #c6f6d5; color: #22543d; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline-block; margin-top: 4px; }
+        .assigned-tech-badge { background: #edf2f7; color: #2d3748; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; font-weight: 600; display: inline-block; margin-top: 4px; border: 1px solid #cbd5e0; }
 
         .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
         .custom-modal-content { background: white; width: 100%; max-width: 650px; max-height: 85vh; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
@@ -246,26 +247,37 @@
             const currentEmpsRaw = appt.assigned_employee || '';
             const assignedList = currentEmpsRaw.split(',').map(e => e.trim()).filter(Boolean);
 
-            let employeesCheckboxesHtml = `<div style="max-height: 130px; overflow-y: auto; border: 1px solid #cbd5e0; padding: 8px; border-radius: 6px; background: white;">`;
-            
-            if (allEmployees.length === 0) {
-                employeesCheckboxesHtml += `<span style="font-size: 0.75rem; color: #718096;">Keine Mitarbeiter registriert.</span>`;
-            } else {
-                allEmployees.forEach(emp => {
-                    const isChecked = assignedList.includes(emp.name) ? 'checked' : '';
-                    // SI ESTÁ COMPLETADO, DESHABILITAMOS LOS CHECKBOXES
-                    const disabledAttr = isCompleted ? 'disabled' : '';
-                    const opacityStyle = isCompleted ? 'opacity: 0.7; cursor: not-allowed;' : 'cursor: pointer;';
+            let employeesCheckboxesHtml = '';
 
-                    employeesCheckboxesHtml += `
-                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-bottom: 5px; ${opacityStyle}">
-                            <input type="checkbox" class="emp-checkbox" data-appt-id="${appt.id}" value="${emp.name}" ${isChecked} ${disabledAttr}>
-                            ${emp.name}
-                        </label>
-                    `;
-                });
+            if (isCompleted) {
+                // SI ESTÁ COMPLETADO: Mostramos únicamente la información real del empleado asignado
+                if (assignedList.length > 0) {
+                    employeesCheckboxesHtml = `<div style="display: flex; flex-wrap: wrap; gap: 4px;">`;
+                    assignedList.forEach(empName => {
+                        employeesCheckboxesHtml += `<span class="assigned-tech-badge">👷‍♂️ ${empName}</span>`;
+                    });
+                    employeesCheckboxesHtml += `</div>`;
+                } else {
+                    employeesCheckboxesHtml = `<span style="font-size: 0.75rem; color: #718096; font-style: italic;">Kein Techniker zugewiesen</span>`;
+                }
+            } else {
+                // SI ESTÁ PENDIENTE: Mostramos la lista completa de checkboxes
+                employeesCheckboxesHtml = `<div style="max-height: 130px; overflow-y: auto; border: 1px solid #cbd5e0; padding: 8px; border-radius: 6px; background: white;">`;
+                if (allEmployees.length === 0) {
+                    employeesCheckboxesHtml += `<span style="font-size: 0.75rem; color: #718096;">Keine Mitarbeiter registriert.</span>`;
+                } else {
+                    allEmployees.forEach(emp => {
+                        const isChecked = assignedList.includes(emp.name) ? 'checked' : '';
+                        employeesCheckboxesHtml += `
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-bottom: 5px; cursor: pointer;">
+                                <input type="checkbox" class="emp-checkbox" data-appt-id="${appt.id}" value="${emp.name}" ${isChecked}>
+                                ${emp.name}
+                            </label>
+                        `;
+                    });
+                }
+                employeesCheckboxesHtml += `</div>`;
             }
-            employeesCheckboxesHtml += `</div>`;
 
             const statusBadge = isCompleted ? `<br><span class="badge-completed">✅ Abgeschlossen (Gesperrt)</span>` : '';
             const editButtonHtml = isCompleted 
