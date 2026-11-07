@@ -16,6 +16,7 @@
         select, input, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; box-sizing: border-box; }
         
         .client-row { background: #ffffff; border: 1px solid #cbd5e0; border-left: 5px solid #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+        .client-row.completed { border-left-color: #38a169; background: #f8fafc; }
         .client-row-content { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
 
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
@@ -28,6 +29,7 @@
         .cal-day.status-red { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
 
         .badge-count { font-size: 0.65rem; background: rgba(0,0,0,0.1); padding: 1px 5px; border-radius: 10px; font-weight: bold; }
+        .badge-completed { background: #c6f6d5; color: #22543d; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline-block; margin-top: 4px; }
 
         .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
         .custom-modal-content { background: white; width: 100%; max-width: 650px; max-height: 85vh; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
@@ -238,6 +240,9 @@
             const timeStr = appt.time_slot || '09:00';
             const dateStrFormatted = dateStr ? `${formatDateToDDMMYYYY(dateStr.split('T')[0])} um ${timeStr} Uhr` : 'Ausstehend';
             
+            // VALIDACIÓN DE ESTADO: Comprobamos si está completado
+            const isCompleted = appt.status && appt.status.toLowerCase() === 'completado';
+
             const currentEmpsRaw = appt.assigned_employee || '';
             const assignedList = currentEmpsRaw.split(',').map(e => e.trim()).filter(Boolean);
 
@@ -248,9 +253,13 @@
             } else {
                 allEmployees.forEach(emp => {
                     const isChecked = assignedList.includes(emp.name) ? 'checked' : '';
+                    // SI ESTÁ COMPLETADO, DESHABILITAMOS LOS CHECKBOXES
+                    const disabledAttr = isCompleted ? 'disabled' : '';
+                    const opacityStyle = isCompleted ? 'opacity: 0.7; cursor: not-allowed;' : 'cursor: pointer;';
+
                     employeesCheckboxesHtml += `
-                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-bottom: 5px; cursor: pointer;">
-                            <input type="checkbox" class="emp-checkbox" data-appt-id="${appt.id}" value="${emp.name}" ${isChecked}>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-bottom: 5px; ${opacityStyle}">
+                            <input type="checkbox" class="emp-checkbox" data-appt-id="${appt.id}" value="${emp.name}" ${isChecked} ${disabledAttr}>
                             ${emp.name}
                         </label>
                     `;
@@ -258,20 +267,26 @@
             }
             employeesCheckboxesHtml += `</div>`;
 
+            const statusBadge = isCompleted ? `<br><span class="badge-completed">✅ Abgeschlossen (Gesperrt)</span>` : '';
+            const editButtonHtml = isCompleted 
+                ? `<span style="font-size: 0.75rem; color: #718096; font-style: italic;">Gesperrt (Abgeschlossen)</span>` 
+                : `<button type="button" class="goto-reschedule-btn" data-client-id="${client.id}" data-appt-id="${appt.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Bearbeiten</button>`;
+
             return `
-                <div class="client-row" id="card-${appt.id}">
+                <div class="client-row ${isCompleted ? 'completed' : ''}" id="card-${appt.id}">
                     <div class="client-row-content">
                         <div style="flex: 2; min-width: 200px;">
                             <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
                             <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Keine Adresse'}</span><br>
                             <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}</span>
+                            ${statusBadge}
                         </div>
                         <div style="flex: 1.5; min-width: 180px;">
-                            <label style="font-size: 0.75rem; color: #2d3748; display: block; margin-bottom: 3px; font-weight: bold;">👥 Zugewiesene Techniker (Mehrere):</label>
+                            <label style="font-size: 0.75rem; color: #2d3748; display: block; margin-bottom: 3px; font-weight: bold;">👥 Zugewiesene Techniker:</label>
                             ${employeesCheckboxesHtml}
                         </div>
                         <div style="display: flex; align-items: flex-end;">
-                            <button type="button" class="goto-reschedule-btn" data-client-id="${client.id}" data-appt-id="${appt.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Bearbeiten</button>
+                            ${editButtonHtml}
                         </div>
                     </div>
                 </div>
@@ -282,6 +297,14 @@
             document.querySelectorAll('.emp-checkbox').forEach(chk => {
                 chk.addEventListener('change', async (e) => {
                     const apptId = e.target.getAttribute('data-appt-id');
+                    
+                    const appt = allAppointments.find(a => String(a.id) === String(apptId));
+                    if (appt && appt.status && appt.status.toLowerCase() === 'completado') {
+                        alert('⚠️ Diese Zuweisung kann nicht geändert werden, da der Termin bereits abgeschlossen ist.');
+                        renderCurrentView();
+                        return;
+                    }
+
                     const card = document.getElementById(`card-${apptId}`);
                     const checkedBoxes = card.querySelectorAll('.emp-checkbox:checked');
                     const selectedNames = Array.from(checkedBoxes).map(cb => cb.value);
