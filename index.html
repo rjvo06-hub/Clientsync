@@ -218,7 +218,7 @@
 
         <!-- SECCIÓN 1: PANTALLA DE LOGIN -->
         <div id="login-section" class="login-card">
-            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 16px; text-align: center; font-weight: 800;">🔐 Anmelden</h2>
+            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 16px; text-align: center; font-weight: 800;">🔐 Anmelden (Passwort-Reset)</h2>
             
             <form id="login-form">
                 <div class="form-group">
@@ -229,22 +229,22 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Passwort:</label>
+                    <label>Beliebiges / Aktuelles Passwort:</label>
                     <div class="password-wrapper">
                         <input type="password" id="login-password" placeholder="••••••••" required>
                         <button type="button" class="btn-toggle-pass" data-target="login-password" title="Passwort anzeigen">👁️</button>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-login" id="btn-submit-login">Anmelden</button>
+                <button type="submit" class="btn-login" id="btn-submit-login">Weiter zur Passwort-Aktualisierung</button>
             </form>
         </div>
 
         <!-- SECCIÓN DE CAMBIO DE CONTRASEÑA -->
         <div id="change-password-section" class="login-card">
-            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 6px; text-align: center; font-weight: 800;">🔑 Sicherheitsupdate erforderlich</h2>
+            <h2 style="font-size: 1rem; margin-top: 0; color: #0f172a; margin-bottom: 6px; text-align: center; font-weight: 800;">🔑 Neues Passwort vergeben</h2>
             <p id="password-policy-notice" style="font-size: 0.78rem; color: #64748b; text-align: center; margin-bottom: 16px;">
-                Ihr aktuelles Passwort entspricht nicht den Sicherheitsrichtlinien. Bitte erstellen Sie ein neues Passwort (mind. 8 Zeichen, mit Buchstaben und Zahlen).
+                Bitte erstellen Sie ein neues, sicheres Passwort (mind. 8 Zeichen, mit Buchstaben und Zahlen).
             </p>
             
             <form id="change-password-form">
@@ -381,8 +381,6 @@
 
                 const savedEmp = localStorage.getItem(STORAGE_KEY);
                 if (savedEmp) {
-                    // SEGURIDAD: En lugar de confiar en el nivel almacenado en localStorage,
-                    // consultamos directamente a la base de datos el nivel actual del empleado.
                     const { data: currentEmp, error: errEmp } = await supabase
                         .from('employees')
                         .select('*')
@@ -393,7 +391,6 @@
                         localStorage.setItem(LEVEL_KEY, currentEmp.user_level || 1);
                         showMainDashboard(currentEmp.name, currentEmp.user_level || 1);
                     } else {
-                        // Si el usuario ya no existe o hubo error, limpiamos sesión
                         localStorage.removeItem(STORAGE_KEY);
                         localStorage.removeItem(LEVEL_KEY);
                     }
@@ -403,6 +400,7 @@
             }
         }
 
+        // MODO TEMPORAL: Omitimos verificar_login y forzamos el cambio de contraseña para cualquier usuario
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const selectedName = employeeSelect.value;
@@ -415,71 +413,30 @@
                 return;
             }
 
+            if (!enteredPassword) {
+                alert('Bitte geben Sie ein Passwort ein.');
+                return;
+            }
+
             try {
-                const { data, error } = await supabase.rpc('verificar_login', {
-                    p_nombre: selectedName,
-                    p_password: enteredPassword
-                });
+                // Buscamos los datos completos del empleado en la base de datos
+                const { data: fullEmp, error: errFull } = await supabase
+                    .from('employees')
+                    .select('*')
+                    .eq('id', employeeObj.id)
+                    .single();
 
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    const empleado = data[0];
-
-                    const { data: fullEmp, error: errFull } = await supabase
-                        .from('employees')
-                        .select('*')
-                        .eq('id', empleado.id)
-                        .single();
-
-                    if (!errFull && fullEmp) {
-                        const dbPassword = fullEmp.password ? String(fullEmp.password).trim() : '';
-
-                        if (!cumpleEstructuraSegura(dbPassword)) {
-                            pendingEmployeeObj = fullEmp;
-                            loginSection.style.display = 'none';
-                            changePasswordSection.style.display = 'flex';
-                            return;
-                        }
-                    }
-
-                    const userLevel = empleado.user_level || 1;
-                    localStorage.setItem(STORAGE_KEY, empleado.name);
-                    localStorage.setItem(LEVEL_KEY, userLevel);
-                    showMainDashboard(empleado.name, userLevel);
-
-                } else {
-                    const { data: fullEmp, error: errFull } = await supabase
-                        .from('employees')
-                        .select('*')
-                        .eq('id', employeeObj.id)
-                        .single();
-
-                    if (!errFull && fullEmp) {
-                        const dbPassword = fullEmp.password ? String(fullEmp.password).trim() : '';
-                        const esClaveProvisional = (dbPassword === '' || dbPassword === fullEmp.name || dbPassword === '1234' || dbPassword === '1');
-                        
-                        const coincideProvisional = (
-                            enteredPassword === fullEmp.name || 
-                            enteredPassword === dbPassword || 
-                            enteredPassword === '1234' ||
-                            enteredPassword === '1'
-                        );
-
-                        if (esClaveProvisional && coincideProvisional) {
-                            pendingEmployeeObj = fullEmp;
-                            loginSection.style.display = 'none';
-                            changePasswordSection.style.display = 'flex';
-                            return;
-                        }
-                    }
-
-                    alert('Falsches Passwort oder ungültige Anmeldeinformationen.');
-                    passwordInput.value = '';
+                if (errFull || !fullEmp) {
+                    throw new Error('Mitarbeiter nicht gefunden.');
                 }
 
+                // Forzamos la transición directa a la sección de cambio de contraseña
+                pendingEmployeeObj = fullEmp;
+                loginSection.style.display = 'none';
+                changePasswordSection.style.display = 'flex';
+
             } catch (err) {
-                console.error('Fehler beim Login:', err);
+                console.error('Fehler beim erzwungenen Reset:', err);
                 alert('Ein Fehler ist aufgetreten: ' + err.message);
             }
         });
@@ -510,14 +467,15 @@
             btnSubmit.textContent = 'Wird aktualisiert...';
 
             try {
-                const { error } = await supabase
-                    .from('employees')
-                    .update({ password: newPassword })
-                    .eq('id', pendingEmployeeObj.id);
+                // Usamos la función RPC segura para actualizar y encriptar la nueva clave automáticamente
+                const { error } = await supabase.rpc('actualizar_password_empleado', {
+                    p_empleado_id: pendingEmployeeObj.id,
+                    p_nuevo_password: newPassword
+                });
 
                 if (error) throw error;
 
-                alert('Passwort erfolgreich auf die neue Sicherheitsstruktur aktualisiert!');
+                alert('Passwort erfolgreich aktualisiert! Sie werden angemeldet.');
 
                 const userLevel = pendingEmployeeObj.user_level || 1;
                 localStorage.setItem(STORAGE_KEY, pendingEmployeeObj.name);
@@ -545,7 +503,6 @@
 
             const accesoAdmin = localStorage.getItem('usuario_acceso');
 
-            // Validación robusta basada en el nivel real de la base de datos
             if (Number(userLevel) >= 2 || Number(accesoAdmin) === 1) {
                 adminSectionLevel2.style.display = 'block';
             } else {
