@@ -296,7 +296,7 @@
             <div id="admin-section-level2" style="display: none;">
                 <div class="nav-section-title">Verwaltung</div>
                 <nav class="nav-buttons">
-                    <a href="./client-builder.html"><span>🏢</span> Kunden</a>
+                    <a href="./clients/client-builder.html"><span>🏢</span> Kunden</a>
                     <a href="./appointment-builder.html"><span>📅</span> Termine planen</a>
                 </nav>
             </div>
@@ -305,11 +305,11 @@
             <div id="admin-section-container" style="display: none;">
                 <div class="nav-section-title">Admin-Bereich</div>
                 <nav class="nav-buttons">
-                    <a href="./admin-assignments.html"><span>🛠️</span> Administration</a>
-                    <a href="./employee-builder.html"><span>👨‍🔧</span> Mitarbeiter</a>
-                    <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Arbeitsbericht</a>
-                    <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> PDF-Bericht</a>
-                    <a href="./admin-ajuste-tiempos.html" id="navAdminAjuste" style="background: #fff7ed; color: #c2410c; border-color: #ffedd5; grid-column: span 2;"><span>⏱️</span> Zeiten & Sitzungen korrigieren</a>
+                    <a href="./admin/admin-assignments.html"><span>🛠️</span> Administration</a>
+                    <a href="./employees/employee-builder.html"><span>👨‍🔧</span> Mitarbeiter</a>
+                    <a href="./admin/admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Arbeitsbericht</a>
+                    <a href="./admin/admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> PDF-Bericht</a>
+                    <a href="./admin/admin-ajuste-tiempos.html" id="navAdminAjuste" style="background: #fff7ed; color: #c2410c; border-color: #ffedd5; grid-column: span 2;"><span>⏱️</span> Zeiten & Sitzungen korrigieren</a>
                 </nav>
             </div>
         </div>
@@ -413,7 +413,6 @@
             }
 
             try {
-                // Consultamos la función segura en la base de datos
                 const { data, error } = await supabase.rpc('verificar_login_seguro', {
                     p_nombre: selectedName,
                     p_password: enteredPassword
@@ -424,7 +423,6 @@
                 if (data && data.length > 0) {
                     const resultado = data[0];
 
-                    // Si la base de datos detecta que la clave es provisional o débil, forzamos el cambio
                     if (resultado.necesita_cambio_password) {
                         const { data: fullEmp, error: errFull } = await supabase
                             .from('employees')
@@ -440,7 +438,6 @@
                         }
                     }
 
-                    // Si la contraseña ya es segura, ingresa directamente al panel
                     const userLevel = resultado.user_level || 1;
                     localStorage.setItem(STORAGE_KEY, resultado.name);
                     localStorage.setItem(LEVEL_KEY, userLevel);
@@ -483,7 +480,6 @@
             btnSubmit.textContent = 'Wird aktualisiert...';
 
             try {
-                // Actualizamos mediante la función RPC cifrada
                 const { error } = await supabase.rpc('actualizar_password_empleado', {
                     p_empleado_id: pendingEmployeeObj.id,
                     p_nuevo_password: newPassword
@@ -515,7 +511,7 @@
             mainMenuContainer.style.display = 'flex';
             loggedUserName.textContent = empName;
 
-            linkTeam.href = `./employee-schedule.html?employee=${encodeURIComponent(empName)}`;
+            linkTeam.href = `./employees/employee-schedule.html?employee=${encodeURIComponent(empName)}`;
 
             const accesoAdmin = localStorage.getItem('usuario_acceso');
 
