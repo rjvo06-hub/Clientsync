@@ -83,7 +83,6 @@
     </div>
 
     <script type="module">
-        // RUTA CORREGIDA: Sube un nivel para acceder correctamente a la carpeta js en la raíz
         import { supabase } from '../js/supabaseClient.js';
 
         const STORAGE_KEY = 'clientSync_saved_employee';
@@ -316,7 +315,6 @@
         function renderDayAppts(container, dateStr, title) {
             const appts = getApptsForDate(dateStr);
             const map = new Map(allClients.map(c => [c.id, c]));
-            // Ruta corregida para la ruta del empleado dentro de la subcarpeta /employees/
             const routeUrl = `./employee-route.html?employee=${encodeURIComponent(selectedEmployee)}&date=${dateStr}&view=calendar`;
 
             let html = `
@@ -632,7 +630,7 @@
                                 ${currentLog.length > 0 ? currentLog.map(item => `
                                     <span class="service-chip" title="Registriert von ${item.employee_name} um ${item.timestamp || ''}">
                                         🛠️ ${item.service_name} <small style="opacity: 0.75; margin-left: 3px;">(👷‍♂️ ${item.employee_name})</small>
-                                        {(isCheckedIn && amActiveInVisit) ? `<button type="button" class="btn-remove-service" data-appt-id="${appt.id}" data-log-id="${item.id}" title="Löschen">×</button>` : ''}
+                                        ${(isCheckedIn && amActiveInVisit) ? `<button type="button" class="btn-remove-service" data-appt-id="${appt.id}" data-log-id="${item.id}" title="Löschen">×</button>` : ''}
                                     </span>
                                 `).join('') : '<span style="font-size: 0.68rem; color: #94a3b8; font-style: italic;">Keine Dienstleistungen erfasst</span>'}
                             </div>
