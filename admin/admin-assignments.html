@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClientSync | Termin- & Mitarbeiterverwaltung</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
+        .container { max-width: 750px; margin: 15px auto 60px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; }
+        
+        .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; background: #edf2f7; padding: 4px; border-radius: 8px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; font-weight: bold; color: #4a5568; border-radius: 6px; cursor: pointer; font-size: 0.9rem; text-align: center; }
+        .tab-btn.active { background: white; color: #2b6cb0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        select, input, button { font-size: 14px; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; background: white; box-sizing: border-box; }
+        
+        .client-row { background: #ffffff; border: 1px solid #cbd5e0; border-left: 5px solid #2b6cb0; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+        .client-row.completed { border-left-color: #38a169; background: #f8fafc; }
+        .client-row-content { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 20px; }
+        .cal-header { text-align: center; font-weight: bold; font-size: 0.8rem; color: #718096; padding: 6px 0; }
+        .cal-day { min-height: 50px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 6px 4px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+        .cal-day:hover { opacity: 0.85; transform: scale(1.02); }
+
+        .cal-day.status-green { background: #c6f6d5; border-color: #38a169; color: #22543d; }
+        .cal-day.status-yellow { background: #feebc8; border-color: #d69e2e; color: #744210; }
+        .cal-day.status-red { background: #fed7d7; border-color: #e53e3e; color: #742a2a; }
+
+        .badge-count { font-size: 0.65rem; background: rgba(0,0,0,0.1); padding: 1px 5px; border-radius: 10px; font-weight: bold; }
+        .badge-completed { background: #c6f6d5; color: #22543d; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline-block; margin-top: 4px; }
+        .assigned-tech-badge { background: #edf2f7; color: #2d3748; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; font-weight: 600; display: inline-block; margin-top: 4px; border: 1px solid #cbd5e0; }
+
+        .custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
+        .custom-modal-content { background: white; width: 100%; max-width: 650px; max-height: 85vh; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h1 style="margin: 0; font-size: 1.2rem; color: #2d3748;">🛠️ Termin- & Zuweisungsverwaltung</h1>
+            <a href="./index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">🏠 Startseite</a>
+        </div>
+
+        <div class="tab-buttons">
+            <button type="button" class="tab-btn active" data-tab="day">📅 Tag (Heute)</button>
+            <button type="button" class="tab-btn" data-tab="month">🗓️ Monat</button>
+            <button type="button" class="tab-btn" data-tab="search">🔍 Kunde suchen</button>
+        </div>
+
+        <div id="view-content">
+            <p style="text-align: center; color: #718096;">Informationen werden geladen...</p>
+        </div>
+    </div>
+
+    <!-- Modal Tag -->
+    <div id="day-modal" class="custom-modal">
+        <div class="custom-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 id="modal-day-title" style="margin: 0; font-size: 1.05rem; color: #2d3748;">📅 Tagestermine</h3>
+                <button type="button" id="close-day-modal" style="background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">✕ Schließen</button>
+            </div>
+            <div id="modal-day-body"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- PROTECCIÓN DE ACCESO ---
+        const usuarioLogueado = localStorage.getItem('clientSync_saved_employee');
+        if (!usuarioLogueado) {
+            alert('⚠️ Zugriff verweigert. Bitte melden Sie sich zuerst an.');
+            window.location.href = '../index.html';
+        }
+        import { supabase } from './js/supabaseClient.js';
+
+        let allClients = [];
+        let allAppointments = [];
+        let allEmployees = [];
+        let currentTab = 'day';
+        let selectedMonthDate = new Date();
+        let searchFilterText = '';
+
+        const todayStrSystem = new Date().toISOString().split('T')[0];
+
+        function formatDateToDDMMYYYY(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dateStr;
+        }
+
+        async function initAdminPanel() {
+            try {
+                const [{ data: clients }, { data: appts }, { data: employees }] = await Promise.all([
+                    supabase.from('clients').select('*').order('name', { ascending: true }),
+                    supabase.from('appointments').select('*').order('scheduled_date', { ascending: true }),
+                    supabase.from('employees').select('*').order('name', { ascending: true })
+                ]);
+
+                allClients = clients || [];
+                allAppointments = appts || [];
+                allEmployees = employees || [];
+                renderCurrentView();
+            } catch (err) {
+                console.error('Fehler beim Laden der Daten:', err);
+            }
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTab = e.target.getAttribute('data-tab');
+                renderCurrentView();
+            });
+        });
+
+        function renderCurrentView() {
+            const container = document.getElementById('view-content');
+            if (currentTab === 'day') renderDayViewContainer(container, todayStrSystem, "Termine für Heute");
+            else if (currentTab === 'month') renderMonthView(container);
+            else if (currentTab === 'search') renderSearchView(container);
+        }
+
+        function renderDayViewContainer(container, dateStr, titleText) {
+            const dayAppts = allAppointments.filter(a => {
+                if (!a.scheduled_date) return false;
+                return a.scheduled_date.split('T')[0] === dateStr;
+            });
+
+            if (dayAppts.length === 0) {
+                container.innerHTML = `<div style="background: #fffaf0; border: 1px solid #feebc8; padding: 20px; border-radius: 8px; text-align: center; color: #c05621;"><strong>Keine geplanten Termine für den ${formatDateToDDMMYYYY(dateStr)}.</strong></div>`;
+                return;
+            }
+
+            dayAppts.sort((a, b) => {
+                const timeA = a.time_slot || '00:00';
+                const timeB = b.time_slot || '00:00';
+                return timeA.localeCompare(timeB);
+            });
+
+            let html = `<h3 style="font-size: 1rem; color: #2d3748; margin-bottom: 15px;">📅 ${titleText} (${formatDateToDDMMYYYY(dateStr)})</h3>`;
+            dayAppts.forEach(appt => {
+                const client = allClients.find(c => c.id === appt.client_id);
+                if (client) html += buildAppointmentCardHtml(client, appt);
+            });
+            container.innerHTML = html;
+            attachEventListeners();
+        }
+
+        function renderMonthView(container) {
+            const year = selectedMonthDate.getFullYear();
+            const month = selectedMonthDate.getMonth();
+            const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+            let calendarHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <button type="button" id="prev-month" style="padding: 6px 10px; font-weight: bold; cursor: pointer;">◀</button>
+                    <strong>${monthNames[month]} ${year}</strong>
+                    <button type="button" id="next-month" style="padding: 6px 10px; font-weight: bold; cursor: pointer;">▶</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="cal-header">Mo</div><div class="cal-header">Di</div><div class="cal-header">Mi</div><div class="cal-header">Do</div><div class="cal-header">Fr</div><div class="cal-header">Sa</div><div class="cal-header">So</div>
+            `;
+
+            for (let i = 0; i < offset; i++) calendarHtml += `<div class="cal-day" style="background: transparent; border: none;"></div>`;
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const count = allAppointments.filter(a => a.scheduled_date && a.scheduled_date.split('T')[0] === dateStr).length;
+                let classes = 'cal-day';
+                if (count >= 1 && count <= 2) classes += ' status-green';
+                else if (count > 2 && count <= 4) classes += ' status-yellow';
+                else if (count >= 4) classes += ' status-red';
+
+                calendarHtml += `<div class="${classes}" data-date="${dateStr}"><span>${day}</span>${count > 0 ? `<span class="badge-count">${count} Ter.</span>` : ''}</div>`;
+            }
+            calendarHtml += `</div>`;
+            container.innerHTML = calendarHtml;
+
+            document.getElementById('prev-month').addEventListener('click', () => { selectedMonthDate.setMonth(selectedMonthDate.getMonth() - 1); renderMonthView(container); });
+            document.getElementById('next-month').addEventListener('click', () => { selectedMonthDate.setMonth(selectedMonthDate.getMonth() + 1); renderMonthView(container); });
+
+            document.querySelectorAll('.cal-day[data-date]').forEach(cell => {
+                cell.addEventListener('click', () => openDayModal(cell.getAttribute('data-date')));
+            });
+        }
+
+        function openDayModal(dateStr) {
+            document.getElementById('modal-day-title').textContent = `📅 Termine am ${formatDateToDDMMYYYY(dateStr)}`;
+            renderDayViewContainer(document.getElementById('modal-day-body'), dateStr, "Geplante Termine");
+            document.getElementById('day-modal').style.display = 'flex';
+        }
+
+        document.getElementById('close-day-modal').addEventListener('click', () => { document.getElementById('day-modal').style.display = 'none'; });
+
+        function renderSearchView(container) {
+            container.innerHTML = `
+                <div style="position: relative; margin-bottom: 20px;">
+                    <label style="font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 5px;">🔍 Kunde suchen:</label>
+                    <input type="text" id="client-search-input" value="${searchFilterText}" placeholder="Name oder Straße..." autocomplete="off" style="width: 100%; padding: 12px;">
+                    <div id="client-results-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #cbd5e0; display: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 6px;"></div>
+                </div>
+                <div id="selected-client-result-area"></div>
+            `;
+            const searchInput = document.getElementById('client-search-input');
+            const dropdown = document.getElementById('client-results-dropdown');
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                searchFilterText = e.target.value;
+                if (!query) { dropdown.style.display = 'none'; return; }
+                const filtered = allClients.filter(c => (c.name || '').toLowerCase().includes(query) || (c.address || '').toLowerCase().includes(query));
+                dropdown.innerHTML = '';
+                filtered.forEach(client => {
+                    const item = document.createElement('div');
+                    item.style.padding = '10px';
+                    item.style.cursor = 'pointer';
+                    item.style.borderBottom = '1px solid #edf2f7';
+                    item.innerHTML = `<strong>${client.name}</strong><br><span style="font-size:0.8rem; color:#666;">${client.address || ''}</span>`;
+                    item.addEventListener('click', () => {
+                        searchInput.value = client.name;
+                        dropdown.style.display = 'none';
+                        const appts = allAppointments.filter(a => a.client_id === client.id);
+                        document.getElementById('selected-client-result-area').innerHTML = appts.length > 0 ? appts.map(a => buildAppointmentCardHtml(client, a)).join('') : '<div style="padding: 15px; text-align: center; color: #c05621;">Keine geplanten Termine.</div>';
+                        attachEventListeners();
+                    });
+                    dropdown.appendChild(item);
+                });
+                dropdown.style.display = 'block';
+            });
+        }
+
+        function buildAppointmentCardHtml(client, appt) {
+            const dateStr = appt.scheduled_date || '';
+            const timeStr = appt.time_slot || '09:00';
+            const dateStrFormatted = dateStr ? `${formatDateToDDMMYYYY(dateStr.split('T')[0])} um ${timeStr} Uhr` : 'Ausstehend';
+            
+            // VALIDACIÓN DE ESTADO: Comprobamos si está completado
+            const isCompleted = appt.status && appt.status.toLowerCase() === 'completado';
+
+            const currentEmpsRaw = appt.assigned_employee || '';
+            const assignedList = currentEmpsRaw.split(',').map(e => e.trim()).filter(Boolean);
+
+            let employeesCheckboxesHtml = '';
+
+            if (isCompleted) {
+                // SI ESTÁ COMPLETADO: Mostramos únicamente la información real del empleado asignado
+                if (assignedList.length > 0) {
+                    employeesCheckboxesHtml = `<div style="display: flex; flex-wrap: wrap; gap: 4px;">`;
+                    assignedList.forEach(empName => {
+                        employeesCheckboxesHtml += `<span class="assigned-tech-badge">👷‍♂️ ${empName}</span>`;
+                    });
+                    employeesCheckboxesHtml += `</div>`;
+                } else {
+                    employeesCheckboxesHtml = `<span style="font-size: 0.75rem; color: #718096; font-style: italic;">Kein Techniker zugewiesen</span>`;
+                }
+            } else {
+                // SI ESTÁ PENDIENTE: Mostramos la lista completa de checkboxes
+                employeesCheckboxesHtml = `<div style="max-height: 130px; overflow-y: auto; border: 1px solid #cbd5e0; padding: 8px; border-radius: 6px; background: white;">`;
+                if (allEmployees.length === 0) {
+                    employeesCheckboxesHtml += `<span style="font-size: 0.75rem; color: #718096;">Keine Mitarbeiter registriert.</span>`;
+                } else {
+                    allEmployees.forEach(emp => {
+                        const isChecked = assignedList.includes(emp.name) ? 'checked' : '';
+                        employeesCheckboxesHtml += `
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-bottom: 5px; cursor: pointer;">
+                                <input type="checkbox" class="emp-checkbox" data-appt-id="${appt.id}" value="${emp.name}" ${isChecked}>
+                                ${emp.name}
+                            </label>
+                        `;
+                    });
+                }
+                employeesCheckboxesHtml += `</div>`;
+            }
+
+            const statusBadge = isCompleted ? `<br><span class="badge-completed">✅ Abgeschlossen (Gesperrt)</span>` : '';
+            const editButtonHtml = isCompleted 
+                ? `<span style="font-size: 0.75rem; color: #718096; font-style: italic;">Gesperrt (Abgeschlossen)</span>` 
+                : `<button type="button" class="goto-reschedule-btn" data-client-id="${client.id}" data-appt-id="${appt.id}" style="background: #3182ce; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">🔄 Bearbeiten</button>`;
+
+            return `
+                <div class="client-row ${isCompleted ? 'completed' : ''}" id="card-${appt.id}">
+                    <div class="client-row-content">
+                        <div style="flex: 2; min-width: 200px;">
+                            <strong style="color: #2b6cb0; font-size: 1rem;">${client.name}</strong><br>
+                            <span style="font-size: 0.85rem; color: #4a5568;">📍 ${client.address || 'Keine Adresse'}</span><br>
+                            <span style="font-size: 0.85rem; color: #2f855a; font-weight: bold;">📅 ${dateStrFormatted}</span>
+                            ${statusBadge}
+                        </div>
+                        <div style="flex: 1.5; min-width: 180px;">
+                            <label style="font-size: 0.75rem; color: #2d3748; display: block; margin-bottom: 3px; font-weight: bold;">👥 Zugewiesene Mitarbeiter:in:</label>
+                            ${employeesCheckboxesHtml}
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            ${editButtonHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function attachEventListeners() {
+            document.querySelectorAll('.emp-checkbox').forEach(chk => {
+                chk.addEventListener('change', async (e) => {
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    
+                    const appt = allAppointments.find(a => String(a.id) === String(apptId));
+                    if (appt && appt.status && appt.status.toLowerCase() === 'completado') {
+                        alert('⚠️ Diese Zuweisung kann nicht geändert werden, da der Termin bereits abgeschlossen ist.');
+                        renderCurrentView();
+                        return;
+                    }
+
+                    const card = document.getElementById(`card-${apptId}`);
+                    const checkedBoxes = card.querySelectorAll('.emp-checkbox:checked');
+                    const selectedNames = Array.from(checkedBoxes).map(cb => cb.value);
+
+                    const assignedEmployeeValue = selectedNames.length > 0 ? selectedNames.join(', ') : null;
+
+                    await supabase.from('appointments')
+                        .update({ assigned_employee: assignedEmployeeValue })
+                        .eq('id', apptId);
+                });
+            });
+
+            document.querySelectorAll('.goto-reschedule-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const clientId = e.target.getAttribute('data-client-id');
+                    const apptId = e.target.getAttribute('data-appt-id');
+                    window.location.href = `./appointment-builder.html?client_id=${clientId}&appointment_id=${apptId}&action=reschedule`;
+                });
+            });
+        }
+
+        initAdminPanel();
+    </script>
+</body>
+</html>
