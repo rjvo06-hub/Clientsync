@@ -381,8 +381,6 @@
 
                 const savedEmp = localStorage.getItem(STORAGE_KEY);
                 if (savedEmp) {
-                    // SEGURIDAD: En lugar de confiar en el nivel almacenado en localStorage,
-                    // consultamos directamente a la base de datos el nivel actual del empleado.
                     const { data: currentEmp, error: errEmp } = await supabase
                         .from('employees')
                         .select('*')
@@ -393,7 +391,6 @@
                         localStorage.setItem(LEVEL_KEY, currentEmp.user_level || 1);
                         showMainDashboard(currentEmp.name, currentEmp.user_level || 1);
                     } else {
-                        // Si el usuario ya no existe o hubo error, limpiamos sesión
                         localStorage.removeItem(STORAGE_KEY);
                         localStorage.removeItem(LEVEL_KEY);
                     }
@@ -416,7 +413,8 @@
             }
 
             try {
-                const { data, error } = await supabase.rpc('verificar_login', {
+                // Consultamos la función segura en la base de datos
+                const { data, error } = await supabase.rpc('verificar_login_seguro', {
                     p_nombre: selectedName,
                     p_password: enteredPassword
                 });
@@ -424,18 +422,17 @@
                 if (error) throw error;
 
                 if (data && data.length > 0) {
-                    const empleado = data[0];
+                    const resultado = data[0];
 
-                    const { data: fullEmp, error: errFull } = await supabase
-                        .from('employees')
-                        .select('*')
-                        .eq('id', empleado.id)
-                        .single();
+                    // Si la base de datos detecta que la clave es provisional o débil, forzamos el cambio
+                    if (resultado.necesita_cambio_password) {
+                        const { data: fullEmp, error: errFull } = await supabase
+                            .from('employees')
+                            .select('*')
+                            .eq('id', resultado.id)
+                            .single();
 
-                    if (!errFull && fullEmp) {
-                        const dbPassword = fullEmp.password ? String(fullEmp.password).trim() : '';
-
-                        if (!cumpleEstructuraSegura(dbPassword)) {
+                        if (!errFull && fullEmp) {
                             pendingEmployeeObj = fullEmp;
                             loginSection.style.display = 'none';
                             changePasswordSection.style.display = 'flex';
@@ -443,37 +440,13 @@
                         }
                     }
 
-                    const userLevel = empleado.user_level || 1;
-                    localStorage.setItem(STORAGE_KEY, empleado.name);
+                    // Si la contraseña ya es segura, ingresa directamente al panel
+                    const userLevel = resultado.user_level || 1;
+                    localStorage.setItem(STORAGE_KEY, resultado.name);
                     localStorage.setItem(LEVEL_KEY, userLevel);
-                    showMainDashboard(empleado.name, userLevel);
+                    showMainDashboard(resultado.name, userLevel);
 
                 } else {
-                    const { data: fullEmp, error: errFull } = await supabase
-                        .from('employees')
-                        .select('*')
-                        .eq('id', employeeObj.id)
-                        .single();
-
-                    if (!errFull && fullEmp) {
-                        const dbPassword = fullEmp.password ? String(fullEmp.password).trim() : '';
-                        const esClaveProvisional = (dbPassword === '' || dbPassword === fullEmp.name || dbPassword === '1234' || dbPassword === '1');
-                        
-                        const coincideProvisional = (
-                            enteredPassword === fullEmp.name || 
-                            enteredPassword === dbPassword || 
-                            enteredPassword === '1234' ||
-                            enteredPassword === '1'
-                        );
-
-                        if (esClaveProvisional && coincideProvisional) {
-                            pendingEmployeeObj = fullEmp;
-                            loginSection.style.display = 'none';
-                            changePasswordSection.style.display = 'flex';
-                            return;
-                        }
-                    }
-
                     alert('Falsches Passwort oder ungültige Anmeldeinformationen.');
                     passwordInput.value = '';
                 }
@@ -510,10 +483,11 @@
             btnSubmit.textContent = 'Wird aktualisiert...';
 
             try {
-                const { error } = await supabase
-                    .from('employees')
-                    .update({ password: newPassword })
-                    .eq('id', pendingEmployeeObj.id);
+                // Actualizamos mediante la función RPC cifrada
+                const { error } = await supabase.rpc('actualizar_password_empleado', {
+                    p_empleado_id: pendingEmployeeObj.id,
+                    p_nuevo_password: newPassword
+                });
 
                 if (error) throw error;
 
@@ -545,7 +519,6 @@
 
             const accesoAdmin = localStorage.getItem('usuario_acceso');
 
-            // Validación robusta basada en el nivel real de la base de datos
             if (Number(userLevel) >= 2 || Number(accesoAdmin) === 1) {
                 adminSectionLevel2.style.display = 'block';
             } else {
