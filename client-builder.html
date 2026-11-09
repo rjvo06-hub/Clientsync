@@ -138,12 +138,12 @@
                 if (searchSection) searchSection.style.display = 'block';
                 if (viewTitle) viewTitle.textContent = '🔍 Kunde suchen und bearbeiten';
                 if (saveBtn) saveBtn.textContent = '💾 Kunde aktualisieren';
-                if (deleteBtn) deleteBtn.style.display = 'block'; // Mostrar botón eliminar al editar
+                if (deleteBtn) deleteBtn.style.display = 'block';
             } else {
                 if (searchSection) searchSection.style.display = 'block';
                 if (viewTitle) viewTitle.textContent = '➕ Neuen Kunden registrieren';
                 if (saveBtn) saveBtn.textContent = '✨ Kunde erstellen';
-                if (deleteBtn) deleteBtn.style.display = 'none'; // Ocultar botón eliminar al crear
+                if (deleteBtn) deleteBtn.style.display = 'none';
                 if (searchInput) searchInput.value = '';
                 clearForm();
             }
@@ -169,8 +169,12 @@
 
             try {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
+                
                 const response = await fetch(url, {
-                    headers: { 'Accept-Language': 'de' }
+                    headers: { 
+                        'Accept-Language': 'de',
+                        'User-Agent': 'ClientSync-App/1.0'
+                    }
                 });
                 
                 if (!response.ok) throw new Error("Fehler bei der Geokodierung");
@@ -183,9 +187,15 @@
 
                     document.getElementById('client-lat').value = lat;
                     document.getElementById('client-lng').value = lon;
+                } else {
+                    // Limpiamos las coordenadas anteriores si las había y lanzamos aviso
+                    document.getElementById('client-lat').value = '';
+                    document.getElementById('client-lng').value = '';
+                    alert(`⚠️ Con esta dirección ("${address}") y este código postal ("${postal}") no logro encontrar las coordenadas. Por favor, verifique los datos.`);
                 }
             } catch (err) {
                 console.error("Konnte Koordinaten nicht automatisch ermitteln:", err);
+                alert("⚠️ Error al conectar con el servicio de mapas para calcular las coordenadas.");
             }
         }
 
@@ -436,7 +446,6 @@
                     deleteBtn.disabled = true;
                     deleteBtn.textContent = 'Überprüfe Termine...';
 
-                    // Validación: Buscar si el cliente tiene citas asociadas (programadas o completadas)
                     const { data: appts, error: apptError } = await supabase
                         .from('appointments')
                         .select('id, status, scheduled_date')
@@ -451,7 +460,6 @@
                         return;
                     }
 
-                    // Si no tiene citas, proceder a eliminar
                     const { error: deleteError } = await supabase
                         .from('clients')
                         .delete()
