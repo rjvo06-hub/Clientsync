@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClientSync | Mobiles Portal</title>
-    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="./css/main.css">
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 16px; color: #0f172a; }
@@ -51,7 +51,7 @@
                 <h1 id="header-title" style="display: inline-block;">👷‍♂️ Portal</h1>
                 <span class="version-tag">⏱️ Echtzeit</span>
             </div>
-            <a href="../index.html" class="icon-btn">🏠 Beenden</a>
+            <a href="./index.html" class="icon-btn">🏠 Beenden</a>
         </div>
         <div id="app-content"></div>
     </div>
@@ -83,18 +83,18 @@
     </div>
 
     <script type="module">
-        import { supabase } from '../js/supabaseClient.js';
+        import { supabase } from './js/supabaseClient.js';
 
         const STORAGE_KEY = 'clientSync_saved_employee';
-        const LEVEL_KEY = 'clientSync_user_level';
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        let selectedEmployee = urlParams.get('employee') || localStorage.getItem(STORAGE_KEY) || '';
 
-        let selectedEmployee = localStorage.getItem(STORAGE_KEY) || '';
-
-        if (!selectedEmployee) {
+        if (selectedEmployee) {
+            localStorage.setItem(STORAGE_KEY, selectedEmployee);
+        } else {
             alert('⚠️ Zugriff verweigert. Bitte melden Sie sich zuerst an.');
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(LEVEL_KEY);
-            window.location.replace('../index.html');
+            window.location.replace('./index.html');
             throw new Error('Nicht autorisiert');
         }
 
@@ -113,7 +113,6 @@
         const nowLocalDate = new Date();
         const todayStr = `${nowLocalDate.getFullYear()}-${String(nowLocalDate.getMonth() + 1).padStart(2, '0')}-${String(nowLocalDate.getDate()).padStart(2, '0')}`;
         
-        const urlParams = new URLSearchParams(window.location.search);
         const currentView = urlParams.get('view');
 
         function formatDate(str) {
