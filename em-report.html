@@ -237,7 +237,11 @@
 
         async function cargarListaEmpleados() {
             try {
-                const { data } = await supabase.from('employees').select('name').order('name');
+                const { data, error } = await supabase.from('employees').select('name').order('name');
+                if (error) {
+                    console.error('Error al cargar empleados:', error.message);
+                    return;
+                }
                 if (data) {
                     data.forEach(emp => {
                         const opt = document.createElement('option');
@@ -312,7 +316,7 @@
             }
 
             let netoMins = totalMins - minsPausa;
-            if (netoMins <= 0) return { netoStr: '0 Min. (0 Std. 0 Min.)', minsPausa: Math.round(minsPausa) };
+            if (netoMins <= 0) return { netoStr: '0 Std.', minsPausa: Math.round(minsPausa) };
 
             // Redondear los minutos al cuarto de hora más cercano (15, 30, 45, 60, 75, etc.)
             let minsRedondeados = Math.round(netoMins / 15) * 15;
@@ -320,21 +324,21 @@
             // Evitar que quede en 0 minutos si hubo tiempo registrado
             if (minsRedondeados < 15 && netoMins > 0) minsRedondeados = 15;
 
-            // Calcular desglose en horas y minutos (ej. 75 min -> 1 Std. 15 Min.)
+            // Calcular horas completas y minutos restantes para mostrar directamente en formato limpio
             const horasCompletas = Math.floor(minsRedondeados / 60);
             const minutosRestantes = minsRedondeados % 60;
             
-            let desgloseStr = "";
+            let netoStr = "";
             if (horasCompletas > 0 && minutosRestantes > 0) {
-                desgloseStr = `${horasCompletas} Std. ${minutosRestantes} Min.`;
+                netoStr = `${horasCompletas} Std. ${minutosRestantes} Min.`;
             } else if (horasCompletas > 0) {
-                desgloseStr = `${horasCompletas} Std.`;
+                netoStr = `${horasCompletas} Std.`;
             } else {
-                desgloseStr = `${minutosRestantes} Min.`;
+                netoStr = `${minutosRestantes} Min.`;
             }
 
             return { 
-                netoStr: `${minsRedondeados} Min. (${desgloseStr})`, 
+                netoStr: netoStr, 
                 minsPausa: Math.round(minsPausa) 
             };
         }
@@ -426,7 +430,7 @@
             else cargarJornadas(modoActual);
         });
 
-fn chkRangoManual.addEventListener('change', (e) => {
+        chkRangoManual.addEventListener('change', (e) => {
             if (e.target.checked) {
                 panelRangoManual.style.display = 'flex';
                 const hoyStr = new Date().toISOString().slice(0,10);
