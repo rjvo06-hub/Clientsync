@@ -312,11 +312,31 @@
             }
 
             let netoMins = totalMins - minsPausa;
-            if (netoMins <= 0) return { netoStr: '0,0 Std.', minsPausa: Math.round(minsPausa) };
+            if (netoMins <= 0) return { netoStr: '0 Min. (0 Std. 0 Min.)', minsPausa: Math.round(minsPausa) };
 
-            const horas = netoMins / 60.0;
-            let redondeado = horas <= 0.5 ? 0.5 : Math.ceil(horas);
-            return { netoStr: `${redondeado.toFixed(1).replace('.', ',')} Std.`, minsPausa: Math.round(minsPausa) };
+            // Redondear los minutos al cuarto de hora más cercano (15, 30, 45, 60, 75, etc.)
+            let minsRedondeados = Math.round(netoMins / 15) * 15;
+            
+            // Evitar que quede en 0 minutos si hubo tiempo registrado
+            if (minsRedondeados < 15 && netoMins > 0) minsRedondeados = 15;
+
+            // Calcular desglose en horas y minutos (ej. 75 min -> 1 Std. 15 Min.)
+            const horasCompletas = Math.floor(minsRedondeados / 60);
+            const minutosRestantes = minsRedondeados % 60;
+            
+            let desgloseStr = "";
+            if (horasCompletas > 0 && minutosRestantes > 0) {
+                desgloseStr = `${horasCompletas} Std. ${minutosRestantes} Min.`;
+            } else if (horasCompletas > 0) {
+                desgloseStr = `${horasCompletas} Std.`;
+            } else {
+                desgloseStr = `${minutosRestantes} Min.`;
+            }
+
+            return { 
+                netoStr: `${minsRedondeados} Min. (${desgloseStr})`, 
+                minsPausa: Math.round(minsPausa) 
+            };
         }
 
         async function cargarJornadas(modo, fechaIniCustom = null, fechaFinCustom = null) {
@@ -406,7 +426,7 @@
             else cargarJornadas(modoActual);
         });
 
-        chkRangoManual.addEventListener('change', (e) => {
+fn chkRangoManual.addEventListener('change', (e) => {
             if (e.target.checked) {
                 panelRangoManual.style.display = 'flex';
                 const hoyStr = new Date().toISOString().slice(0,10);
