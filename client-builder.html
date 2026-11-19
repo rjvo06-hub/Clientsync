@@ -96,7 +96,7 @@
                 </div>
             </div>
             <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
-- Hinweis: Tippen Sie eine Adresse ein, um Vorschläge für Múnich/Deutschland zu erhalten. Die Koordinaten und PLZ werden automatisch ermittelt.
+- Hinweis: Tippen Sie eine Adresse ein, um Vorschläge für ganz Bayern zu erhalten. Die Koordinaten und PLZ werden automatisch ermittelt.
             </p>
 
             <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
@@ -125,9 +125,9 @@
         let currentMode = 'edit';
         let isSelectingAddressSuggestion = false;
 
-        // Orientación geográfica: Múnich, Alemania
-        const munichCenter = { lat: 48.1351, lng: 11.5820 };
-        const munichRadiusMeters = 30000;
+        // Orientación geográfica: Baviera (Bayern), Alemania
+        const bavariaCenter = { lat: 48.7904, lng: 11.4979 };
+        const bavariaRadiusMeters = 140000;
 
         window.setMode = function(mode) {
             currentMode = mode;
@@ -212,15 +212,15 @@
             return false;
         }
 
-        async function fetchMunichSuggestions(query) {
+        async function fetchBavariaSuggestions(query) {
             if (window.google?.maps?.places?.AutocompleteSuggestion) {
                 try {
                     const request = {
                         input: query,
                         includedRegionCodes: ['DE'],
                         locationBias: {
-                            center: munichCenter,
-                            radius: munichRadiusMeters
+                            center: bavariaCenter,
+                            radius: bavariaRadiusMeters
                         }
                     };
 
@@ -238,8 +238,8 @@
                 }
             }
 
-            // Respaldo robusto basado en Nominatim enfocado en Múnich/Alemania
-            const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=de&q=${encodeURIComponent(query + ' München')}&limit=6`;
+            // Respaldo robusto basado en Nominatim enfocado en Baviera (Bayern), Alemania
+            const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=de&q=${encodeURIComponent(query + ' Bayern Deutschland')}&limit=6`;
             const response = await fetch(url, {
                 headers: {
                     'Accept-Language': 'de',
@@ -254,7 +254,7 @@
                 const road = addr.road || '';
                 const houseNumber = addr.house_number || '';
                 const postcode = addr.postcode || '';
-                const city = addr.city || addr.town || addr.village || 'München';
+                const city = addr.city || addr.town || addr.village || addr.municipality || 'Bayern';
                 const cleanStreet = `${road} ${houseNumber}`.trim() || item.display_name.split(',')[0].trim();
 
                 return {
@@ -269,7 +269,7 @@
             });
         }
 
-        function setupMunichAddressAutocomplete() {
+        function setupBavariaAddressAutocomplete() {
             const addressInput = document.getElementById('client-address');
             const suggestionsBox = document.getElementById('address-suggestions-dropdown');
             if (!addressInput || !suggestionsBox) return;
@@ -288,7 +288,7 @@
 
                 debounceTimer = setTimeout(async () => {
                     await waitForGooglePlaces(1500);
-                    const items = await fetchMunichSuggestions(query);
+                    const items = await fetchBavariaSuggestions(query);
 
                     if (items.length > 0) {
                         suggestionsBox.innerHTML = '';
@@ -373,7 +373,7 @@
                 return;
             }
 
-            const queryStr = `${address}, ${postal} München Deutschland`.trim();
+            const queryStr = `${address}, ${postal} Bayern Deutschland`.trim();
 
             try {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
@@ -416,7 +416,7 @@
         document.getElementById('client-postal').addEventListener('blur', autocompletarCoordenadas);
 
         async function init() {
-            setupMunichAddressAutocomplete();
+            setupBavariaAddressAutocomplete();
 
             try {
                 const urlParams = new URLSearchParams(window.location.search);
