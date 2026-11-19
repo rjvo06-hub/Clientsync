@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClientSync | Kundenverwaltung & -erstellung</title>
     <link rel="stylesheet" href="../css/main.css">
+    <!-- Google Maps Places API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC52Px30bZ9ZqxrN8IO-VWZHLlFvios4_I&libraries=places,geometry" async defer></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
         .container { max-width: 650px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
         select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; margin-bottom: 12px; }
         label { font-weight: bold; color: #2d3748; font-size: 0.9rem; display: block; margin-bottom: 5px; }
-        
+
         .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
         .mode-btn { flex: 1; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 8px; border: 1px solid #cbd5e0; background: #edf2f7; color: #4a5568; text-align: center; }
         .mode-btn.active { background: #3182ce; color: white; border-color: #3182ce; }
@@ -65,15 +67,16 @@
                 <input type="text" id="client-name" placeholder="Vollständiger Name" required>
             </div>
 
-            <div>
+            <div style="position: relative;">
                 <label>Adresse (Straße und Hausnummer):</label>
-                <input type="text" id="client-address" placeholder="z. B. Haidgraben 89" required>
+                <input type="text" id="client-address" placeholder="z. B. Marienplatz 1 oder Leopoldstraße, München..." autocomplete="off" required>
+                <div id="address-suggestions-dropdown" class="client-results-dropdown"></div>
             </div>
 
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1; position: relative;">
                     <label>Postleitzahl (PLZ):</label>
-                    <input type="text" id="client-postal" placeholder="z. B. 85521 oder Ottobrunn" autocomplete="off" required>
+                    <input type="text" id="client-postal" placeholder="z. B. 80331 oder München" autocomplete="off" required>
                     <div id="postal-results-dropdown" class="client-results-dropdown"></div>
                 </div>
                 <div style="flex: 1;">
@@ -85,15 +88,15 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label>Breitengrad (Lat) <span style="color: #e53e3e;">*</span>:</label>
-                    <input type="text" id="client-lat" placeholder="z. B. 48.0585" required>
+                    <input type="text" id="client-lat" placeholder="z. B. 48.1374" required>
                 </div>
                 <div style="flex: 1;">
                     <label>Längengrad (Lng) <span style="color: #e53e3e;">*</span>:</label>
-                    <input type="text" id="client-lng" placeholder="z. B. 11.6525" required>
+                    <input type="text" id="client-lng" placeholder="z. B. 11.5755" required>
                 </div>
             </div>
             <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
-                * Hinweis: Sobald die Adresse und die Postleitzahl (PLZ) eingegeben sind, ermittelt das System die Koordinaten automatisch.
+- Hinweis: Tippen Sie eine Adresse ein, um Vorschläge für München/Deutschland zu erhalten, oder geben Sie Adresse und PLZ ein, um die Koordinaten automatisch zu ermitteln.
             </p>
 
             <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
@@ -120,6 +123,11 @@
         let allClients = [];
         let allPostalCodes = [];
         let currentMode = 'edit';
+        let isSelectingAddressSuggestion = false;
+
+        // Orientación geográfica: Ciudad de Múnich, Alemania
+        const munichCenter = { lat: 48.1351, lng: 11.5820 };
+        const munichRadiusMeters = 30000;
 
         window.setMode = function(mode) {
             currentMode = mode;
@@ -155,40 +163,185 @@
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
+            const addrDropdown = document.getElementById('address-suggestions-dropdown');
+            if (addrDropdown) {
+                addrDropdown.style.display = 'none';
+                addrDropdown.innerHTML = '';
+            }
+        }
+
+        // Limpia Plus Codes como "8FWH+4G, " heredado de EN-VIA
+        function limpiarDireccion(texto) {
+            if (!texto) return '';
+            return texto.replace(/^[A-Z0-9]{4}\+[A-Z0-9]{2,3},\s*/i, '').trim();
+        }
+
+        // Extrae calle + número y código postal de addressComponents de Google Places
+        function parseAddressComponents(components = [], fallbackFormatted = '') {
+            let street = '';
+            let streetNumber = '';
+            let postalCode = '';
+
+            for (const comp of components) {
+                const types = comp.types || [];
+                if (types.includes('route')) {
+                    street = comp.longText || comp.long_name || '';
+                } else if (types.includes('street_number')) {
+                    streetNumber = comp.longText || comp.long_name || '';
+                } else if (types.includes('postal_code')) {
+                    postalCode = comp.longText || comp.long_name || '';
+                }
+            }
+
+            let combinedStreet = street && streetNumber
+                ? `${street} ${streetNumber}`
+                : (street || limpiarDireccion(fallbackFormatted.split(',')[0] || fallbackFormatted));
+
+            return {
+                address: combinedStreet.trim(),
+                postalCode: postalCode.trim()
+            };
+        }
+
+        // Búsqueda inteligente de direcciones orientada a Múnich (lógica extraída de EN-VIA)
+        function setupMunichAddressAutocomplete() {
+            const addressInput = document.getElementById('client-address');
+            const suggestionsBox = document.getElementById('address-suggestions-dropdown');
+            if (!addressInput || !suggestionsBox) return;
+
+            let debounceTimer;
+
+            addressInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                const query = addressInput.value.trim();
+
+                if (query.length < 2) {
+                    suggestionsBox.style.display = 'none';
+                    suggestionsBox.innerHTML = '';
+                    return;
+                }
+
+                debounceTimer = setTimeout(async () => {
+                    if (!window.google?.maps?.places?.AutocompleteSuggestion) {
+                        return;
+                    }
+
+                    try {
+                        const request = {
+                            input: query,
+                            includedRegionCodes: ['DE'],
+                            locationBias: {
+                                center: munichCenter,
+                                radius: munichRadiusMeters
+                            }
+                        };
+
+                        const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+
+                        if (suggestions && suggestions.length > 0) {
+                            suggestionsBox.innerHTML = '';
+                            suggestionsBox.style.display = 'block';
+
+                            suggestions.forEach(suggestion => {
+                                const placePrediction = suggestion.placePrediction;
+                                if (!placePrediction) return;
+
+                                const item = document.createElement('div');
+                                item.className = 'client-result-item';
+                                item.textContent = placePrediction.text.toString();
+
+                                item.addEventListener('mousedown', () => {
+                                    isSelectingAddressSuggestion = true;
+                                });
+
+                                item.addEventListener('click', async () => {
+                                    suggestionsBox.style.display = 'none';
+                                    suggestionsBox.innerHTML = '';
+
+                                    try {
+                                        const place = placePrediction.toPlace();
+                                        await place.fetchFields({
+                                            fields: ['formattedAddress', 'displayName', 'location', 'addressComponents']
+                                        });
+
+                                        const parsed = parseAddressComponents(
+                                            place.addressComponents || [],
+                                            place.formattedAddress || placePrediction.text.toString()
+                                        );
+
+                                        addressInput.value = parsed.address || limpiarDireccion(placePrediction.text.toString());
+
+                                        if (parsed.postalCode) {
+                                            document.getElementById('client-postal').value = parsed.postalCode;
+                                        }
+
+                                        const location = place.location;
+                                        if (location) {
+                                            const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+                                            const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+                                            document.getElementById('client-lat').value = Number(lat).toFixed(6);
+                                            document.getElementById('client-lng').value = Number(lng).toFixed(6);
+                                        }
+                                    } catch (err) {
+                                        console.error('Fehler beim Laden der Adressdetails:', err);
+                                    } finally {
+                                        setTimeout(() => {
+                                            isSelectingAddressSuggestion = false;
+                                        }, 150);
+                                    }
+                                });
+
+                                suggestionsBox.appendChild(item);
+                            });
+                        } else {
+                            suggestionsBox.style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.error('Fehler bei der Adresssuche (München):', error);
+                    }
+                }, 250);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!addressInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                    suggestionsBox.style.display = 'none';
+                }
+            });
         }
 
         async function autocompletarCoordenadas() {
+            if (isSelectingAddressSuggestion) return;
+
             const address = document.getElementById('client-address').value.trim();
             const postal = document.getElementById('client-postal').value.trim();
-            
+
             if (!address || !postal) {
                 return;
             }
 
-            const queryStr = `${address}, ${postal} Deutschland`.trim();
+            const queryStr = `${address}, ${postal} München Deutschland`.trim();
 
             try {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
-                
+
                 const response = await fetch(url, {
-                    headers: { 
+                    headers: {
                         'Accept-Language': 'de',
                         'User-Agent': 'ClientSync-App/1.0'
                     }
                 });
-                
+
                 if (!response.ok) throw new Error("Fehler bei der Geokodierung");
 
                 const data = await response.json();
-                
+
                 if (data && data.length > 0) {
-                    const lat = data[0].lat;
-                    const lon = data[0].lon;
+                    const lat = parseFloat(data[0].lat).toFixed(6);
+                    const lon = parseFloat(data[0].lon).toFixed(6);
 
                     document.getElementById('client-lat').value = lat;
                     document.getElementById('client-lng').value = lon;
                 } else {
-                    // Limpiamos las coordenadas anteriores si las había y lanzamos aviso
                     document.getElementById('client-lat').value = '';
                     document.getElementById('client-lng').value = '';
                     alert(`⚠️ Con esta dirección ("${address}") y este código postal ("${postal}") no logro encontrar las coordenadas. Por favor, verifique los datos.`);
@@ -199,10 +352,18 @@
             }
         }
 
-        document.getElementById('client-address').addEventListener('blur', autocompletarCoordenadas);
+        document.getElementById('client-address').addEventListener('blur', () => {
+            setTimeout(() => {
+                if (!isSelectingAddressSuggestion) {
+                    autocompletarCoordenadas();
+                }
+            }, 200);
+        });
         document.getElementById('client-postal').addEventListener('blur', autocompletarCoordenadas);
 
         async function init() {
+            setupMunichAddressAutocomplete();
+
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 const mapAddress = urlParams.get('address');
@@ -213,7 +374,7 @@
                 if (mapAddress || mapLat || mapLng) {
                     window.setMode('create');
                     clearForm();
-                    
+
                     if (mapAddress) document.getElementById('client-address').value = mapAddress;
                     if (mapPostal) document.getElementById('client-postal').value = mapPostal;
                     if (mapLat) document.getElementById('client-lat').value = mapLat;
@@ -252,7 +413,7 @@
         if (searchInput && dropdown) {
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase().trim();
-                
+
                 if (query.length === 0) {
                     dropdown.style.display = 'none';
                     return;
@@ -265,7 +426,7 @@
                     const address = (c.address || '').toLowerCase();
                     const postal = (c.postal_code || '').toLowerCase();
 
-                    return searchTerms.every(term => 
+                    return searchTerms.every(term =>
                         name.includes(term) || address.includes(term) || postal.includes(term)
                     );
                 });
@@ -274,7 +435,7 @@
                     const code = String(p.postal_code || '').toLowerCase();
                     const city = (p.city_name || '').toLowerCase();
 
-                    return searchTerms.every(term => 
+                    return searchTerms.every(term =>
                         code.includes(term) || city.includes(term)
                     );
                 });
@@ -320,7 +481,7 @@
                     matchedPostalCodes.forEach(postal => {
                         const codeStr = postal.postal_code || '';
                         const cityStr = postal.city_name || '';
-                        
+
                         const item = document.createElement('div');
                         item.className = 'client-result-item';
                         item.innerHTML = `
