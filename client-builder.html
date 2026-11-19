@@ -104,8 +104,8 @@
 
                     <!-- Suchfeld -->
                     <div id="search-section" class="client-search-container">
-                        <label>Suche nach Kunde oder Ort / PLZ:</label>
-                        <input type="text" id="client-search-input" placeholder="Name, Adresse, Ort oder PLZ eingeben..." autocomplete="off">
+                        <label>Suche nach Kunde oder Adresse / PLZ:</label>
+                        <input type="text" id="client-search-input" placeholder="Name, Adresse oder PLZ eingeben..." autocomplete="off">
                         <div id="client-results-dropdown" class="client-results-dropdown"></div>
                     </div>
 
@@ -122,10 +122,9 @@
                     </div>
 
                     <div style="display: flex; gap: 10px;">
-                        <div style="flex: 1; position: relative;">
+                        <div style="flex: 1;">
                             <label>Postleitzahl (PLZ):</label>
                             <input type="text" id="client-postal" placeholder="z. B. 85521 oder 80331" autocomplete="off" required>
-                            <div id="postal-results-dropdown" class="client-results-dropdown"></div>
                         </div>
                         <div style="flex: 1;">
                             <label>Telefon:</label>
@@ -144,7 +143,7 @@
                         </div>
                     </div>
                     <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
-- Hinweis: Tippen Sie auch Teilwörter (z. B. "high" oder "haid") ein, um Vorschläge für Bayern zu erhalten. Koordinaten und PLZ werden automatisch ergänzt.
+- Hinweis: Tippen Sie den Straßennamen (auch teilweise) ein, um Vorschläge für Bayern zu erhalten. PLZ und Koordinaten werden automatisch ausgefüllt.
                     </p>
 
                     <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
@@ -187,15 +186,24 @@
         import { supabase } from '../js/supabaseClient.js';
 
         let allClients = [];
-        let allPostalCodes = [];
         let currentMode = 'edit';
-        let isSelectingAddressSuggestion = false;
         let clientMap = null;
         let clientMarker = null;
 
         // Orientación geográfica: Baviera (Bayern), Alemania
         const bavariaCenter = { lat: 48.7904, lng: 11.4979 };
         const bavariaRadiusMeters = 140000;
+
+        async function waitForGooglePlaces(timeoutMs = 6000) {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (window.google?.maps?.places?.AutocompleteSuggestion) {
+                    return true;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return Boolean(window.google?.maps?.places?.AutocompleteSuggestion);
+        }
 
         function updateMapPreview(lat, lng, labelText = '') {
             const latNum = parseFloat(lat);
@@ -234,7 +242,7 @@
         }
 
         async function initRightMap() {
-            await waitForGooglePlaces(4000);
+            await waitForGooglePlaces(6000);
             const mapContainer = document.getElementById('client-map');
             if (!mapContainer || !window.google?.maps?.Map) return;
 
@@ -330,123 +338,6 @@
             };
         }
 
-        async function waitForGooglePlaces(timeoutMs = 4000) {
-            const start = Date.now();
-            while (Date.now() - start < timeoutMs) {
-                if (window.google?.maps?.places?.AutocompleteSuggestion) {
-                    return true;
-                }
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            return false;
-        }
-
-        function deduplicateSuggestions(entries) {
-            const seenLabels = new Set();
-            const seenCoords = new Set();
-            const unique = [];
-
-            for (const entry of entries) {
-                const normLabel = (entry.label || '').trim().toLowerCase();
-                if (!normLabel || seenLabels.has(normLabel)) continue;
-
-                let coordKey = '';
-                if (entry.fallbackData?.lat && entry.fallbackData?.lon) {
-                    coordKey = `${Number(entry.fallbackData.lat).toFixed(4)}_${Number(entry.fallbackData.lon).toFixed(4)}`;
-                    if (seenCoords.has(coordKey)) continue;
-                }
-
-                seenLabels.add(normLabel);
-                if (coordKey) seenCoords.add(coordKey);
-                unique.push(entry);
-            }
-
-            return unique;
-        }
-
-        async function fetchBavariaSuggestions(query) {
-            const normalizedQuery = query.toLowerCase().trim();
-            const collected = [];
-
-            // 1. Consulta limpia en Google Places AutocompleteSuggestion (orientada a Baviera / Alemania)
-            if (window.google?.maps?.places?.AutocompleteSuggestion) {
-                try {
-                    const request = {
-                        input: query,
-                        includedRegionCodes: ['DE'],
-                        locationBias: {
-                            center: bavariaCenter,
-                            radius: bavariaRadiusMeters
-                        }
-                    };
-
-                    const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
-                    if (suggestions && suggestions.length > 0) {
-                        for (const s of suggestions) {
-                            if (!s.placePrediction) continue;
-                            collected.push({
-                                label: s.placePrediction.text.toString(),
-                                placePrediction: s.placePrediction
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.warn('AutocompleteSuggestion no disponible, usando respaldo Nominatim:', error);
-                }
-            }
-
-            // 2. Respaldo de Nominatim con consulta limpia y variante en Baviera para fragmentos cortos (ej. "high")
-            const queriesToTry = [
-                `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=de&q=${encodeURIComponent(query)}&limit=8`,
-                `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=de&q=${encodeURIComponent(query + ' Bayern')}&limit=8`
-            ];
-
-            for (const url of queriesToTry) {
-                if (collected.length >= 6) break;
-                try {
-                    const response = await fetch(url, {
-                        headers: {
-                            'Accept-Language': 'de',
-                            'User-Agent': 'ClientSync-App/1.0'
-                        }
-                    });
-                    if (!response.ok) continue;
-
-                    const results = await response.json();
-                    for (const item of (results || [])) {
-                        const addr = item.address || {};
-                        const road = addr.road || '';
-                        const houseNumber = addr.house_number || '';
-                        const postcode = addr.postcode || '';
-                        const city = addr.city || addr.town || addr.village || addr.municipality || item.display_name.split(',')[1]?.trim() || 'Bayern';
-                        const cleanStreet = `${road} ${houseNumber}`.trim() || item.display_name.split(',')[0].trim();
-
-                        collected.push({
-                            label: `${cleanStreet}${postcode ? `, ${postcode}` : ''} (${city})`,
-                            fallbackData: {
-                                address: cleanStreet,
-                                postalCode: postcode,
-                                lat: item.lat,
-                                lon: item.lon
-                            }
-                        });
-                    }
-                } catch (err) {
-                    console.warn('Error en consulta Nominatim:', err);
-                }
-            }
-
-            // 3. Eliminar duplicados y priorizar resultados que contengan el texto buscado (ej. "high")
-            const uniqueItems = deduplicateSuggestions(collected);
-            uniqueItems.sort((a, b) => {
-                const aMatch = a.label.toLowerCase().includes(normalizedQuery) ? 0 : 1;
-                const bMatch = b.label.toLowerCase().includes(normalizedQuery) ? 0 : 1;
-                return aMatch - bMatch;
-            });
-
-            return uniqueItems.slice(0, 8);
-        }
-
         function setupBavariaAddressAutocomplete() {
             const addressInput = document.getElementById('client-address');
             const suggestionsBox = document.getElementById('address-suggestions-dropdown');
@@ -465,81 +356,96 @@
                 }
 
                 debounceTimer = setTimeout(async () => {
-                    await waitForGooglePlaces(1500);
-                    const items = await fetchBavariaSuggestions(query);
-
-                    // Evita pisar el input si el usuario ya cambió el texto mientras cargaba
-                    if (addressInput.value.trim() !== query) return;
-
-                    if (items.length > 0) {
-                        suggestionsBox.innerHTML = '';
-                        suggestionsBox.style.display = 'block';
-
-                        items.forEach(entry => {
-                            const item = document.createElement('div');
-                            item.className = 'client-result-item';
-                            item.textContent = entry.label;
-
-                            item.addEventListener('mousedown', () => {
-                                isSelectingAddressSuggestion = true;
-                            });
-
-                            item.addEventListener('click', async () => {
-                                suggestionsBox.style.display = 'none';
-                                suggestionsBox.innerHTML = '';
-
-                                try {
-                                    if (entry.placePrediction) {
-                                        const place = entry.placePrediction.toPlace();
-                                        await place.fetchFields({
-                                            fields: ['formattedAddress', 'displayName', 'location', 'addressComponents']
-                                        });
-
-                                        const parsed = parseAddressComponents(
-                                            place.addressComponents || [],
-                                            place.formattedAddress || entry.label
-                                        );
-
-                                        const finalAddr = parsed.address || limpiarDireccion(entry.label);
-                                        addressInput.value = finalAddr;
-                                        if (parsed.postalCode) {
-                                            document.getElementById('client-postal').value = parsed.postalCode;
-                                        }
-
-                                        const location = place.location;
-                                        if (location) {
-                                            const lat = Number(typeof location.lat === 'function' ? location.lat() : location.lat).toFixed(6);
-                                            const lng = Number(typeof location.lng === 'function' ? location.lng() : location.lng).toFixed(6);
-                                            document.getElementById('client-lat').value = lat;
-                                            document.getElementById('client-lng').value = lng;
-                                            updateMapPreview(lat, lng, finalAddr);
-                                        }
-                                    } else if (entry.fallbackData) {
-                                        addressInput.value = entry.fallbackData.address;
-                                        if (entry.fallbackData.postalCode) {
-                                            document.getElementById('client-postal').value = entry.fallbackData.postalCode;
-                                        }
-                                        const lat = Number(entry.fallbackData.lat).toFixed(6);
-                                        const lng = Number(entry.fallbackData.lon).toFixed(6);
-                                        document.getElementById('client-lat').value = lat;
-                                        document.getElementById('client-lng').value = lng;
-                                        updateMapPreview(lat, lng, entry.fallbackData.address);
-                                    }
-                                } catch (err) {
-                                    console.error('Fehler beim Laden der Adressdetails:', err);
-                                } finally {
-                                    setTimeout(() => {
-                                        isSelectingAddressSuggestion = false;
-                                    }, 150);
-                                }
-                            });
-
-                            suggestionsBox.appendChild(item);
-                        });
-                    } else {
-                        suggestionsBox.style.display = 'none';
+                    const ready = await waitForGooglePlaces(6000);
+                    if (!ready || !window.google?.maps?.places?.AutocompleteSuggestion) {
+                        console.warn('Google Places AutocompleteSuggestion no disponible');
+                        return;
                     }
-                }, 220);
+
+                    try {
+                        const request = {
+                            input: query,
+                            includedRegionCodes: ['DE'],
+                            locationBias: {
+                                center: bavariaCenter,
+                                radius: bavariaRadiusMeters
+                            }
+                        };
+
+                        const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+
+                        if (addressInput.value.trim() !== query) return;
+
+                        if (suggestions && suggestions.length > 0) {
+                            const seenLabels = new Set();
+                            const uniquePredictions = [];
+
+                            for (const suggestion of suggestions) {
+                                const placePrediction = suggestion.placePrediction;
+                                if (!placePrediction) continue;
+                                const label = placePrediction.text.toString().trim();
+                                const norm = label.toLowerCase();
+                                if (!label || seenLabels.has(norm)) continue;
+                                seenLabels.add(norm);
+                                uniquePredictions.push({ label, placePrediction });
+                            }
+
+                            if (uniquePredictions.length > 0) {
+                                suggestionsBox.innerHTML = '';
+                                suggestionsBox.style.display = 'block';
+
+                                uniquePredictions.forEach(({ label, placePrediction }) => {
+                                    const item = document.createElement('div');
+                                    item.className = 'client-result-item';
+                                    item.textContent = label;
+
+                                    item.addEventListener('click', async () => {
+                                        suggestionsBox.style.display = 'none';
+                                        suggestionsBox.innerHTML = '';
+
+                                        try {
+                                            const place = placePrediction.toPlace();
+                                            await place.fetchFields({
+                                                fields: ['formattedAddress', 'displayName', 'location', 'addressComponents']
+                                            });
+
+                                            const parsed = parseAddressComponents(
+                                                place.addressComponents || [],
+                                                place.formattedAddress || label
+                                            );
+
+                                            const finalAddr = parsed.address || limpiarDireccion(label);
+                                            addressInput.value = finalAddr;
+
+                                            if (parsed.postalCode) {
+                                                document.getElementById('client-postal').value = parsed.postalCode;
+                                            }
+
+                                            const location = place.location;
+                                            if (location) {
+                                                const lat = Number(typeof location.lat === 'function' ? location.lat() : location.lat).toFixed(6);
+                                                const lng = Number(typeof location.lng === 'function' ? location.lng() : location.lng).toFixed(6);
+                                                document.getElementById('client-lat').value = lat;
+                                                document.getElementById('client-lng').value = lng;
+                                                updateMapPreview(lat, lng, finalAddr);
+                                            }
+                                        } catch (err) {
+                                            console.error('Fehler beim Laden der Adressdetails:', err);
+                                        }
+                                    });
+
+                                    suggestionsBox.appendChild(item);
+                                });
+                            } else {
+                                suggestionsBox.style.display = 'none';
+                            }
+                        } else {
+                            suggestionsBox.style.display = 'none';
+                        }
+                    } catch (error) {
+                        console.error('Error al obtener sugerencias de Google Places:', error);
+                    }
+                }, 200);
             });
 
             document.addEventListener('click', (e) => {
@@ -549,58 +455,6 @@
             });
         }
 
-        async function autocompletarCoordenadas() {
-            if (isSelectingAddressSuggestion) return;
-
-            const address = document.getElementById('client-address').value.trim();
-            const postal = document.getElementById('client-postal').value.trim();
-
-            if (!address || !postal) {
-                return;
-            }
-
-            const queryStr = `${address}, ${postal} Bayern Deutschland`.trim();
-
-            try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
-
-                const response = await fetch(url, {
-                    headers: {
-                        'Accept-Language': 'de',
-                        'User-Agent': 'ClientSync-App/1.0'
-                    }
-                });
-
-                if (!response.ok) throw new Error("Fehler bei der Geokodierung");
-
-                const data = await response.json();
-
-                if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat).toFixed(6);
-                    const lon = parseFloat(data[0].lon).toFixed(6);
-
-                    document.getElementById('client-lat').value = lat;
-                    document.getElementById('client-lng').value = lon;
-                    updateMapPreview(lat, lon, address);
-                } else {
-                    document.getElementById('client-lat').value = '';
-                    document.getElementById('client-lng').value = '';
-                    alert(`⚠️ Con esta dirección ("${address}") y este código postal ("${postal}") no logro encontrar las coordenadas. Por favor, verifique los datos.`);
-                }
-            } catch (err) {
-                console.error("Konnte Koordinaten nicht automatisch ermitteln:", err);
-                alert("⚠️ Error al conectar con el servicio de mapas para calcular las coordenadas.");
-            }
-        }
-
-        document.getElementById('client-address').addEventListener('blur', () => {
-            setTimeout(() => {
-                if (!isSelectingAddressSuggestion) {
-                    autocompletarCoordenadas();
-                }
-            }, 200);
-        });
-        document.getElementById('client-postal').addEventListener('blur', autocompletarCoordenadas);
         document.getElementById('client-lat').addEventListener('input', () => {
             updateMapPreview(document.getElementById('client-lat').value, document.getElementById('client-lng').value);
         });
@@ -632,16 +486,13 @@
                     window.setMode('edit');
                 }
 
-                const [{ data: clientsData, error: errClients }, { data: postalData, error: errPostal }] = await Promise.all([
-                    supabase.from('clients').select('*').order('name', { ascending: true }),
-                    supabase.from('german_postal_codes').select('*')
-                ]);
+                const { data: clientsData, error: errClients } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .order('name', { ascending: true });
 
                 if (errClients) console.error('Error cargando clientes:', errClients);
-                if (errPostal) console.error('Error cargando CPs:', errPostal);
-
                 allClients = clientsData || [];
-                allPostalCodes = postalData || [];
 
                 const targetClientId = urlParams.get('client_id');
                 if (targetClientId) {
@@ -680,20 +531,9 @@
                     );
                 });
 
-                const matchedPostalCodes = allPostalCodes.filter(p => {
-                    const code = String(p.postal_code || '').toLowerCase();
-                    const city = (p.city_name || '').toLowerCase();
-
-                    return searchTerms.every(term =>
-                        code.includes(term) || city.includes(term)
-                    );
-                });
-
                 dropdown.innerHTML = '';
-                let hasResults = false;
 
                 if (matchedClients.length > 0) {
-                    hasResults = true;
                     const header = document.createElement('div');
                     header.className = 'dropdown-header';
                     header.textContent = '👤 Kunden';
@@ -718,39 +558,6 @@
 
                         dropdown.appendChild(item);
                     });
-                }
-
-                if (matchedPostalCodes.length > 0) {
-                    hasResults = true;
-                    const header = document.createElement('div');
-                    header.className = 'dropdown-header';
-                    header.textContent = '📮 Orte / PLZ';
-                    dropdown.appendChild(header);
-
-                    matchedPostalCodes.forEach(postal => {
-                        const codeStr = postal.postal_code || '';
-                        const cityStr = postal.city_name || '';
-
-                        const item = document.createElement('div');
-                        item.className = 'client-result-item';
-                        item.innerHTML = `
-                            <strong style="color: #2e7d32;">📮 PLZ: ${codeStr} - ${cityStr}</strong><br>
-                            <span style="font-size:0.75rem; color:#666;">Klicken zum Ausfüllen der PLZ</span>
-                        `;
-
-                        item.addEventListener('click', () => {
-                            document.getElementById('client-postal').value = codeStr;
-                            dropdown.style.display = 'none';
-                            searchInput.value = `${codeStr} - ${cityStr}`;
-                            autocompletarCoordenadas();
-                            document.getElementById('client-name').focus();
-                        });
-
-                        dropdown.appendChild(item);
-                    });
-                }
-
-                if (hasResults) {
                     dropdown.style.display = 'block';
                 } else {
                     dropdown.innerHTML = `<div style="padding: 10px; font-size: 0.85rem; color: #718096;">Keine Ergebnisse für "${query}" gefunden</div>`;
@@ -761,59 +568,6 @@
             document.addEventListener('click', (e) => {
                 if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
                     dropdown.style.display = 'none';
-                }
-            });
-        }
-
-        const postalInput = document.getElementById('client-postal');
-        const postalDropdown = document.getElementById('postal-results-dropdown');
-
-        if (postalInput && postalDropdown) {
-            postalInput.addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase().trim();
-
-                if (query.length === 0) {
-                    postalDropdown.style.display = 'none';
-                    return;
-                }
-
-                const searchTerms = query.split(' ').filter(term => term.length > 0);
-
-                const matchedPostal = allPostalCodes.filter(p => {
-                    const code = String(p.postal_code || '').toLowerCase();
-                    const city = (p.city_name || '').toLowerCase();
-
-                    return searchTerms.every(term => code.includes(term) || city.includes(term));
-                });
-
-                postalDropdown.innerHTML = '';
-
-                if (matchedPostal.length > 0) {
-                    matchedPostal.forEach(p => {
-                        const codeStr = p.postal_code || '';
-                        const cityStr = p.city_name || '';
-
-                        const item = document.createElement('div');
-                        item.className = 'client-result-item';
-                        item.innerHTML = `<strong style="color: #2e7d32;">${codeStr}</strong> - ${cityStr}`;
-
-                        item.addEventListener('click', () => {
-                            postalInput.value = codeStr;
-                            postalDropdown.style.display = 'none';
-                            autocompletarCoordenadas();
-                        });
-
-                        postalDropdown.appendChild(item);
-                    });
-                    postalDropdown.style.display = 'block';
-                } else {
-                    postalDropdown.style.display = 'none';
-                }
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!postalInput.contains(e.target) && !postalDropdown.contains(e.target)) {
-                    postalDropdown.style.display = 'none';
                 }
             });
         }
@@ -900,7 +654,7 @@
                 const lngVal = document.getElementById('client-lng').value.trim();
 
                 if (!latVal || !lngVal) {
-                    alert('⚠️ Fehler: Geographische Koordinaten fehlen. Bitte stellen Sie sicher, dass sowohl die Adresse als auch die Postleitzahl (PLZ) korrekt eingegeben sind, damit die Koordinaten ermittelt werden können.');
+                    alert('⚠️ Fehler: Geographische Koordinaten fehlen. Bitte wählen Sie eine Adresse aus den Vorschlägen oder geben Sie gültige Koordinaten ein.');
                     return;
                 }
 
