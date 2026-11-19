@@ -12,7 +12,7 @@
         .container { max-width: 650px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
         select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; margin-bottom: 12px; }
         label { font-weight: bold; color: #2d3748; font-size: 0.9rem; display: block; margin-bottom: 5px; }
-
+        
         .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
         .mode-btn { flex: 1; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 8px; border: 1px solid #cbd5e0; background: #edf2f7; color: #4a5568; text-align: center; }
         .mode-btn.active { background: #3182ce; color: white; border-color: #3182ce; }
@@ -69,7 +69,7 @@
 
             <div style="position: relative;">
                 <label>Adresse (Straße und Hausnummer):</label>
-                <input type="text" id="client-address" placeholder="z. B. Marienplatz 1 oder Leopoldstraße, München..." autocomplete="off" required>
+                <input type="text" id="client-address" placeholder="z. B. Marienplatz 1 oder Haidgraben..." autocomplete="off" required>
                 <div id="address-suggestions-dropdown" class="client-results-dropdown"></div>
             </div>
 
@@ -96,7 +96,7 @@
                 </div>
             </div>
             <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
-- Hinweis: Tippen Sie eine Adresse ein, um Vorschläge für München/Deutschland zu erhalten, oder geben Sie Adresse und PLZ ein, um die Koordinaten automatisch zu ermitteln.
+- Hinweis: Tippen Sie eine Adresse ein, um Vorschläge für Múnich/Deutschland zu erhalten. Die Koordinaten und PLZ werden automatisch ermittelt.
             </p>
 
             <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
@@ -125,7 +125,7 @@
         let currentMode = 'edit';
         let isSelectingAddressSuggestion = false;
 
-        // Orientación geográfica: Ciudad de Múnich, Alemania
+        // Orientación geográfica: Múnich, Alemania
         const munichCenter = { lat: 48.1351, lng: 11.5820 };
         const munichRadiusMeters = 30000;
 
@@ -170,13 +170,11 @@
             }
         }
 
-        // Limpia Plus Codes como "8FWH+4G, " heredado de EN-VIA
         function limpiarDireccion(texto) {
             if (!texto) return '';
             return texto.replace(/^[A-Z0-9]{4}\+[A-Z0-9]{2,3},\s*/i, '').trim();
         }
 
-        // Extrae calle + número y código postal de addressComponents de Google Places
         function parseAddressComponents(components = [], fallbackFormatted = '') {
             let street = '';
             let streetNumber = '';
@@ -203,7 +201,74 @@
             };
         }
 
-        // Búsqueda inteligente de direcciones orientada a Múnich (lógica extraída de EN-VIA)
+        async function waitForGooglePlaces(timeoutMs = 4000) {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (window.google?.maps?.places?.AutocompleteSuggestion) {
+                    return true;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return false;
+        }
+
+        async function fetchMunichSuggestions(query) {
+            if (window.google?.maps?.places?.AutocompleteSuggestion) {
+                try {
+                    const request = {
+                        input: query,
+                        includedRegionCodes: ['DE'],
+                        locationBias: {
+                            center: munichCenter,
+                            radius: munichRadiusMeters
+                        }
+                    };
+
+                    const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+                    if (suggestions && suggestions.length > 0) {
+                        return suggestions
+                            .filter(s => s.placePrediction)
+                            .map(s => ({
+                                label: s.placePrediction.text.toString(),
+                                placePrediction: s.placePrediction
+                            }));
+                    }
+                } catch (error) {
+                    console.warn('AutocompleteSuggestion no disponible, usando respaldo Nominatim:', error);
+                }
+            }
+
+            // Respaldo robusto basado en Nominatim enfocado en Múnich/Alemania
+            const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=de&q=${encodeURIComponent(query + ' München')}&limit=6`;
+            const response = await fetch(url, {
+                headers: {
+                    'Accept-Language': 'de',
+                    'User-Agent': 'ClientSync-App/1.0'
+                }
+            });
+            if (!response.ok) return [];
+
+            const results = await response.json();
+            return (results || []).map(item => {
+                const addr = item.address || {};
+                const road = addr.road || '';
+                const houseNumber = addr.house_number || '';
+                const postcode = addr.postcode || '';
+                const city = addr.city || addr.town || addr.village || 'München';
+                const cleanStreet = `${road} ${houseNumber}`.trim() || item.display_name.split(',')[0].trim();
+
+                return {
+                    label: `${cleanStreet}${postcode ? `, ${postcode}` : ''} (${city})`,
+                    fallbackData: {
+                        address: cleanStreet,
+                        postalCode: postcode,
+                        lat: item.lat,
+                        lon: item.lon
+                    }
+                };
+            });
+        }
+
         function setupMunichAddressAutocomplete() {
             const addressInput = document.getElementById('client-address');
             const suggestionsBox = document.getElementById('address-suggestions-dropdown');
@@ -222,55 +287,39 @@
                 }
 
                 debounceTimer = setTimeout(async () => {
-                    if (!window.google?.maps?.places?.AutocompleteSuggestion) {
-                        return;
-                    }
+                    await waitForGooglePlaces(1500);
+                    const items = await fetchMunichSuggestions(query);
 
-                    try {
-                        const request = {
-                            input: query,
-                            includedRegionCodes: ['DE'],
-                            locationBias: {
-                                center: munichCenter,
-                                radius: munichRadiusMeters
-                            }
-                        };
+                    if (items.length > 0) {
+                        suggestionsBox.innerHTML = '';
+                        suggestionsBox.style.display = 'block';
 
-                        const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+                        items.forEach(entry => {
+                            const item = document.createElement('div');
+                            item.className = 'client-result-item';
+                            item.textContent = entry.label;
 
-                        if (suggestions && suggestions.length > 0) {
-                            suggestionsBox.innerHTML = '';
-                            suggestionsBox.style.display = 'block';
+                            item.addEventListener('mousedown', () => {
+                                isSelectingAddressSuggestion = true;
+                            });
 
-                            suggestions.forEach(suggestion => {
-                                const placePrediction = suggestion.placePrediction;
-                                if (!placePrediction) return;
+                            item.addEventListener('click', async () => {
+                                suggestionsBox.style.display = 'none';
+                                suggestionsBox.innerHTML = '';
 
-                                const item = document.createElement('div');
-                                item.className = 'client-result-item';
-                                item.textContent = placePrediction.text.toString();
-
-                                item.addEventListener('mousedown', () => {
-                                    isSelectingAddressSuggestion = true;
-                                });
-
-                                item.addEventListener('click', async () => {
-                                    suggestionsBox.style.display = 'none';
-                                    suggestionsBox.innerHTML = '';
-
-                                    try {
-                                        const place = placePrediction.toPlace();
+                                try {
+                                    if (entry.placePrediction) {
+                                        const place = entry.placePrediction.toPlace();
                                         await place.fetchFields({
                                             fields: ['formattedAddress', 'displayName', 'location', 'addressComponents']
                                         });
 
                                         const parsed = parseAddressComponents(
                                             place.addressComponents || [],
-                                            place.formattedAddress || placePrediction.text.toString()
+                                            place.formattedAddress || entry.label
                                         );
 
-                                        addressInput.value = parsed.address || limpiarDireccion(placePrediction.text.toString());
-
+                                        addressInput.value = parsed.address || limpiarDireccion(entry.label);
                                         if (parsed.postalCode) {
                                             document.getElementById('client-postal').value = parsed.postalCode;
                                         }
@@ -282,22 +331,27 @@
                                             document.getElementById('client-lat').value = Number(lat).toFixed(6);
                                             document.getElementById('client-lng').value = Number(lng).toFixed(6);
                                         }
-                                    } catch (err) {
-                                        console.error('Fehler beim Laden der Adressdetails:', err);
-                                    } finally {
-                                        setTimeout(() => {
-                                            isSelectingAddressSuggestion = false;
-                                        }, 150);
+                                    } else if (entry.fallbackData) {
+                                        addressInput.value = entry.fallbackData.address;
+                                        if (entry.fallbackData.postalCode) {
+                                            document.getElementById('client-postal').value = entry.fallbackData.postalCode;
+                                        }
+                                        document.getElementById('client-lat').value = Number(entry.fallbackData.lat).toFixed(6);
+                                        document.getElementById('client-lng').value = Number(entry.fallbackData.lon).toFixed(6);
                                     }
-                                });
-
-                                suggestionsBox.appendChild(item);
+                                } catch (err) {
+                                    console.error('Fehler beim Laden der Adressdetails:', err);
+                                } finally {
+                                    setTimeout(() => {
+                                        isSelectingAddressSuggestion = false;
+                                    }, 150);
+                                }
                             });
-                        } else {
-                            suggestionsBox.style.display = 'none';
-                        }
-                    } catch (error) {
-                        console.error('Fehler bei der Adresssuche (München):', error);
+
+                            suggestionsBox.appendChild(item);
+                        });
+                    } else {
+                        suggestionsBox.style.display = 'none';
                     }
                 }, 250);
             });
