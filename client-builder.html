@@ -5,14 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClientSync | Kundenverwaltung & -erstellung</title>
     <link rel="stylesheet" href="../css/main.css">
-    <!-- Google Maps Places API -->
+    <!-- Google Maps Places & Maps API -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC52Px30bZ9ZqxrN8IO-VWZHLlFvios4_I&libraries=places,geometry" async defer></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f7fafc; margin: 0; padding: 10px; }
-        .container { max-width: 650px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 90px; }
+        .container { max-width: 1120px; margin: 15px auto 50px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); box-sizing: border-box; padding-bottom: 40px; }
+
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (min-width: 860px) {
+            .split-layout {
+                grid-template-columns: 1.1fr 0.9fr;
+            }
+        }
+
+        .right-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        @media (min-width: 860px) {
+            .right-panel {
+                position: sticky;
+                top: 16px;
+            }
+        }
+
+        #client-map {
+            width: 100%;
+            height: 360px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e0;
+            background: #edf2f7;
+        }
+
+        .coord-badge {
+            margin-top: 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.85rem;
+            color: #2d3748;
+        }
+
         select, input, button { font-size: 16px; box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; margin-bottom: 12px; }
         label { font-weight: bold; color: #2d3748; font-size: 0.9rem; display: block; margin-bottom: 5px; }
-        
+
         .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
         .mode-btn { flex: 1; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 8px; border: 1px solid #cbd5e0; background: #edf2f7; color: #4a5568; text-align: center; }
         .mode-btn.active { background: #3182ce; color: white; border-color: #3182ce; }
@@ -40,74 +85,95 @@
 <body>
 
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 id="view-title" style="margin: 0; font-size: 1.2rem; color: #2d3748;">👤 Kundenverwaltung</h1>
-            <a href="../index.html" style="padding: 8px 12px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">← Zurück zur Startseite</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+            <h1 id="view-title" style="margin: 0; font-size: 1.25rem; color: #2d3748;">👤 Kundenverwaltung</h1>
+            <a href="../index.html" style="padding: 8px 14px; background: #718096; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem; width: auto; margin-bottom: 0;">← Zurück zur Startseite</a>
         </div>
 
-        <!-- Modus-Auswahl -->
-        <div class="mode-selector">
-            <div id="btn-mode-edit" class="mode-btn active" onclick="setMode('edit')">🔍 Suchen / Bearbeiten</div>
-            <div id="btn-mode-create" class="mode-btn" onclick="setMode('create')">➕ Neuen Kunden erstellen</div>
-        </div>
-
-        <form id="client-form">
-            <input type="hidden" id="client-id">
-
-            <!-- Suchfeld -->
-            <div id="search-section" class="client-search-container">
-                <label>Suche nach Kunde oder Ort / PLZ:</label>
-                <input type="text" id="client-search-input" placeholder="Name, Adresse, Ort oder PLZ eingeben..." autocomplete="off">
-                <div id="client-results-dropdown" class="client-results-dropdown"></div>
-            </div>
-
-            <!-- Kundenfelder -->
-            <div>
-                <label>Kundenname:</label>
-                <input type="text" id="client-name" placeholder="Vollständiger Name" required>
-            </div>
-
-            <div style="position: relative;">
-                <label>Adresse (Straße und Hausnummer):</label>
-                <input type="text" id="client-address" placeholder="z. B. Marienplatz 1 oder Haidgraben..." autocomplete="off" required>
-                <div id="address-suggestions-dropdown" class="client-results-dropdown"></div>
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <div style="flex: 1; position: relative;">
-                    <label>Postleitzahl (PLZ):</label>
-                    <input type="text" id="client-postal" placeholder="z. B. 80331 oder München" autocomplete="off" required>
-                    <div id="postal-results-dropdown" class="client-results-dropdown"></div>
+        <div class="split-layout">
+            <!-- LADO IZQUIERDO: FORMULARIO Y BÚSQUEDA -->
+            <div class="left-panel">
+                <!-- Modus-Auswahl -->
+                <div class="mode-selector">
+                    <div id="btn-mode-edit" class="mode-btn active" onclick="setMode('edit')">🔍 Suchen / Bearbeiten</div>
+                    <div id="btn-mode-create" class="mode-btn" onclick="setMode('create')">➕ Neuen Kunden erstellen</div>
                 </div>
-                <div style="flex: 1;">
-                    <label>Telefon:</label>
-                    <input type="text" id="client-phone" placeholder="z. B. +49 89 ...">
-                </div>
-            </div>
 
-            <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;">
-                    <label>Breitengrad (Lat) <span style="color: #e53e3e;">*</span>:</label>
-                    <input type="text" id="client-lat" placeholder="z. B. 48.1374" required>
-                </div>
-                <div style="flex: 1;">
-                    <label>Längengrad (Lng) <span style="color: #e53e3e;">*</span>:</label>
-                    <input type="text" id="client-lng" placeholder="z. B. 11.5755" required>
-                </div>
-            </div>
-            <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
+                <form id="client-form">
+                    <input type="hidden" id="client-id">
+
+                    <!-- Suchfeld -->
+                    <div id="search-section" class="client-search-container">
+                        <label>Suche nach Kunde oder Ort / PLZ:</label>
+                        <input type="text" id="client-search-input" placeholder="Name, Adresse, Ort oder PLZ eingeben..." autocomplete="off">
+                        <div id="client-results-dropdown" class="client-results-dropdown"></div>
+                    </div>
+
+                    <!-- Kundenfelder -->
+                    <div>
+                        <label>Kundenname:</label>
+                        <input type="text" id="client-name" placeholder="Vollständiger Name" required>
+                    </div>
+
+                    <div style="position: relative;">
+                        <label>Adresse (Straße und Hausnummer):</label>
+                        <input type="text" id="client-address" placeholder="z. B. Marienplatz 1, Taufkirchen, Haidgraben..." autocomplete="off" required>
+                        <div id="address-suggestions-dropdown" class="client-results-dropdown"></div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1; position: relative;">
+                            <label>Postleitzahl (PLZ):</label>
+                            <input type="text" id="client-postal" placeholder="z. B. 82024 oder 80331" autocomplete="off" required>
+                            <div id="postal-results-dropdown" class="client-results-dropdown"></div>
+                        </div>
+                        <div style="flex: 1;">
+                            <label>Telefon:</label>
+                            <input type="text" id="client-phone" placeholder="z. B. +49 89 ...">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label>Breitengrad (Lat) <span style="color: #e53e3e;">*</span>:</label>
+                            <input type="text" id="client-lat" placeholder="z. B. 48.0468" required>
+                        </div>
+                        <div style="flex: 1;">
+                            <label>Längengrad (Lng) <span style="color: #e53e3e;">*</span>:</label>
+                            <input type="text" id="client-lng" placeholder="z. B. 11.6122" required>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.75rem; color: #718096; margin-top: -8px; margin-bottom: 12px;">
 - Hinweis: Tippen Sie eine Adresse ein, um Vorschläge für ganz Bayern zu erhalten. Die Koordinaten und PLZ werden automatisch ermittelt.
-            </p>
+                    </p>
 
-            <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
-                💾 Änderungen speichern
-            </button>
+                    <button type="submit" id="save-client-btn" style="background: #38a169; color: white; border: none; font-weight: bold; cursor: pointer; padding: 15px; font-size: 1rem; margin-top: 5px; width: 100%; border-radius: 8px;">
+                        💾 Änderungen speichern
+                    </button>
 
-            <!-- Botón de eliminación (visible solo en modo edición) -->
-            <button type="button" id="delete-client-btn" style="background: #e53e3e; color: white; border: none; font-weight: bold; cursor: pointer; padding: 12px; font-size: 0.95rem; margin-top: 10px; width: 100%; border-radius: 8px; display: none;">
-                🗑️ Kunden löschen
-            </button>
-        </form>
+                    <!-- Botón de eliminación (visible solo en modo edición) -->
+                    <button type="button" id="delete-client-btn" style="background: #e53e3e; color: white; border: none; font-weight: bold; cursor: pointer; padding: 12px; font-size: 0.95rem; margin-top: 10px; width: 100%; border-radius: 8px; display: none;">
+                        🗑️ Kunden löschen
+                    </button>
+                </form>
+            </div>
+
+            <!-- LADO DERECHO: MAPA Y VISTA PREVIA DE UBICACIÓN -->
+            <div class="right-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="color: #2d3748; font-size: 0.95rem;">🗺️ Standortvorschau (Bayern)</strong>
+                    <span id="map-region-tag" style="font-size: 0.75rem; background: #ebf8ff; color: #2b6cb0; padding: 3px 8px; border-radius: 999px; font-weight: 600;">Region: Bayern</span>
+                </div>
+                <div id="client-map"></div>
+                <div class="coord-badge">
+                    <div><strong>Ausgewählte Adresse:</strong> <span id="preview-address-text">Noch keine Adresse ausgewählt</span></div>
+                    <div style="margin-top: 6px; color: #4a5568;">
+                        <strong>Lat:</strong> <span id="preview-lat-text">-</span> |
+                        <strong>Lng:</strong> <span id="preview-lng-text">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -124,10 +190,67 @@
         let allPostalCodes = [];
         let currentMode = 'edit';
         let isSelectingAddressSuggestion = false;
+        let clientMap = null;
+        let clientMarker = null;
 
         // Orientación geográfica: Baviera (Bayern), Alemania
         const bavariaCenter = { lat: 48.7904, lng: 11.4979 };
         const bavariaRadiusMeters = 140000;
+
+        function updateMapPreview(lat, lng, labelText = '') {
+            const latNum = parseFloat(lat);
+            const lngNum = parseFloat(lng);
+            const addrVal = labelText || document.getElementById('client-address')?.value.trim() || '';
+            const postalVal = document.getElementById('client-postal')?.value.trim() || '';
+
+            const addrEl = document.getElementById('preview-address-text');
+            const latEl = document.getElementById('preview-lat-text');
+            const lngEl = document.getElementById('preview-lng-text');
+
+            if (addrEl) {
+                addrEl.textContent = addrVal
+                    ? `${addrVal}${postalVal ? `, ${postalVal}` : ''}`
+                    : 'Noch keine Adresse ausgewählt';
+            }
+            if (latEl) latEl.textContent = !Number.isNaN(latNum) ? latNum.toFixed(6) : '-';
+            if (lngEl) lngEl.textContent = !Number.isNaN(lngNum) ? lngNum.toFixed(6) : '-';
+
+            if (!clientMap || Number.isNaN(latNum) || Number.isNaN(lngNum)) return;
+
+            const pos = { lat: latNum, lng: lngNum };
+            clientMap.setCenter(pos);
+            clientMap.setZoom(15);
+
+            if (!clientMarker) {
+                clientMarker = new google.maps.Marker({
+                    map: clientMap,
+                    position: pos,
+                    title: addrVal || 'Kundenstandort'
+                });
+            } else {
+                clientMarker.setPosition(pos);
+                clientMarker.setTitle(addrVal || 'Kundenstandort');
+            }
+        }
+
+        async function initRightMap() {
+            await waitForGooglePlaces(4000);
+            const mapContainer = document.getElementById('client-map');
+            if (!mapContainer || !window.google?.maps?.Map) return;
+
+            clientMap = new google.maps.Map(mapContainer, {
+                center: { lat: 48.1351, lng: 11.5820 },
+                zoom: 10,
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+
+            const existingLat = document.getElementById('client-lat')?.value;
+            const existingLng = document.getElementById('client-lng')?.value;
+            if (existingLat && existingLng) {
+                updateMapPreview(existingLat, existingLng);
+            }
+        }
 
         window.setMode = function(mode) {
             currentMode = mode;
@@ -168,6 +291,12 @@
                 addrDropdown.style.display = 'none';
                 addrDropdown.innerHTML = '';
             }
+            const addrEl = document.getElementById('preview-address-text');
+            const latEl = document.getElementById('preview-lat-text');
+            const lngEl = document.getElementById('preview-lng-text');
+            if (addrEl) addrEl.textContent = 'Noch keine Adresse ausgewählt';
+            if (latEl) latEl.textContent = '-';
+            if (lngEl) lngEl.textContent = '-';
         }
 
         function limpiarDireccion(texto) {
@@ -319,25 +448,30 @@
                                             place.formattedAddress || entry.label
                                         );
 
-                                        addressInput.value = parsed.address || limpiarDireccion(entry.label);
+                                        const finalAddr = parsed.address || limpiarDireccion(entry.label);
+                                        addressInput.value = finalAddr;
                                         if (parsed.postalCode) {
                                             document.getElementById('client-postal').value = parsed.postalCode;
                                         }
 
                                         const location = place.location;
                                         if (location) {
-                                            const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
-                                            const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
-                                            document.getElementById('client-lat').value = Number(lat).toFixed(6);
-                                            document.getElementById('client-lng').value = Number(lng).toFixed(6);
+                                            const lat = Number(typeof location.lat === 'function' ? location.lat() : location.lat).toFixed(6);
+                                            const lng = Number(typeof location.lng === 'function' ? location.lng() : location.lng).toFixed(6);
+                                            document.getElementById('client-lat').value = lat;
+                                            document.getElementById('client-lng').value = lng;
+                                            updateMapPreview(lat, lng, finalAddr);
                                         }
                                     } else if (entry.fallbackData) {
                                         addressInput.value = entry.fallbackData.address;
                                         if (entry.fallbackData.postalCode) {
                                             document.getElementById('client-postal').value = entry.fallbackData.postalCode;
                                         }
-                                        document.getElementById('client-lat').value = Number(entry.fallbackData.lat).toFixed(6);
-                                        document.getElementById('client-lng').value = Number(entry.fallbackData.lon).toFixed(6);
+                                        const lat = Number(entry.fallbackData.lat).toFixed(6);
+                                        const lng = Number(entry.fallbackData.lon).toFixed(6);
+                                        document.getElementById('client-lat').value = lat;
+                                        document.getElementById('client-lng').value = lng;
+                                        updateMapPreview(lat, lng, entry.fallbackData.address);
                                     }
                                 } catch (err) {
                                     console.error('Fehler beim Laden der Adressdetails:', err);
@@ -395,6 +529,7 @@
 
                     document.getElementById('client-lat').value = lat;
                     document.getElementById('client-lng').value = lon;
+                    updateMapPreview(lat, lon, address);
                 } else {
                     document.getElementById('client-lat').value = '';
                     document.getElementById('client-lng').value = '';
@@ -414,9 +549,16 @@
             }, 200);
         });
         document.getElementById('client-postal').addEventListener('blur', autocompletarCoordenadas);
+        document.getElementById('client-lat').addEventListener('input', () => {
+            updateMapPreview(document.getElementById('client-lat').value, document.getElementById('client-lng').value);
+        });
+        document.getElementById('client-lng').addEventListener('input', () => {
+            updateMapPreview(document.getElementById('client-lat').value, document.getElementById('client-lng').value);
+        });
 
         async function init() {
             setupBavariaAddressAutocomplete();
+            initRightMap();
 
             try {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -433,6 +575,7 @@
                     if (mapPostal) document.getElementById('client-postal').value = mapPostal;
                     if (mapLat) document.getElementById('client-lat').value = mapLat;
                     if (mapLng) document.getElementById('client-lng').value = mapLng;
+                    if (mapLat && mapLng) updateMapPreview(mapLat, mapLng, mapAddress);
                 } else {
                     window.setMode('edit');
                 }
@@ -639,6 +782,8 @@
             if (phoneEl) phoneEl.value = client.phone || '';
             if (latEl) latEl.value = client.latitude || '';
             if (lngEl) lngEl.value = client.longitude || '';
+
+            updateMapPreview(client.latitude, client.longitude, client.address || '');
         }
 
         // --- LÓGICA DE ELIMINACIÓN CON VALIDACIÓN DE CITAS ---
