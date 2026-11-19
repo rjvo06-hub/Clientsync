@@ -187,6 +187,7 @@
 
         let allClients = [];
         let currentMode = 'edit';
+        let isSelectingAddressSuggestion = false;
         let clientMap = null;
         let clientMarker = null;
 
@@ -194,7 +195,7 @@
         const bavariaCenter = { lat: 48.7904, lng: 11.4979 };
         const bavariaRadiusMeters = 140000;
 
-        async function waitForGooglePlaces(timeoutMs = 6000) {
+        async function waitForGooglePlaces(timeoutMs = 3000) {
             const start = Date.now();
             while (Date.now() - start < timeoutMs) {
                 if (window.google?.maps?.places?.AutocompleteSuggestion) {
@@ -242,7 +243,7 @@
         }
 
         async function initRightMap() {
-            await waitForGooglePlaces(6000);
+            await waitForGooglePlaces(4000);
             const mapContainer = document.getElementById('client-map');
             if (!mapContainer || !window.google?.maps?.Map) return;
 
@@ -338,6 +339,129 @@
             };
         }
 
+        function deduplicateSuggestions(entries) {
+            const seenLabels = new Set();
+            const seenCoords = new Set();
+            const unique = [];
+
+            for (const entry of entries) {
+                const normLabel = (entry.label || '').trim().toLowerCase();
+                if (!normLabel || seenLabels.has(normLabel)) continue;
+
+                let coordKey = '';
+                if (entry.fallbackData?.lat && entry.fallbackData?.lon) {
+                    coordKey = `${Number(entry.fallbackData.lat).toFixed(4)}_${Number(entry.fallbackData.lon).toFixed(4)}`;
+                    if (seenCoords.has(coordKey)) continue;
+                }
+
+                seenLabels.add(normLabel);
+                if (coordKey) seenCoords.add(coordKey);
+                unique.push(entry);
+            }
+
+            return unique;
+        }
+
+        function getClientMatches(normalizedQuery) {
+            const matches = [];
+            for (const client of allClients) {
+                const addr = (client.address || '').trim();
+                if (!addr) continue;
+                const postal = (client.postal_code || '').trim();
+                const label = `${addr}${postal ? `, ${postal}` : ''} (${client.name || 'Kunde'})`;
+                if (label.toLowerCase().includes(normalizedQuery)) {
+                    matches.push({
+                        label,
+                        fallbackData: {
+                            address: addr,
+                            postalCode: postal,
+                            lat: client.latitude || '',
+                            lon: client.longitude || ''
+                        }
+                    });
+                }
+            }
+            return matches;
+        }
+
+        async function fetchBavariaSuggestions(query) {
+            const normalizedQuery = query.toLowerCase().trim();
+            const collected = [...getClientMatches(normalizedQuery)];
+
+            // 1. Google Places AutocompleteSuggestion orientado a Baviera / Alemania
+            const placesReady = await waitForGooglePlaces(1500);
+            if (placesReady && window.google?.maps?.places?.AutocompleteSuggestion) {
+                try {
+                    const request = {
+                        input: query,
+                        includedRegionCodes: ['DE'],
+                        locationBias: {
+                            center: bavariaCenter,
+                            radius: bavariaRadiusMeters
+                        }
+                    };
+
+                    const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+                    if (suggestions && suggestions.length > 0) {
+                        for (const s of suggestions) {
+                            if (!s.placePrediction) continue;
+                            collected.push({
+                                label: s.placePrediction.text.toString(),
+                                placePrediction: s.placePrediction
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.warn('AutocompleteSuggestion error:', error);
+                }
+            }
+
+            // 2. Respaldo Nominatim si Google Places no devolvió resultados (por ejemplo con palabras parciales o restricciones)
+            if (collected.length === 0) {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=de&q=${encodeURIComponent(query)}&limit=8`;
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept-Language': 'de',
+                            'User-Agent': 'ClientSync-App/1.0'
+                        }
+                    });
+                    if (response.ok) {
+                        const results = await response.json();
+                        for (const item of (results || [])) {
+                            const addr = item.address || {};
+                            const road = addr.road || '';
+                            const houseNumber = addr.house_number || '';
+                            const postcode = addr.postcode || '';
+                            const city = addr.city || addr.town || addr.village || addr.municipality || item.display_name.split(',')[1]?.trim() || 'Bayern';
+                            const cleanStreet = `${road} ${houseNumber}`.trim() || item.display_name.split(',')[0].trim();
+
+                            collected.push({
+                                label: `${cleanStreet}${postcode ? `, ${postcode}` : ''} (${city})`,
+                                fallbackData: {
+                                    address: cleanStreet,
+                                    postalCode: postcode,
+                                    lat: item.lat,
+                                    lon: item.lon
+                                }
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Nominatim fallback error:', err);
+                }
+            }
+
+            const uniqueItems = deduplicateSuggestions(collected);
+            uniqueItems.sort((a, b) => {
+                const aMatch = a.label.toLowerCase().includes(normalizedQuery) ? 0 : 1;
+                const bMatch = b.label.toLowerCase().includes(normalizedQuery) ? 0 : 1;
+                return aMatch - bMatch;
+            });
+
+            return uniqueItems.slice(0, 8);
+        }
+
         function setupBavariaAddressAutocomplete() {
             const addressInput = document.getElementById('client-address');
             const suggestionsBox = document.getElementById('address-suggestions-dropdown');
@@ -356,94 +480,80 @@
                 }
 
                 debounceTimer = setTimeout(async () => {
-                    const ready = await waitForGooglePlaces(6000);
-                    if (!ready || !window.google?.maps?.places?.AutocompleteSuggestion) {
-                        console.warn('Google Places AutocompleteSuggestion no disponible');
-                        return;
-                    }
+                    const items = await fetchBavariaSuggestions(query);
 
-                    try {
-                        const request = {
-                            input: query,
-                            includedRegionCodes: ['DE'],
-                            locationBias: {
-                                center: bavariaCenter,
-                                radius: bavariaRadiusMeters
-                            }
-                        };
+                    if (addressInput.value.trim() !== query) return;
 
-                        const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+                    if (items.length > 0) {
+                        suggestionsBox.innerHTML = '';
+                        suggestionsBox.style.display = 'block';
 
-                        if (addressInput.value.trim() !== query) return;
+                        items.forEach(entry => {
+                            const item = document.createElement('div');
+                            item.className = 'client-result-item';
+                            item.textContent = entry.label;
 
-                        if (suggestions && suggestions.length > 0) {
-                            const seenLabels = new Set();
-                            const uniquePredictions = [];
+                            item.addEventListener('mousedown', () => {
+                                isSelectingAddressSuggestion = true;
+                            });
 
-                            for (const suggestion of suggestions) {
-                                const placePrediction = suggestion.placePrediction;
-                                if (!placePrediction) continue;
-                                const label = placePrediction.text.toString().trim();
-                                const norm = label.toLowerCase();
-                                if (!label || seenLabels.has(norm)) continue;
-                                seenLabels.add(norm);
-                                uniquePredictions.push({ label, placePrediction });
-                            }
-
-                            if (uniquePredictions.length > 0) {
-                                suggestionsBox.innerHTML = '';
-                                suggestionsBox.style.display = 'block';
-
-                                uniquePredictions.forEach(({ label, placePrediction }) => {
-                                    const item = document.createElement('div');
-                                    item.className = 'client-result-item';
-                                    item.textContent = label;
-
-                                    item.addEventListener('click', async () => {
-                                        suggestionsBox.style.display = 'none';
-                                        suggestionsBox.innerHTML = '';
-
-                                        try {
-                                            const place = placePrediction.toPlace();
-                                            await place.fetchFields({
-                                                fields: ['formattedAddress', 'displayName', 'location', 'addressComponents']
-                                            });
-
-                                            const parsed = parseAddressComponents(
-                                                place.addressComponents || [],
-                                                place.formattedAddress || label
-                                            );
-
-                                            const finalAddr = parsed.address || limpiarDireccion(label);
-                                            addressInput.value = finalAddr;
-
-                                            if (parsed.postalCode) {
-                                                document.getElementById('client-postal').value = parsed.postalCode;
-                                            }
-
-                                            const location = place.location;
-                                            if (location) {
-                                                const lat = Number(typeof location.lat === 'function' ? location.lat() : location.lat).toFixed(6);
-                                                const lng = Number(typeof location.lng === 'function' ? location.lng() : location.lng).toFixed(6);
-                                                document.getElementById('client-lat').value = lat;
-                                                document.getElementById('client-lng').value = lng;
-                                                updateMapPreview(lat, lng, finalAddr);
-                                            }
-                                        } catch (err) {
-                                            console.error('Fehler beim Laden der Adressdetails:', err);
-                                        }
-                                    });
-
-                                    suggestionsBox.appendChild(item);
-                                });
-                            } else {
+                            item.addEventListener('click', async () => {
                                 suggestionsBox.style.display = 'none';
-                            }
-                        } else {
-                            suggestionsBox.style.display = 'none';
-                        }
-                    } catch (error) {
-                        console.error('Error al obtener sugerencias de Google Places:', error);
+                                suggestionsBox.innerHTML = '';
+
+                                try {
+                                    if (entry.placePrediction) {
+                                        const place = entry.placePrediction.toPlace();
+                                        await place.fetchFields({
+                                            fields: ['formattedAddress', 'displayName', 'location', 'addressComponents']
+                                        });
+
+                                        const parsed = parseAddressComponents(
+                                            place.addressComponents || [],
+                                            place.formattedAddress || entry.label
+                                        );
+
+                                        const finalAddr = parsed.address || limpiarDireccion(entry.label);
+                                        addressInput.value = finalAddr;
+
+                                        if (parsed.postalCode) {
+                                            document.getElementById('client-postal').value = parsed.postalCode;
+                                        }
+
+                                        const location = place.location;
+                                        if (location) {
+                                            const lat = Number(typeof location.lat === 'function' ? location.lat() : location.lat).toFixed(6);
+                                            const lng = Number(typeof location.lng === 'function' ? location.lng() : location.lng).toFixed(6);
+                                            document.getElementById('client-lat').value = lat;
+                                            document.getElementById('client-lng').value = lng;
+                                            updateMapPreview(lat, lng, finalAddr);
+                                        }
+                                    } else if (entry.fallbackData) {
+                                        addressInput.value = entry.fallbackData.address;
+                                        if (entry.fallbackData.postalCode) {
+                                            document.getElementById('client-postal').value = entry.fallbackData.postalCode;
+                                        }
+                                        if (entry.fallbackData.lat && entry.fallbackData.lon) {
+                                            const lat = Number(entry.fallbackData.lat).toFixed(6);
+                                            const lng = Number(entry.fallbackData.lon).toFixed(6);
+                                            document.getElementById('client-lat').value = lat;
+                                            document.getElementById('client-lng').value = lng;
+                                            updateMapPreview(lat, lng, entry.fallbackData.address);
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error('Fehler beim Laden der Adressdetails:', err);
+                                } finally {
+                                    setTimeout(() => {
+                                        isSelectingAddressSuggestion = false;
+                                    }, 150);
+                                }
+                            });
+
+                            suggestionsBox.appendChild(item);
+                        });
+                    } else {
+                        suggestionsBox.style.display = 'none';
                     }
                 }, 200);
             });
