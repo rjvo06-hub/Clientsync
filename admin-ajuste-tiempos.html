@@ -122,10 +122,20 @@
             width: 100%;
             transition: opacity 0.2s;
         }
+        .btn-action:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-green { background: #15803d; color: white; box-shadow: 0 4px 12px rgba(21, 128, 61, 0.2); }
-        .btn-green:hover { opacity: 0.95; }
+        .btn-green:hover:not(:disabled) { opacity: 0.95; }
         .btn-add { background: #f1f5f9; color: #334155; border: 1px dashed #cbd5e1; margin-top: 6px; }
         .btn-danger { background: #fee2e2; color: #dc2626; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+        .btn-delete-appointment {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            margin-top: 10px;
+        }
+        .btn-delete-appointment:hover:not(:disabled) {
+            background: #fee2e2;
+        }
         
         #statusMessage {
             margin-top: 12px;
@@ -146,7 +156,7 @@
             </div>
 
             <h1 style="font-size: 1.1rem; font-weight: 800; margin: 0 0 4px 0; color: #0f172a;">Zeiten-Korrektur</h1>
-            <p style="font-size: 0.75rem; color: #64748b; margin: 0 0 16px 0;">Termine und Mitarbeiterzeiten manuell anpassen</p>
+            <p style="font-size: 0.75rem; color: #64748b; margin: 0 0 16px 0;">Termine und Mitarbeiterzeiten manuell anpassen oder löschen</p>
             
             <div class="form-group" style="margin-bottom: 0;">
                 <label>Termin auswählen (Kunde / Datum):</label>
@@ -179,13 +189,14 @@
 
             <div style="margin-top: 20px;">
                 <button type="button" id="btnGuardar" class="btn-action btn-green">💾 Änderungen in Supabase speichern</button>
+                <button type="button" id="btnEliminar" class="btn-action btn-delete-appointment">🗑️ Termin endgültig löschen</button>
             </div>
             <div id="statusMessage"></div>
         </div>
     </div>
 
     <script type="module">
-// --- PROTECCIÓN DE ACCESO ---
+        // --- PROTECCIÓN DE ACCESO ---
         const usuarioLogueado = localStorage.getItem('clientSync_saved_employee');
         if (!usuarioLogueado) {
             alert('⚠️ Zugriff verweigert. Bitte melden Sie sich zuerst an.');
@@ -200,11 +211,41 @@
         const txtFecha = document.getElementById('txtFecha');
         const empleadosContainer = document.getElementById('empleadosContainer');
         const btnGuardar = document.getElementById('btnGuardar');
+        const btnEliminar = document.getElementById('btnEliminar');
         const statusMessage = document.getElementById('statusMessage');
 
         let listaTerminos = [];
         let empleadosActuales = [];
         let listaEmpleadosDisponibles = [];
+
+        function bloquearEdicion() {
+            terminId.value = '';
+            txtKunde.value = '';
+            txtFecha.value = '';
+            empleadosActuales = [];
+            empleadosContainer.innerHTML = '';
+            cardEdicion.style.opacity = '0.4';
+            cardEdicion.style.pointerEvents = 'none';
+        }
+
+        function poblarSelectorTerminos(terminos) {
+            selectTermin.innerHTML = '<option value="">-- Termin auswählen --</option>';
+
+            if (!terminos || terminos.length === 0) {
+                selectTermin.innerHTML = '<option value="">-- Keine Termine gefunden --</option>';
+                bloquearEdicion();
+                return;
+            }
+
+            terminos.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t.id;
+                const cliente = t.client_name || 'Kein Kunde';
+                const fecha = t.scheduled_date || 'Kein Datum';
+                option.textContent = `${fecha} - ${cliente}`;
+                selectTermin.appendChild(option);
+            });
+        }
 
         async function cargarDatosIniciales() {
             try {
@@ -232,21 +273,7 @@
                 if (error) throw error;
 
                 listaTerminos = data || [];
-                selectTermin.innerHTML = '<option value="">-- Termin auswählen --</option>';
-                
-                if (listaTerminos.length === 0) {
-                    selectTermin.innerHTML = '<option value="">-- Keine Termine gefunden --</option>';
-                    return;
-                }
-
-                listaTerminos.forEach(t => {
-                    const option = document.createElement('option');
-                    option.value = t.id;
-                    const cliente = t.client_name || 'Kein Kunde';
-                    const fecha = t.scheduled_date || 'Kein Datum';
-                    option.textContent = `${fecha} - ${cliente}`;
-                    selectTermin.appendChild(option);
-                });
+                poblarSelectorTerminos(listaTerminos);
             } catch (err) {
                 console.error('Fehler beim Laden:', err);
                 selectTermin.innerHTML = '<option value="">Fehler beim Laden der Termine</option>';
@@ -256,12 +283,11 @@
         selectTermin.addEventListener('change', (e) => {
             const idSeleccionado = e.target.value;
             if (!idSeleccionado) {
-                cardEdicion.style.opacity = '0.4';
-                cardEdicion.style.pointerEvents = 'none';
+                bloquearEdicion();
                 return;
             }
 
-            const termin = listaTerminos.find(t => t.id === idSeleccionado);
+            const termin = listaTerminos.find(t => String(t.id) === String(idSeleccionado));
             if (!termin) return;
 
             terminId.value = termin.id;
@@ -342,12 +368,15 @@
             const id = terminId.value;
             const fecha = txtFecha.value;
 
+            if (!id) return;
+
             if (empleadosActuales.length === 0) {
                 alert('Es muss mindestens ein Mitarbeiter erfasst sein.');
                 return;
             }
 
             btnGuardar.disabled = true;
+            btnEliminar.disabled = true;
             statusMessage.style.color = '#6366f1';
             statusMessage.textContent = 'Wird gespeichert...';
 
@@ -381,8 +410,12 @@
             });
 
             const visitDuration = (minCheckInMin !== null && maxCheckOutMin !== null) ? (maxCheckOutMin - minCheckInMin) : 0;
-            const globalCheckIn = `${fecha} ${Math.floor(minCheckInMin/60).toString().padStart(2,'0')}:${(minCheckInMin%60).toString().padStart(2,'0')}:00`;
-            const globalCheckOut = `${fecha} ${Math.floor(maxCheckOutMin/60).toString().padStart(2,'0')}:${(maxCheckOutMin%60).toString().padStart(2,'0')}:00`;
+            const globalCheckIn = minCheckInMin !== null
+                ? `${fecha} ${Math.floor(minCheckInMin/60).toString().padStart(2,'0')}:${(minCheckInMin%60).toString().padStart(2,'0')}:00`
+                : null;
+            const globalCheckOut = maxCheckOutMin !== null
+                ? `${fecha} ${Math.floor(maxCheckOutMin/60).toString().padStart(2,'0')}:${(maxCheckOutMin%60).toString().padStart(2,'0')}:00`
+                : null;
 
             try {
                 const { error } = await supabase
@@ -398,6 +431,17 @@
 
                 if (error) throw error;
 
+                // Actualizar copia local en memoria
+                const idx = listaTerminos.findIndex(t => String(t.id) === String(id));
+                if (idx !== -1) {
+                    listaTerminos[idx] = {
+                        ...listaTerminos[idx],
+                        check_in_time: globalCheckIn,
+                        check_out_time: globalCheckOut,
+                        sessions: sessionsArray
+                    };
+                }
+
                 statusMessage.style.color = '#15803d';
                 statusMessage.textContent = '✔ Erfolgreich aktualisiert!';
                 setTimeout(() => { statusMessage.textContent = ''; }, 3000);
@@ -407,6 +451,49 @@
                 statusMessage.textContent = '✖ Fehler beim Speichern der Daten.';
             } finally {
                 btnGuardar.disabled = false;
+                btnEliminar.disabled = false;
+            }
+        });
+
+        btnEliminar.addEventListener('click', async () => {
+            const id = terminId.value;
+            const cliente = txtKunde.value || 'Unbekannter Kunde';
+            const fecha = txtFecha.value || 'Kein Datum';
+
+            if (!id) return;
+
+            const confirmado = confirm(
+                `Möchten Sie diesen Termin wirklich endgültig löschen?\n\nKunde: ${cliente}\nDatum: ${fecha}`
+            );
+            if (!confirmado) return;
+
+            btnGuardar.disabled = true;
+            btnEliminar.disabled = true;
+            statusMessage.style.color = '#dc2626';
+            statusMessage.textContent = 'Wird gelöscht...';
+
+            try {
+                const { error } = await supabase
+                    .from('appointments')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                listaTerminos = listaTerminos.filter(t => String(t.id) !== String(id));
+                poblarSelectorTerminos(listaTerminos);
+                bloquearEdicion();
+
+                statusMessage.style.color = '#15803d';
+                statusMessage.textContent = '✔ Termin erfolgreich gelöscht!';
+                setTimeout(() => { statusMessage.textContent = ''; }, 3000);
+            } catch (err) {
+                console.error('Fehler beim Löschen:', err);
+                statusMessage.style.color = '#dc2626';
+                statusMessage.textContent = '✖ Fehler beim Löschen des Termins.';
+            } finally {
+                btnGuardar.disabled = false;
+                btnEliminar.disabled = false;
             }
         });
 
