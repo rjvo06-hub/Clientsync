@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ClientSync | Arbeitstag-Korrektur</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 16px;
+            color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 90vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05);
+        }
+
+        .btn-back {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-admin {
+            font-size: 0.68rem;
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #ffedd5;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input, select {
+            font-family: inherit;
+            font-size: 0.85rem;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            background: #f8fafc;
+            outline: none;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        select:focus, input:focus {
+            border-color: #0f172a;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.05);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .summary-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+        }
+
+        .summary-label {
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .summary-value {
+            color: #0f172a;
+            font-weight: 800;
+        }
+
+        .btn-action {
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 13px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+
+        .btn-action:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-green {
+            background: #15803d;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(21, 128, 61, 0.2);
+        }
+
+        .btn-green:hover:not(:disabled) {
+            opacity: 0.95;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            margin-top: 8px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e2e8f0;
+        }
+
+        #statusMessage {
+            margin-top: 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- ENCABEZADO Y SELECCIÓN DE DÍA / EMPLEADO -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <a href="./index.html" class="btn-back">← Zurück</a>
+                <span class="badge-admin">Admin Level 3</span>
+            </div>
+
+            <h1 style="font-size: 1.1rem; font-weight: 800; margin: 0 0 4px 0; color: #0f172a;">Arbeitstag-Korrektur</h1>
+            <p style="font-size: 0.75rem; color: #64748b; margin: 0 0 16px 0;">Arbeitszeiten, Pause und Status der Mitarbeiter pro Tag anpassen</p>
+
+            <div class="grid-2">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="filtroFecha">Datum:</label>
+                    <input type="date" id="filtroFecha">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="selectEmpleado">Mitarbeiter:</label>
+                    <select id="selectEmpleado">
+                        <option value="">-- Laden... --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORMULARIO DE JORNADA DIARIA -->
+        <div class="card" id="cardJornada" style="opacity: 0.45; pointer-events: none;">
+            <input type="hidden" id="logId">
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="clockIn">Arbeitsbeginn:</label>
+                    <input type="time" id="clockIn">
+                </div>
+                <div class="form-group">
+                    <label for="clockOut">Arbeitsende:</label>
+                    <input type="time" id="clockOut">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="lunchStart">Pausenbeginn:</label>
+                    <input type="time" id="lunchStart">
+                </div>
+                <div class="form-group">
+                    <label for="lunchEnd">Pausenende:</label>
+                    <input type="time" id="lunchEnd">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="estadoJornada">Status:</label>
+                <select id="estadoJornada">
+                    <option value="activo">activo</option>
+                    <option value="pause">pause</option>
+                    <option value="beendet">beendet</option>
+                </select>
+            </div>
+
+            <div class="summary-box">
+                <span class="summary-label">Netto-Arbeitszeit:</span>
+                <span class="summary-value" id="resumenNetto">0h 00m (0 Min.)</span>
+            </div>
+
+            <div style="margin-top: 18px;">
+                <button type="button" id="btnGuardarLog" class="btn-action btn-green">💾 Arbeitstag speichern</button>
+                <button type="button" id="btnLimpiarHoras" class="btn-action btn-secondary">↺ Zeiten leeren</button>
+            </div>
+
+            <div id="statusMessage"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        const usuarioLogueado = localStorage.getItem('clientSync_saved_employee');
+        if (!usuarioLogueado) {
+            alert('⚠️ Zugriff verweigert. Bitte melden Sie sich zuerst an.');
+            window.location.href = './index.html';
+        }
+
+        import { supabase } from './js/supabaseClient.js';
+
+        const filtroFecha = document.getElementById('filtroFecha');
+        const selectEmpleado = document.getElementById('selectEmpleado');
+        const cardJornada = document.getElementById('cardJornada');
+        const logId = document.getElementById('logId');
+
+        const clockIn = document.getElementById('clockIn');
+        const clockOut = document.getElementById('clockOut');
+        const lunchStart = document.getElementById('lunchStart');
+        const lunchEnd = document.getElementById('lunchEnd');
+        const estadoJornada = document.getElementById('estadoJornada');
+        const resumenNetto = document.getElementById('resumenNetto');
+
+        const btnGuardarLog = document.getElementById('btnGuardarLog');
+        const btnLimpiarHoras = document.getElementById('btnLimpiarHoras');
+        const statusMessage = document.getElementById('statusMessage');
+
+        function hoyISO() {
+            const ahora = new Date();
+            const año = ahora.getFullYear();
+            const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+            const dia = String(ahora.getDate()).padStart(2, '0');
+            return `${año}-${mes}-${dia}`;
+        }
+
+        function extraerHoraHHMM(valor) {
+            if (!valor) return '';
+            if (/^\d{2}:\d{2}/.test(valor)) return valor.slice(0, 5);
+            const match = String(valor).match(/[T ](\d{2}:\d{2})/);
+            if (match) return match[1];
+            const fecha = new Date(valor);
+            if (!Number.isNaN(fecha.getTime())) {
+                return fecha.toTimeString().slice(0, 5);
+            }
+            return '';
+        }
+
+        function aMinutos(hhmm) {
+            if (!hhmm || !hhmm.includes(':')) return null;
+            const [h, m] = hhmm.split(':').map(Number);
+            if (Number.isNaN(h) || Number.isNaN(m)) return null;
+            return h * 60 + m;
+        }
+
+        function construirTimestamp(fecha, hhmm) {
+            if (!fecha || !hhmm) return null;
+            return `${fecha}T${hhmm}:00`;
+        }
+
+        function actualizarResumenNetto() {
+            const inicioMin = aMinutos(clockIn.value);
+            const finMin = aMinutos(clockOut.value);
+            const pausaInicioMin = aMinutos(lunchStart.value);
+            const pausaFinMin = aMinutos(lunchEnd.value);
+
+            let brutoMin = 0;
+            if (inicioMin !== null && finMin !== null && finMin > inicioMin) {
+                brutoMin = finMin - inicioMin;
+            }
+
+            let pausaMin = 0;
+            if (pausaInicioMin !== null && pausaFinMin !== null && pausaFinMin > pausaInicioMin) {
+                pausaMin = pausaFinMin - pausaInicioMin;
+            }
+
+            const netoMin = Math.max(0, brutoMin - pausaMin);
+            const horas = Math.floor(netoMin / 60);
+            const mins = netoMin % 60;
+            resumenNetto.textContent = `${horas}h ${String(mins).padStart(2, '0')}m (${netoMin} Min.)`;
+        }
+
+        function habilitarFormulario(habilitado) {
+            cardJornada.style.opacity = habilitado ? '1' : '0.45';
+            cardJornada.style.pointerEvents = habilitado ? 'auto' : 'none';
+        }
+
+        function limpiarCamposHoras() {
+            clockIn.value = '';
+            clockOut.value = '';
+            lunchStart.value = '';
+            lunchEnd.value = '';
+            estadoJornada.value = 'activo';
+            actualizarResumenNetto();
+        }
+
+        async function cargarEmpleados() {
+            try {
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('name')
+                    .order('name', { ascending: true });
+
+                if (error) throw error;
+
+                const nombres = (data || []).map(e => e.name).filter(Boolean);
+                selectEmpleado.innerHTML = '<option value="">-- Mitarbeiter wählen --</option>';
+
+                nombres.forEach(nombre => {
+                    const opt = document.createElement('option');
+                    opt.value = nombre;
+                    opt.textContent = nombre;
+                    selectEmpleado.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Fehler beim Laden der Mitarbeiter:', err);
+                selectEmpleado.innerHTML = '<option value="">Fehler beim Laden</option>';
+            }
+        }
+
+        async function cargarRegistroDiario() {
+            const fecha = filtroFecha.value;
+            const empleado = selectEmpleado.value;
+            statusMessage.textContent = '';
+
+            if (!fecha || !empleado) {
+                logId.value = '';
+                limpiarCamposHoras();
+                habilitarFormulario(false);
+                return;
+            }
+
+            habilitarFormulario(true);
+            btnGuardarLog.disabled = true;
+            statusMessage.style.color = '#6366f1';
+            statusMessage.textContent = 'Arbeitstag wird geladen...';
+
+            try {
+                const { data, error } = await supabase
+                    .from('employee_daily_logs')
+                    .select('id, employee_name, work_date, clock_in_time, lunch_start_time, lunch_end_time, clock_out_time, status')
+                    .eq('employee_name', empleado)
+                    .eq('work_date', fecha)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const reg = data[0];
+                    logId.value = reg.id;
+                    clockIn.value = extraerHoraHHMM(reg.clock_in_time);
+                    clockOut.value = extraerHoraHHMM(reg.clock_out_time);
+                    lunchStart.value = extraerHoraHHMM(reg.lunch_start_time);
+                    lunchEnd.value = extraerHoraHHMM(reg.lunch_end_time);
+                    estadoJornada.value = reg.status || 'activo';
+                } else {
+                    logId.value = '';
+                    limpiarCamposHoras();
+                }
+
+                actualizarResumenNetto();
+                statusMessage.textContent = '';
+            } catch (err) {
+                console.error('Fehler beim Laden des Arbeitstags:', err);
+                statusMessage.style.color = '#dc2626';
+                statusMessage.textContent = '✖ Fehler beim Laden des Arbeitstags.';
+            } finally {
+                btnGuardarLog.disabled = false;
+            }
+        }
+
+        btnLimpiarHoras.addEventListener('click', () => {
+            limpiarCamposHoras();
+            statusMessage.textContent = '';
+        });
+
+        [clockIn, clockOut, lunchStart, lunchEnd].forEach(input => {
+            input.addEventListener('input', actualizarResumenNetto);
+            input.addEventListener('change', actualizarResumenNetto);
+        });
+
+        btnGuardarLog.addEventListener('click', async () => {
+            const fecha = filtroFecha.value;
+            const empleado = selectEmpleado.value;
+
+            if (!fecha || !empleado) return;
+
+            const inicioMin = aMinutos(clockIn.value);
+            const finMin = aMinutos(clockOut.value);
+            const pausaInicioMin = aMinutos(lunchStart.value);
+            const pausaFinMin = aMinutos(lunchEnd.value);
+
+            if (inicioMin !== null && finMin !== null && finMin <= inicioMin) {
+                alert('Arbeitsende muss nach Arbeitsbeginn liegen.');
+                return;
+            }
+
+            if (pausaInicioMin !== null && pausaFinMin !== null && pausaFinMin <= pausaInicioMin) {
+                alert('Pausenende muss nach Pausenbeginn liegen.');
+                return;
+            }
+
+            if ((pausaInicioMin !== null && pausaFinMin === null) || (pausaInicioMin === null && pausaFinMin !== null)) {
+                alert('Bitte sowohl Pausenbeginn als auch Pausenende angeben oder beide leer lassen.');
+                return;
+            }
+
+            btnGuardarLog.disabled = true;
+            btnLimpiarHoras.disabled = true;
+            statusMessage.style.color = '#6366f1';
+            statusMessage.textContent = 'Wird gespeichert...';
+
+            const payload = {
+                employee_name: empleado,
+                work_date: fecha,
+                clock_in_time: construirTimestamp(fecha, clockIn.value),
+                lunch_start_time: construirTimestamp(fecha, lunchStart.value),
+                lunch_end_time: construirTimestamp(fecha, lunchEnd.value),
+                clock_out_time: construirTimestamp(fecha, clockOut.value),
+                status: estadoJornada.value
+            };
+
+            try {
+                let resultado;
+                if (logId.value) {
+                    resultado = await supabase
+                        .from('employee_daily_logs')
+                        .update(payload)
+                        .eq('id', logId.value)
+                        .select('id')
+                        .single();
+                } else {
+                    resultado = await supabase
+                        .from('employee_daily_logs')
+                        .insert(payload)
+                        .select('id')
+                        .single();
+                }
+
+                if (resultado.error) throw resultado.error;
+                if (resultado.data && resultado.data.id) {
+                    logId.value = resultado.data.id;
+                }
+
+                statusMessage.style.color = '#15803d';
+                statusMessage.textContent = '✔ Arbeitstag erfolgreich gespeichert!';
+                setTimeout(() => { statusMessage.textContent = ''; }, 3000);
+            } catch (err) {
+                console.error('Fehler beim Speichern:', err);
+                statusMessage.style.color = '#dc2626';
+                statusMessage.textContent = '✖ Fehler beim Speichern des Arbeitstags.';
+            } finally {
+                btnGuardarLog.disabled = false;
+                btnLimpiarHoras.disabled = false;
+            }
+        });
+
+        filtroFecha.addEventListener('change', cargarRegistroDiario);
+        selectEmpleado.addEventListener('change', cargarRegistroDiario);
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            filtroFecha.value = hoyISO();
+            actualizarResumenNetto();
+            await cargarEmpleados();
+        });
+    </script>
+</body>
+</html>
