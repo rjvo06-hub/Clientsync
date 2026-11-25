@@ -309,7 +309,8 @@
                     <a href="./employee-builder.html"><span>👨‍🔧</span> Mitarbeiter</a>
                     <a href="./admin-report.html" style="background: #f0fdf4; color: #15803d; border-color: #bbf7d0;"><span>📊</span> Arbeitsbericht</a>
                     <a href="./admin-pdf.html" id="navAdminPdf" style="background: #faf5ff; color: #7c3aed; border-color: #e9d5ff;"><span>📄</span> PDF-Bericht</a>
-                    <a href="./admin-ajuste-tiempos.html" id="navAdminAjuste" style="background: #fff7ed; color: #c2410c; border-color: #ffedd5; grid-column: span 2;"><span>⏱️</span> Zeiten & Sitzungen korrigieren</a>
+                    <a href="./admin-ajuste-tiempos.html" id="navAdminAjuste" style="background: #fff7ed; color: #c2410c; border-color: #ffedd5;"><span>⏱️</span> Zeiten & Sitzungen</a>
+                    <a href="./Arbeitstag-Korrektur.html" id="navArbeitstagKorrektur" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;"><span>🗓️</span> Arbeitstag</a>
                 </nav>
             </div>
         </div>
@@ -341,6 +342,7 @@
         const adminSectionContainer = document.getElementById('admin-section-container');
         const pdfLink = document.getElementById('navAdminPdf');
         const ajusteLink = document.getElementById('navAdminAjuste');
+        const arbeitstagLink = document.getElementById('navArbeitstagKorrektur');
 
         document.querySelectorAll('.btn-toggle-pass').forEach(button => {
             button.addEventListener('click', () => {
@@ -529,6 +531,7 @@
                 adminSectionContainer.style.display = 'block';
                 if (pdfLink) pdfLink.style.display = 'flex';
                 if (ajusteLink) ajusteLink.style.display = 'flex';
+                if (arbeitstagLink) arbeitstagLink.style.display = 'flex';
             } else {
                 adminSectionContainer.style.display = 'none';
             }
